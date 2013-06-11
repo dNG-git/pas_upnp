@@ -45,7 +45,7 @@ from .ssdp_request import direct_ssdp_request
 class direct_ssdp_listener_ipv4_multicast(direct_dispatcher):
 #
 	"""
-Listener instance receiving multicast SSDP messages.
+Listener instance receiving IPv4 multicast SSDP messages.
 
 :author:     direct Netware Group
 :copyright:  (C) direct Netware Group - All rights reserved
@@ -56,10 +56,12 @@ Listener instance receiving multicast SSDP messages.
              GNU General Public License 2
 	"""
 
-	def __init__(self):
+	def __init__(self, ip):
 	#
 		"""
 Constructor __init__(direct_ssdp_listener_ipv4_multicast)
+
+:param ip: IPv4 address
 
 :since: v0.1.00
 		"""
@@ -67,6 +69,10 @@ Constructor __init__(direct_ssdp_listener_ipv4_multicast)
 		self.listener_active = False
 		"""
 True if multicast listener is active
+		"""
+		self.listener_ip = ip
+		"""
+Listener IPv6 address
 		"""
 
 		listener_socket = direct_udpne_ipv4_socket(( "", 1900 ))
@@ -98,7 +104,7 @@ Run the main loop for this server instance.
 		#
 			try:
 			#
-				self.listener_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, socket.inet_pton(socket.AF_INET, "239.255.255.250") + socket.inet_pton(socket.AF_INET, "0.0.0.0"))
+				self.listener_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, socket.inet_pton(socket.AF_INET, "239.255.255.250") + socket.inet_pton(socket.AF_INET, self.listener_ip))
 				self.listener_active = True
 			#
 			except Exception as handled_exception:
@@ -120,7 +126,7 @@ Stops the listener and unqueues all running sockets.
 
 		if (self.listener_active):
 		#
-			try: self.listener_socket.setsockopt(socket.IPPROTO_IP, socket.IP_DROP_MEMBERSHIP, socket.inet_pton(socket.AF_INET, "239.255.255.250") + socket.inet_pton(socket.AF_INET, "0.0.0.0"))
+			try: self.listener_socket.setsockopt(socket.IPPROTO_IP, socket.IP_DROP_MEMBERSHIP, socket.inet_pton(socket.AF_INET, "239.255.255.250") + socket.inet_pton(socket.AF_INET, self.listener_ip))
 			except Exception as handled_exception:
 			#
 				if (self.log_handler != None): self.log_handler.error(handled_exception)

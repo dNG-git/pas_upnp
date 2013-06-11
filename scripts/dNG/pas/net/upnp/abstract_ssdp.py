@@ -40,11 +40,11 @@ from os import uname
 import socket
 
 from dNG.data.rfc.http import direct_http
+from dNG.pas.data.binary import direct_binary
 from dNG.pas.data.settings import direct_settings
 from dNG.pas.module.named_loader import direct_named_loader
 from dNG.pas.net.udpne_ipv4_socket import direct_udpne_ipv4_socket
 from dNG.pas.net.udpne_ipv6_socket import direct_udpne_ipv6_socket
-from dNG.pas.pythonback import direct_bytes
 
 class direct_abstract_ssdp(direct_http):
 #
@@ -69,12 +69,17 @@ Constructor __init__(direct_service)
 :since: v0.1.00
 		"""
 
-		self.address_family = None
+		self.ssdp_family = None
 		"""
-SSDP target address family
+SSDP target family
+		"""
+		self.ssdp_host = None
+		"""
+SSDP target host
 		"""
 
 		direct_http.__init__(self, "ssdp://{0}:{1:d}/*".format(target, port))
+		self.set_ipv6_link_local_interface(direct_settings.get("pas_global_ipv6_link_local_interface"))
 
 		self.log_handler = direct_named_loader.get_singleton("dNG.pas.data.logging.log_handler", False)
 		"""
@@ -123,8 +128,9 @@ Returns a connection to the HTTP server.
 
 		direct_http.configure(self, url)
 
-		address_paths = socket.getaddrinfo(self.host, self.port, socket.AF_UNSPEC, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-		if (len(address_paths) == 1): self.address_family = address_paths[0][0]
+		self.ssdp_host = (self.host[1:-1] if (":" in self.host) else self.host)
+		address_paths = socket.getaddrinfo(self.ssdp_host, self.port, socket.AF_UNSPEC, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+		if (len(address_paths) == 1): self.ssdp_family = address_paths[0][0]
 	#
 
 	def request(self, method, data = None):
@@ -141,13 +147,13 @@ Invoke a given SSDP method on the unicast or multicast recipient.
 :since:  v0.1.00
 		"""
 
-		if (data != None): data = direct_bytes(data)
+		if (data != None): data = direct_binary.utf8_bytes(data)
 		os_uname = uname()
 
 		headers = self.headers.copy()
-		headers['Server'] = "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2])
-		headers['Host'] = "{0}:{1:d}".format(self.host, self.port)
-		headers['Content-Length'] = (0 if (data == None) else len(data))
+		headers['SERVER'] = "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2])
+		headers['HOST'] = "{0}:{1:d}".format(self.host, self.port)
+		headers['CONTENT-LENGTH'] = (0 if (data == None) else len(data))
 
 		ssdp_header = "{0} {1} HTTP/1.1\r\n".format(method.upper(), self.path)
 
@@ -160,7 +166,7 @@ Invoke a given SSDP method on the unicast or multicast recipient.
 			else: ssdp_header += "{0}: {1}\r\n".format(header_name, headers[header_name])
 		#
 
-		ssdp_header = direct_bytes("{0}\r\n".format(ssdp_header))
+		ssdp_header = direct_binary.utf8_bytes("{0}\r\n".format(ssdp_header))
 
 		data = (ssdp_header if (data == None) else ssdp_header + data)
 		return self.write_data(data)
@@ -228,7 +234,7 @@ Send the given data to the defined recipient.
 
 		try:
 		#
-			if (self.address_family == socket.AF_INET):
+			if (self.ssdp_family == socket.AF_INET):
 			#
 				self.socket = direct_udpne_ipv4_socket()
 				if (self.source_port != None): self.socket.bind(( "", self.source_port ))
@@ -243,11 +249,10 @@ Send the given data to the defined recipient.
 				if (hasattr(socket, "IPV6_MULTICAST_HOPS")): self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_HOPS, self.udp_hops)
 			#
 
-			self.socket.sendto(data, ( self.host, self.port ))
+			self.socket.sendto(data, ( self.ssdp_host, self.port ))
 		#
 		except Exception as handled_exception:
 		#
-			print(handled_exception)
 			if (self.log_handler != None): self.log_handler.error(handled_exception)
 			var_return = False
 		#

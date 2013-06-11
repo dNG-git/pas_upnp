@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.devices.callable_device
+dNG.pas.data.upnp.services.remote_ui_server
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -36,60 +36,86 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from dNG.pas.data.upnp.services.callable_service import direct_callable_service
-from .abstract_device import direct_abstract_device
+from .abstract_service import direct_abstract_service
 
-class direct_callable_device(direct_abstract_device):
+class direct_remote_ui_server(direct_abstract_service):
 #
 	"""
-Implementation for "urn:schemas-direct-netware-de:device:CallableDevice:1".
+Implementation for "urn:schemas-upnp-org:service:RemoteUIServer:1".
 
 :author:     direct Netware Group
 :copyright:  direct Netware Group - All rights reserved
 :package:    pas
 :subpackage: upnp
-:since:      v0.1.00
+:since:      v0.1.01
 :license:    http://www.direct-netware.de/redirect.py?licenses;gpl
              GNU General Public License 2
 	"""
 
-	def __init__(self):
+	def get_compatible_uis(self, input_device_profile, ui_filter = ""):
 	#
 		"""
-Constructor __init__(direct_callable_device)
+Calls the given hook and returns the result.
 
-:since: v0.1.00
+:return: (mixed) Data returned by the called hook
+:since:  v0.1.01
 		"""
 
-		direct_abstract_device.__init__(self)
-
-		self.type = "CallableDevice"
-		self.upnp_domain = "schemas-direct-netware-de"
-		self.version = "1"
+		print(input_device_profile)
+		print(ui_filter)
+		return None
 	#
 
-	def init_device(self, control_point, udn = None, configid = None):
+	def init_service(self, device, service_id = None, configid = None):
 	#
 		"""
-Initialize a host device.
+Initialize a host service.
 
 :return: (bool) Returns true if initialization was successful.
-:since: v0.1.00
+:since:  v0.1.01
 		"""
 
-		direct_abstract_device.init_device(self, control_point, udn, configid)
+		if (service_id == None): service_id = "RemoteUIServer"
+		direct_abstract_service.init_service(self, device, service_id, configid)
 
-		self.device_model = "UPnP Python server"
-		self.device_model_desc = "Python based UPnP server software"
-		self.device_model_url = "http://www.direct-netware.de/redirect.py?pas;upnp"
-		self.device_model_version = "#echo(pasUPnPVersion)#"
-		self.manufacturer = "direct Netware Group"
-		self.manufacturer_url = "http://www.direct-netware.de"
+		self.actions = {
+			"GetCompatibleUIs": {
+				"argument_variables": [
+					{ "name": "InputDeviceProfile", "variable": "A_ARG_TYPE_DeviceProfile" },
+					{ "name": "UIFilter", "variable": "A_ARG_TYPE_String" }
+				],
+				"return_variable": { "name": "UIListing", "variable": "A_ARG_TYPE_CompatibleUIs" },
+				"result_variables": [ ]
+			}
+		}
+
+		self.service_id = service_id
 		self.spec_major = 1
 		self.spec_minor = 1
+		self.type = "RemoteUIServer"
+		self.upnp_domain = "schemas-upnp-org"
+		self.version = "1"
 
-		service = direct_callable_service()
-		if (service.init_service(self, configid = self.configid)): self.service_add(service)
+		self.variables = {
+			"A_ARG_TYPE_DeviceProfile": {
+				"is_sending_events": True,
+				"is_multicasting_events": False,
+				"type": "string",
+				"value": ""
+			},
+			"A_ARG_TYPE_CompatibleUIs": {
+				"is_sending_events": True,
+				"is_multicasting_events": False,
+				"type": "string",
+				"value": ""
+			},
+			"A_ARG_TYPE_String": {
+				"is_sending_events": True,
+				"is_multicasting_events": False,
+				"type": "string",
+				"value": ""
+			}
+		}
 
 		return True
 	#

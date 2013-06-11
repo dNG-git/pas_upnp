@@ -42,9 +42,10 @@ import re
 
 from dNG.data.xml_writer import direct_xml_writer
 from dNG.data.rfc.http import direct_http
+from dNG.pas.data.binary import direct_binary
+from dNG.pas.data.settings import direct_settings
 from dNG.pas.data.logging.log_line import direct_log_line
 from dNG.pas.module.named_loader import direct_named_loader
-from dNG.pas.pythonback import direct_str
 from .service import direct_service
 
 class direct_device(object):
@@ -61,7 +62,7 @@ The UPnP Basic:1 device implementation.
              GNU General Public License 2
 	"""
 
-	RE_CAMEL_CASE_SPLITTER = re.compile("(?!^)([A-Z])([a-z0-9]|$)")
+	RE_CAMEL_CASE_SPLITTER = direct_service.RE_CAMEL_CASE_SPLITTER
 	"""
 CamelCase RegExp
 	"""
@@ -398,9 +399,7 @@ Return a UPnP service for the given UPnP service ID.
 
 			if (not var_return.is_initialized()):
 			#
-				self.synchronized.acquire()
-
-				try:
+				with self.synchronized:
 				#
 					scpd_url = var_return.get_url_scpd()
 
@@ -410,9 +409,10 @@ Return a UPnP service for the given UPnP service ID.
 
 						http_client = direct_http(scpd_url, event_handler = self.log_handler)
 						http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
+						http_client.set_ipv6_link_local_interface(direct_settings.get("pas_global_ipv6_link_local_interface"))
 						http_response = http_client.request_get()
 
-						if (not isinstance(http_response['body'], Exception)): self.scpds[scpd_url] = direct_str(http_response['body'])
+						if (not isinstance(http_response['body'], Exception)): self.scpds[scpd_url] = direct_binary.str(http_response['body'])
 					#
 
 					if (scpd_url in self.scpds):
@@ -421,9 +421,6 @@ Return a UPnP service for the given UPnP service ID.
 						if (var_return.is_managed()): var_return.set_configid(self.configid)
 					#
 				#
-				except Exception as handled_exception: direct_log_line.error(handled_exception)
-
-				self.synchronized.release()
 			#
 		#
 
@@ -659,7 +656,7 @@ Initialize the device from a UPnP description.
 				#
 					embedded_identifier = direct_device.get_identifier(usn, identifier['bootid'], identifier['configid'])
 
-					embedded_device = direct_named_loader.get_instance("dNG.pas.data.upnp.devices.{0}".format(direct_device.RE_CAMEL_CASE_SPLITTER.sub("_\\1\\2", embedded_identifier['type']).lower()), False)
+					embedded_device = direct_named_loader.get_instance("dNG.pas.data.upnp.devices.{0}".format(direct_device.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", embedded_identifier['type']).lower()), False)
 					if (embedded_device == None): embedded_device = direct_device()
 
 					embedded_xml_data = { "device": xml_parser.node_get("upnp:deviceList upnp:device#{0:d}".format(position), False) }
@@ -890,7 +887,7 @@ Parses the given USN string.
 :since:  v0.1.00
 		"""
 
-		usn = direct_str(usn)
+		usn = direct_binary.str(usn)
 
 		if (type(usn) == str):
 		#
@@ -923,7 +920,7 @@ Parses the given USN string.
 			#
 			elif (usn[-17:].lower() == "::upnp:rootdevice"): var_return['class'] = "rootdevice"
 		#
-		else: var_return = False
+		else: var_return = None
 
 		return var_return
 	#

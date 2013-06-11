@@ -36,8 +36,8 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from dNG.pas.controller.upnp_request import direct_upnp_request
-from dNG.pas.data.translatable_exception import direct_translatable_exception
+from dNG.pas.controller.http_upnp_request import direct_http_upnp_request
+from dNG.pas.data.upnp.exception import direct_exception
 from dNG.pas.data.upnp.devices.abstract_device import direct_abstract_device
 from dNG.pas.data.upnp.services.abstract_service import direct_abstract_service
 from .module import direct_module
@@ -64,13 +64,15 @@ Action for "get_device"
 :since: v0.1.00
 		"""
 
-		if (not isinstance(self.request, direct_upnp_request)): raise direct_translatable_exception("pas_http_error_400")
+		if (not isinstance(self.request, direct_http_upnp_request)): raise direct_exception("pas_http_error_400")
 		upnp_device = self.request.get_upnp_device()
-		if (not isinstance(upnp_device, direct_abstract_device)): raise direct_translatable_exception("pas_http_error_400")
+		if (not isinstance(upnp_device, direct_abstract_device)): raise direct_exception("pas_http_error_400", 401)
+
+		upnp_device.client_set_user_agent(self.request.get_header("User-Agent"))
 
 		self.response.init(True)
 		self.response.set_header("Content-Type", "text/xml; charset=UTF-8")
-		self.response.send_raw_data("<?xml version='1.0' encoding='UTF-8' ?>" + upnp_device.get_xml())
+		self.response.set_raw_data("<?xml version='1.0' encoding='UTF-8' ?>" + upnp_device.get_xml())
 	#
 
 	def execute_get_service(self):
@@ -81,13 +83,15 @@ Action for "get_service"
 :since: v0.1.00
 		"""
 
-		if (not isinstance(self.request, direct_upnp_request)): raise direct_translatable_exception("pas_http_error_400")
+		if (not isinstance(self.request, direct_http_upnp_request)): raise direct_exception("pas_http_error_400")
 		upnp_service = self.request.get_upnp_service()
-		if (not isinstance(upnp_service, direct_abstract_service)): raise direct_translatable_exception("pas_http_error_400")
+		if (not isinstance(upnp_service, direct_abstract_service)): raise direct_exception("pas_http_error_400", 401)
+
+		upnp_service.client_set_user_agent(self.request.get_header("User-Agent"))
 
 		self.response.init(True)
 		self.response.set_header("Content-Type", "text/xml; charset=UTF-8")
-		self.response.send_raw_data("<?xml version='1.0' encoding='UTF-8' ?>" + upnp_service.get_xml())
+		self.response.set_raw_data("<?xml version='1.0' encoding='UTF-8' ?>" + upnp_service.get_xml())
 	#
 #
 

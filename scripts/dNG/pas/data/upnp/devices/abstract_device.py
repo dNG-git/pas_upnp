@@ -36,7 +36,15 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
+from binascii import hexlify
+from os import urandom
+from socket import gethostname
+from uuid import NAMESPACE_URL
+from uuid import uuid3 as uuid
+
 from dNG.pas.data.http.links import direct_links
+from dNG.pas.data.logging.log_line import direct_log_line
+from dNG.pas.data.upnp.client import direct_client
 from dNG.pas.data.upnp.device import direct_device
 from dNG.pas.data.upnp.services.abstract_service import direct_abstract_service
 
@@ -64,6 +72,10 @@ Constructor __init__(direct_abstract_device)
 
 		direct_device.__init__(self)
 
+		self.client_user_agent = None
+		"""
+Client user agent
+		"""
 		self.desc_url = None
 		"""
 UPnP device description URL
@@ -88,6 +100,19 @@ UPnP device specification domain
 		"""
 UPnP device type version
 		"""
+	#
+
+	def client_set_user_agent(self, user_agent):
+	#
+		"""
+Sets the UPnP client user agent.
+
+:param configid: Client user agent
+
+:since: v0.1.00
+		"""
+
+		self.client_user_agent = user_agent
 	#
 
 	def get_desc_url(self):
@@ -162,29 +187,37 @@ Returns the UPnP device type version.
 		return (self.version if (self.host_device) else direct_device.get_version(self))
 	#
 
-	def get_xml(self, xml_node_path = None, xml_writer = None):
+	def get_xml(self, flush = True):
 	#
 		"""
 Returns the UPnP device description.
 
-:return: (str) Device description XML
+:param flush: True to flush the XML parser instance and return the string
+              representation.
+
+:return: (mixed) Device description XML as string or XML parser instance
 :since:  v0.1.00
 		"""
 
-		xml_writer = self.init_xml_parser()
+		direct_log_line.debug("#echo(__FILEPATH__)# -upnpDevice.get_xml()- (#echo(__LINE__)#)")
 
-		attributes = { "xmlns": "urn:schemas-upnp-org:device-1-0", "xmlns:dlna": "urn:schemas-dlna-org:device-1-0" }
+		var_return = self.init_xml_parser()
+
+		client = direct_client.load_user_agent(self.client_user_agent)
+		if (client != None and (not client.get("upnp_xml_cdata_encoded", True))): var_return.define_cdata_encoding(False)
+
+		attributes = { "xmlns": "urn:schemas-upnp-org:device-1-0" }
 		if (self.configid != None): attributes['configId'] = self.configid
 
-		xml_writer.node_add("root", attributes = attributes)
-		xml_writer.node_set_cache_path("root")
+		var_return.node_add("root", attributes = attributes)
+		var_return.node_set_cache_path("root")
 
 		spec_version = self.get_spec_version()
-		xml_writer.node_add("root specVersion major", "{0:d}".format(spec_version[0]))
-		xml_writer.node_add("root specVersion minor", "{0:d}".format(spec_version[1]))
+		var_return.node_add("root specVersion major", str(spec_version[0]))
+		var_return.node_add("root specVersion minor", str(spec_version[1]))
 
-		self.get_xml_walker(xml_writer, "root device")
-		return xml_writer.cache_export(True)
+		self.get_xml_walker(var_return, "root device")
+		return (var_return.cache_export(True) if (flush) else var_return)
 	#
 
 	def get_xml_walker(self, xml_writer, xml_base_path):
@@ -243,9 +276,10 @@ given XML node path.
 				#
 					xml_service_base_path = "{0} serviceList service#{1:d}".format(xml_base_path, position)
 
-					xml_writer.node_add("{0} serviceId".format(xml_service_base_path), "urn:{0}".format(service.get_service_id_urn()))
+					xml_writer.node_add(xml_service_base_path)
 					xml_writer.node_set_cache_path(xml_service_base_path)
 
+					xml_writer.node_add("{0} serviceId".format(xml_service_base_path), "urn:{0}".format(service.get_service_id_urn()))
 					xml_writer.node_add("{0} serviceType".format(xml_service_base_path), "urn:{0}".format(service.get_urn()))
 					xml_writer.node_add("{0} SCPDURL".format(xml_service_base_path), service.get_url_scpd())
 					xml_writer.node_add("{0} controlURL".format(xml_service_base_path), service.get_url_control())
@@ -266,6 +300,8 @@ given XML node path.
 
 				if (isinstance(device, direct_abstract_device)):
 				#
+					xml_writer.node_add("{0} deviceList device#{1:d}".format(xml_base_path, position))
+
 					device.get_xml_walker(xml_writer, "{0} deviceList device#{1:d}".format(xml_base_path, position))
 					position += 1
 				#
@@ -273,7 +309,7 @@ given XML node path.
 		#
 	#
 
-	def init_device(self, control_point, udn, configid = None):
+	def init_device(self, control_point, udn = None, configid = None):
 	#
 		"""
 Initialize a host device.
@@ -284,7 +320,8 @@ Initialize a host device.
 
 		self.configid = configid
 		self.host_device = True
-		self.udn = udn
+		if (self.name == None): self.name = "{0} {1}".format(gethostname(), self.type)
+		self.udn = (str(uuid(NAMESPACE_URL, "upnp://{0}:{1:d}/{2}".format(control_point.get_http_host(), control_point.get_http_port(), hexlify(urandom(10))))) if (udn == None) else udn)
 
 		url = "http://{0}:{1:d}/upnp/{2}".format(control_point.get_http_host(), control_point.get_http_port(), direct_links.escape(self.udn))
 		self.desc_url = "{0}/desc".format(url)

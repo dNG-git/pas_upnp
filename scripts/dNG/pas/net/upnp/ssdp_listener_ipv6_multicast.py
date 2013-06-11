@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.net.upnp.ssdp_listener_ipv4_multicast
+dNG.pas.net.upnp.ssdp_listener_ipv6_multicast
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -45,7 +45,7 @@ from .ssdp_request import direct_ssdp_request
 class direct_ssdp_listener_ipv6_multicast(direct_dispatcher):
 #
 	"""
-Listener instance receiving multicast SSDP messages.
+Listener instance receiving IPv6 multicast SSDP messages.
 
 :author:     direct Netware Group
 :copyright:  (C) direct Netware Group - All rights reserved
@@ -56,10 +56,12 @@ Listener instance receiving multicast SSDP messages.
              GNU General Public License 2
 	"""
 
-	def __init__(self, multicast_address = "ff02::c"):
+	def __init__(self, ip, multicast_address = "ff02::c"):
 	#
 		"""
 Constructor __init__(direct_ssdp_listener_ipv6_multicast)
+
+:param ip: IPv6 address
 
 :since: v0.1.00
 		"""
@@ -67,6 +69,10 @@ Constructor __init__(direct_ssdp_listener_ipv6_multicast)
 		self.listener_active = False
 		"""
 True if multicast listener is active
+		"""
+		self.listener_ip = ip
+		"""
+Listener IPv6 address
 		"""
 		self.multicast_address = multicast_address
 		"""
@@ -102,7 +108,7 @@ Run the main loop for this server instance.
 		#
 			try:
 			#
-				self.listener_socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, socket.inet_pton(socket.AF_INET6, self.multicast_address) + socket.inet_pton(socket.AF_INET6, "::0"))
+				self.listener_socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, socket.inet_pton(socket.AF_INET6, self.multicast_address) + socket.inet_pton(socket.AF_INET6, self.listener_ip))
 				self.listener_active = True
 			#
 			except Exception as handled_exception:
@@ -124,7 +130,7 @@ Stops the listener and unqueues all running sockets.
 
 		if (self.listener_active):
 		#
-			try: self.listener_socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_LEAVE_GROUP, socket.inet_pton(socket.AF_INET6, self.multicast_address) + socket.inet_pton(socket.AF_INET6, "::0"))
+			try: self.listener_socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_LEAVE_GROUP, socket.inet_pton(socket.AF_INET6, self.multicast_address) + socket.inet_pton(socket.AF_INET6, self.listener_ip))
 			except Exception as handled_exception:
 			#
 				if (self.log_handler != None): self.log_handler.error(handled_exception)

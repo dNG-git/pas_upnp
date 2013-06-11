@@ -45,8 +45,8 @@ except ImportError: from urlparse import urljoin
 
 from dNG.data.xml_writer import direct_xml_writer
 from dNG.data.rfc.http import direct_http
+from dNG.pas.data.binary import direct_binary
 from dNG.pas.module.named_loader import direct_named_loader
-from dNG.pas.pythonback import direct_str
 from .service_proxy import direct_service_proxy
 from .variable import direct_variable
 
@@ -64,6 +64,10 @@ The UPnP common service implementation.
              GNU General Public License 2
 	"""
 
+	RE_CAMEL_CASE_SPLITTER = re.compile("([a-z0-9]|[A-Z]+(?![A-Z]+$))([A-Z])")
+	"""
+CamelCase RegExp
+	"""
 	RE_SERVICE_ID_URN = re.compile("^urn:(.+):(.+):(.*)$", re.I)
 	"""
 serviceId URN RegExp
@@ -158,8 +162,6 @@ Returns the UPnP variable definition.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpService.get_definition_variable({0})- (#echo(__LINE__)#)".format(name))
-
 		if (self.variables != None and name in self.variables): return self.variables[name]
 		else: raise ValueError("'{0}' is not a defined SCPD variable".format(name))
 	#
@@ -237,6 +239,18 @@ Returns the UPnP UDN value.
 		"""
 
 		return self.identifier['uuid']
+	#
+
+	def get_upnp_domain(self):
+	#
+		"""
+Returns the UPnP service specification domain.
+
+:return: (str) UPnP device specification domain
+:since:  v0.1.00
+		"""
+
+		return self.identifier['domain']
 	#
 
 	def get_url_base(self):
@@ -369,13 +383,13 @@ Initialize the device from a UPnP description.
 		if (var_return):
 		#
 			xml_node = xml_parser.node_get("upnp:service upnp:SCPDURL")
-			self.url_scpd = direct_str(urljoin(url_base, xml_node['value']))
+			self.url_scpd = direct_binary.str(urljoin(url_base, xml_node['value']))
 
 			xml_node = xml_parser.node_get("upnp:service upnp:controlURL")
-			self.url_control = direct_str(urljoin(url_base, xml_node['value']))
+			self.url_control = direct_binary.str(urljoin(url_base, xml_node['value']))
 
 			xml_node = xml_parser.node_get("upnp:service upnp:eventSubURL")
-			self.url_event_control = (None if (xml_node['value'].strip == "") else direct_str(urljoin(url_base, xml_node['value'])))
+			self.url_event_control = (None if (xml_node['value'].strip == "") else direct_binary.str(urljoin(url_base, xml_node['value'])))
 		#
 
 		return var_return
@@ -398,7 +412,7 @@ Initialize actions from the SCPD URL.
 		http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
 		http_response = http_client.request_get()
 
-		if (not isinstance(http_response['body'], Exception)): var_return = self.init_xml_scpd(direct_str(http_response['body']))
+		if (not isinstance(http_response['body'], Exception)): var_return = self.init_xml_scpd(direct_binary.str(http_response['body']))
 		elif (self.log_handler != None): self.log_handler.error(http_response['body'])
 
 		return var_return
@@ -475,7 +489,7 @@ Initialize actions from a SCPD.
 					name = xml_node['value']
 
 					xml_node = xml_parser.node_get("{0} scpd:dataType".format(xml_base_path))
-					var_type = direct_variable.get_native_type(xml_parser, xml_node)
+					var_type = direct_variable.get_native_type_from_xml(xml_parser, xml_node)
 
 					if (var_type == False): raise ValueError("Invalid dataType definition found")
 					else: self.variables[name] = { "is_sending_events": send_events, "is_multicasting_events": multicast_events, "type": var_type }
@@ -580,7 +594,6 @@ Initialize actions from a SCPD.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpService.is_initialized()- (#echo(__LINE__)#)")
 		return (False if (self.actions == None and self.variables == None) else True)
 	#
 
@@ -632,7 +645,7 @@ Initialize actions from the SCPD URL.
 
 		http_response = http_client.request_post(xml_parser.cache_export(True))
 
-		if (not isinstance(http_response['body'], Exception)): var_return = xml_parser.xml2data(direct_str(http_response['body']))
+		if (not isinstance(http_response['body'], Exception)): var_return = xml_parser.xml2data(direct_binary.str(http_response['body']))
 		elif (self.log_handler != None): self.log_handler.error(http_response['body'])
 
 		if (var_return == True):

@@ -38,14 +38,15 @@ NOTE_END //n"""
 
 from base64 import b64decode, b64encode
 from binascii import hexlify, unhexlify
-from struct import pack, unpack
+from struct import pack
 from time import localtime, strftime
 import re
 
 try: from urllib.parse import urlsplit
 except ImportError: from urlparse import urlsplit
 
-from dNG.pas.pythonback import direct_bytes, direct_str
+from dNG.data.rfc.basics import direct_basics
+from dNG.pas.data.binary import direct_binary
 
 class direct_variable(object):
 #
@@ -65,102 +66,175 @@ The UPnP service action callable.
 	RE_UUID = re.compile("^[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{12}$")
 
 	@staticmethod
-	def get_native_type(xml_parser, xml_node):
+	def get_native(native_type, value):
 	#
 		"""
-Returns a native type definition for the dataType identified.
+Returns the native value for the given variable definition and UPnP encoded
+value.
+
+:param native_type: Native type definition
+:param value: Native python value
+
+:return: (str) UPnP encoded value
+:since:  v0.1.01
 		"""
 
-		if (isinstance(xml_node, dict) and "value" in xml_node):
+		if (type(native_type) == tuple):
+		#
+			if (native_type[1] == "xmlns"): var_return = value
+			elif (native_type[1] == "base64"): var_return = direct_binary.raw_str(b64decode(direct_binary.utf8_bytes(value)))
+			elif (native_type[1] == "date"): var_return = direct_basics.get_iso8601_timestamp(value, time = False)
+			elif (native_type[1] == "dateTime"): var_return = direct_basics.get_iso8601_timestamp(value, timezone = False)
+			elif (native_type[1] == "dateTime.tz"): var_return = direct_basics.get_iso8601_timestamp(value)
+			elif (native_type[1] == "hex"): var_return = direct_binary.raw_str(unhexlify(direct_binary.utf8_bytes(value)))
+			elif (native_type[1] == "time"): var_return = direct_basics.get_iso8601_timestamp(value, False, timezone = False)
+			elif (native_type[1] == "time.tz"): var_return = direct_basics.get_iso8601_timestamp(value, False)
+			elif (native_type[1] == "uri" and re.match("^\\w+\\:\\w", value) == None): raise TypeError("Given value mismatches defined format for URIs")
+			elif (native_type[1] == "uuid" and (not value.startswith("uuid:"))): raise TypeError("Given value mismatches defined format for UUIDs")
+			elif (native_type[0] != str): var_return = native_type[0](value)
+		#
+		elif (native_type != str): var_return = native_type(value)
+		else: var_return = value
+
+		return var_return
+	#
+
+	@staticmethod
+	def get_native_type(variable):
+	#
+		"""
+Returns a native type definition for the dataType identified for the given
+variable definition.
+
+:param variable: Variable definition
+
+:return: (mixed) Native type definition
+:since: v0.1.01
+		"""
+
+		if (isinstance(variable, dict) and "type" in variable):
 		#
 			var_return = str
 
-			if ("attributes" in xml_node and "type" in xml_node['attributes']):
-			#
-				if (xml_node['attributes']['type'].startswith("urn:")): var_return = ( str, "xmlns", xml_node['attributes']['type'] )
-				else:
-				#
-					re_result = direct_variable.RE_NODE_NAME_XMLNS.match(xml_node['attributes']['type'])
-					uri = xml_parser.ns_get_uri(xml_node['attributes']['type'])
-
-					if (re_result == None or uri == ""): var_return = False
-					else: var_return = ( str, "xmlns", "{0}:{1}".format(uri, re_result.group(2)) )
-				#
-			#
-			elif (xml_node['value'] == "bin.base64"): var_return = ( str, "base64" )
-			elif (xml_node['value'] == "bin.hex"): var_return = ( str, "hex" )
-			elif (xml_node['value'] == "i1"): var_return = ( int, "b" )
-			elif (xml_node['value'] == "i2"): var_return = ( int, "h" )
-			elif (xml_node['value'] == "i4" or xml_node['value'] == "int"): var_return = int
-			elif (xml_node['value'] == "r4"): var_return = ( float, "f" )
-			elif (xml_node['value'] == "r8" or xml_node['value'] == "float" or xml_node['value'] == "number"): var_return = float
-			elif (xml_node['value'] == "fixed.14.4"): var_return = ( float, "f14.4" )
-			elif (xml_node['value'] == "char"): var_return = ( str, "c" )
-			elif (xml_node['value'] == "date"): var_return = ( int, "date" )
-			elif (xml_node['value'] == "dateTime"): var_return = ( int, "dateTime" )
-			elif (xml_node['value'] == "dateTime.tz"): var_return = ( int, "dateTime.tz" )
-			elif (xml_node['value'] == "time"): var_return = ( int, "time" )
-			elif (xml_node['value'] == "time.tz"): var_return = ( int, "time.tz" )
-			elif (xml_node['value'] == "boolean"): var_return = bool
-			elif (xml_node['value'] == "ui1"): var_return = ( int, "B" )
-			elif (xml_node['value'] == "ui2"): var_return = ( int, "H" )
-			elif (xml_node['value'] == "ui4"): var_return = ( int, "I" )
-			elif (xml_node['value'] == "uri"): var_return = ( str, "uri" )
-			elif (xml_node['value'] == "uuid"): var_return = ( str, "uuid" )
+			if (variable['type'] == "bin.base64"): var_return = ( str, "base64" )
+			elif (variable['type'] == "bin.hex"): var_return = ( str, "hex" )
+			elif (variable['type'] == "i1"): var_return = ( int, "b" )
+			elif (variable['type'] == "i2"): var_return = ( int, "h" )
+			elif (variable['type'] == "i4" or variable['type'] == "int"): var_return = int
+			elif (variable['type'] == "r4"): var_return = ( float, "f" )
+			elif (variable['type'] == "r8" or variable['type'] == "float" or variable['type'] == "number"): var_return = float
+			elif (variable['type'] == "fixed.14.4"): var_return = ( float, "f14.4" )
+			elif (variable['type'] == "char"): var_return = ( str, "c" )
+			elif (variable['type'] == "date"): var_return = ( int, "date" )
+			elif (variable['type'] == "dateTime"): var_return = ( int, "dateTime" )
+			elif (variable['type'] == "dateTime.tz"): var_return = ( int, "dateTime.tz" )
+			elif (variable['type'] == "time"): var_return = ( int, "time" )
+			elif (variable['type'] == "time.tz"): var_return = ( int, "time.tz" )
+			elif (variable['type'] == "boolean"): var_return = bool
+			elif (variable['type'] == "ui1"): var_return = ( int, "B" )
+			elif (variable['type'] == "ui2"): var_return = ( int, "H" )
+			elif (variable['type'] == "ui4"): var_return = ( int, "I" )
+			elif (variable['type'] == "uri"): var_return = ( str, "uri" )
+			elif (variable['type'] == "uuid"): var_return = ( str, "uuid" )
+			elif (variable['type'] == "xmlns" and "type_xmlns" in variable): var_return = ( str, "xmlns", variable['type_xmlns'] )
 		#
 		else: var_return = False
 
 		return var_return
 	#
 
-	# strictEqual(Date.parse('-010000-02-03T04:05'), Date.UTC(-10000, 1, 3, 4, 5, 0, 0), '-010000-02-03T04:05');
-
 	@staticmethod
-	def get_upnp_value(name, variable, value):
+	def get_native_type_from_xml(xml_parser, xml_node):
 	#
 		"""
-Returns a native type definition for the dataType identified.
+Returns a native type definition for the dataType identified at the given
+XML node.
+
+:param xml_parser: XML parser instance
+:param xml_node: XML node to parse
+
+:return: (mixed) Native type definition
+:since: v0.1.01
 		"""
 
-		if (type(variable['type']) == tuple):
+		if (isinstance(xml_node, dict) and "value" in xml_node):
 		#
-			value_normalized = (direct_str(value) if (variable['type'][0] == str) else value)
+			var_return = False
+
+			if ("attributes" in xml_node and "type" in xml_node['attributes']):
+			#
+				if (xml_node['attributes']['type'].startswith("urn:")): var_return = var_return = direct_variable.get_native_type({ "type": "xmlns", "type_xmlns": xml_node['attributes']['type'] })
+				else:
+				#
+					re_result = direct_variable.RE_NODE_NAME_XMLNS.match(xml_node['attributes']['type'])
+					uri = xml_parser.ns_get_uri(xml_node['attributes']['type'])
+
+					if (re_result != None and uri != ""): var_return = var_return = direct_variable.get_native_type({ "type": "xmlns", "type_xmlns": "{0}:{1}".format(uri, re_result.group(2)) })
+				#
+			#
+			else: var_return = direct_variable.get_native_type({ "type": xml_node['value'] })
+		#
+		else: var_return = False
+
+		return var_return
+	#
+
+	@staticmethod
+	def get_upnp_value(variable, value):
+	#
+		"""
+Returns a valid UPnP encoded value for the given variable definition and
+value.
+
+:param variable: Variable definition
+:param value: Native python value
+
+:return: (str) UPnP encoded value
+:since:  v0.1.01
+		"""
+
+		native_type = direct_variable.get_native_type(variable)
+
+		if (type(native_type) == tuple):
+		#
+			value_normalized = (direct_binary.str(value) if (native_type[0] == str) else value)
 			var_type = type(value_normalized)
 
-			if (var_type != variable['type'][0]): raise TypeError("Given value mismatches defined format for '{0}'".format(name))
-			elif (len(variable['type']) > 2):
+			if (var_type != native_type[0]): raise TypeError("Given value mismatches defined format")
+			elif (len(native_type) > 2):
 			#
-				pass
+				if (native_type[1] == "xmlns"): var_return = value_normalized
+				else: raise TypeError("Invalid native type definition")
 			#
-			elif (len(variable['type'][1]) > 1):
+			elif (len(native_type[1]) > 1):
 			#
-				if (variable['type'][1] == "base64"): var_return = direct_str(b64encode(direct_bytes(value) if (value == value_normalized) else value))
-				elif (variable['type'][1] == "f14.4"): var_return = "{0:14.4g}".format(value).strip()
-				elif (variable['type'][1] == "date"): var_return = strftime("%Y-%m-%d", localtime(value))
-				elif (variable['type'][1] == "dateTime"): var_return = strftime("%Y-%m-%dT%H:%M:%S", localtime(value))
-				elif (variable['type'][1] == "dateTime.tz"): var_return = strftime("%Y-%m-%dT%H:%M:%S%z", localtime(value))
-				elif (variable['type'][1] == "hex"): var_return = direct_str(hexlify(direct_bytes(value) if (value == value_normalized) else value))
-				elif (variable['type'][1] == "time"): var_return = strftime("%H:%M:%S", localtime(value))
-				elif (variable['type'][1] == "time.tz"): var_return = strftime("%H:%M:%S%z", localtime(value))
-				elif (variable['type'][1] == "uri" and len(urlsplit(value).scheme.strip()) < 1): raise TypeError("Given value is not a valid URI for '{0}'".format(name))
-				elif (variable['type'][1] == "uuid" and direct_variable.RE_UUID.match(value_normalized) == None): raise TypeError("Given value is not a valid UUID for '{0}'".format(name))
+				if (native_type[1] == "base64"): var_return = direct_binary.str(b64encode(direct_binary.bytes(value) if (value == value_normalized) else value))
+				elif (native_type[1] == "f14.4"): var_return = "{0:14.4g}".format(value).strip()
+				elif (native_type[1] == "date"): var_return = strftime("%Y-%m-%d", localtime(value))
+				elif (native_type[1] == "dateTime"): var_return = strftime("%Y-%m-%dT%H:%M:%S", localtime(value))
+				elif (native_type[1] == "dateTime.tz"): var_return = strftime("%Y-%m-%dT%H:%M:%S%Z", localtime(value))
+				elif (native_type[1] == "hex"): var_return = direct_binary.str(hexlify(direct_binary.bytes(value) if (value == value_normalized) else value))
+				elif (native_type[1] == "time"): var_return = strftime("%H:%M:%S", localtime(value))
+				elif (native_type[1] == "time.tz"): var_return = strftime("%H:%M:%S%Z", localtime(value))
+				elif (native_type[1] == "uri" and len(urlsplit(value).scheme.strip()) < 1): raise TypeError("Given value is not a valid URI")
+				elif (native_type[1] == "uuid" and direct_variable.RE_UUID.match(value_normalized) == None): raise TypeError("Given value is not a valid UUID")
 				else: var_return = value_normalized
 			#
 			else:
 			#
-				pack("={0}".format(variable['type'][1]), (direct_bytes(value) if (var_type == str and value == value_normalized) else value))
+				pack("={0}".format(native_type[1]), (direct_binary.utf8_bytes(value) if (var_type == str and value == value_normalized) else value))
 				var_return = "{0}".format(value_normalized)
 			#
 		#
 		else:
 		#
-			if (variable['type'] == str): value = direct_str(value)
+			if (native_type == str): value = direct_binary.str(value)
 			var_type = type(value)
 
-			if (var_type != variable['type']): raise TypeError("Given value mismatches defined format for '{0}'".format(name))
-			elif (variable['type'] == bool): var_return = "{0:b}".format(value)
-			elif (variable['type'] == int): var_return = "{0:d}".format(value)
-			elif (variable['type'] == float): var_return = "{0:f}".format(value)
+			if (var_type != native_type): raise TypeError("Given value mismatches defined format")
+			elif (native_type == bool): var_return = "{0:b}".format(value)
+			elif (native_type == int): var_return = str(value)
+			elif (native_type == float): var_return = "{0:f}".format(value)
 			else: var_return = value
 		#
 

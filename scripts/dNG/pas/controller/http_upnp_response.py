@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.controller.upnp_response
+dNG.pas.controller.http_upnp_response
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -36,13 +36,19 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
+from collections import OrderedDict
 from os import uname
+from time import time
 
 from dNG.data.xml_writer import direct_xml_writer
+from dNG.data.rfc.basics import direct_basics as direct_rfc_basics
+from dNG.pas.data.binary import direct_binary
 from dNG.pas.data.text.l10n import direct_l10n
+from dNG.pas.data.upnp.client import direct_client
+from dNG.pas.data.upnp.exception import direct_exception as direct_upnp_exception
 from .abstract_http_response import direct_abstract_http_response
 
-class direct_upnp_response(direct_abstract_http_response):
+class direct_http_upnp_response(direct_abstract_http_response):
 #
 	"""
 The following class implements the response object for XHTML content.
@@ -55,6 +61,35 @@ The following class implements the response object for XHTML content.
 :license:    http://www.direct-netware.de/redirect.py?licenses;gpl
              GNU General Public License 2
 	"""
+
+	def __init__(self):
+	#
+		"""
+Constructor __init__(direct_http_upnp_response)
+
+:since: v0.1.00
+		"""
+
+		direct_abstract_http_response.__init__(self)
+
+		self.client_user_agent = None
+		"""
+Client user agent
+		"""
+	#
+
+	def client_set_user_agent(self, user_agent):
+	#
+		"""
+Sets the UPnP client user agent.
+
+:param user_agent: Client user agent
+
+:since: v0.1.00
+		"""
+
+		self.client_user_agent = user_agent
+	#
 
 	def init(self, cache = False, compress = True):
 	#
@@ -73,7 +108,44 @@ compression setting and information about P3P.
 		os_uname = uname()
 
 		self.set_header("Content-Type", "text/xml; charset=UTF-8")
+		self.set_header("Date", direct_rfc_basics.get_rfc1123_datetime(time()))
 		self.set_header("Server", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2]))
+	#
+
+	def handle_result(self, urn, action, result):
+	#
+		"""
+Return a UPNP response for the requested SOAP action.
+
+:param action: SOAP action called
+:param result: UPnP result arguments
+
+:since: v0.1.00
+		"""
+
+		if (isinstance(result, Exception)):
+		#
+			if (isinstance(result, direct_upnp_exception)): self.send_error(result.get_upnp_code(), "{0:l10n_message}".format(result))
+			else: self.send_error(501, direct_l10n.get("errors_core_unknown_error"))
+		#
+		else:
+		#
+			xml_parser = direct_xml_writer(node_type = OrderedDict)
+
+			client = direct_client.load_user_agent(self.client_user_agent)
+			if (client != None and (not client.get("upnp_xml_cdata_encoded", True))): xml_parser.define_cdata_encoding(False)
+
+			xml_parser.node_add("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "s:encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
+			xml_parser.node_add("s:Envelope s:Header")
+
+			xml_base_path = "s:Envelope s:Body u:{0}Response".format(action)
+			xml_parser.node_add(xml_base_path, attributes = { "xmlns:u": urn })
+			xml_parser.node_set_cache_path(xml_base_path)
+
+			for result_value in result: xml_parser.node_add("{0} {1}".format(xml_base_path, result_value['name']), result_value['value'])
+
+			self.data = direct_binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_parser.cache_export(True)))
+		#
 	#
 
 	def send(self):
@@ -84,15 +156,15 @@ Sends the prepared response.
 :since: v0.1.00
 		"""
 
-		if (not self.initialized): self.init()
-
 		if (self.data != None):
 		#
+			if (not self.initialized): self.init()
 			self.send_headers()
+
 			self.stream_response.send_data(self.data)
 			self.data = None
 		#
-		else:
+		elif (not self.are_headers_sent()):
 		#
 			self.set_header("HTTP/1.1", "HTTP/1.1 500 Internal Server Error", True)
 
@@ -114,35 +186,21 @@ Return a UPNP response for the requested SOAP action.
 
 		xml_parser = direct_xml_writer()
 
-		xml_parser.node_add("Envelope", attributes = { "xmlns": "http://schemas.xmlsoap.org/soap/envelope/", "encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
-		xml_parser.node_add("Envelope Header")
+		xml_parser.node_add("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "s:encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
+		xml_parser.node_add("s:Envelope s:Header")
 
-		xml_parser.node_add("Envelope Body Fault faultcode", "Client")
-		xml_parser.node_set_cache_path("Envelope Body")
+		xml_parser.node_add("s:Envelope s:Body s:Fault faultcode", "Client")
+		xml_parser.node_set_cache_path("s:Envelope s:Body")
 
-		xml_parser.node_add("Envelope Body Fault faultstring", "UPnPError")
-		xml_parser.node_add("Envelope Body Fault detail UPnPError", attributes = { "xmlns": "urn:schemas-upnp-org:control-1.0" })
-		xml_parser.node_set_cache_path("Envelope Body Fault detail UPnPError")
+		xml_parser.node_add("s:Envelope s:Body s:Fault faultstring", "UPnPError")
+		xml_parser.node_add("s:Envelope s:Body s:Fault detail UPnPError", attributes = { "xmlns": "urn:schemas-upnp-org:control-1.0" })
+		xml_parser.node_set_cache_path("s:Envelope s:Body s:Fault detail UPnPError")
 
-		xml_parser.node_add("Envelope Body Fault detail UPnPError errorCode", "{0:d}".format(code))
-		xml_parser.node_add("Envelope Body Fault detail UPnPError errorDescription", description)
+		xml_parser.node_add("s:Envelope s:Body s:Fault detail UPnPError errorCode", str(code))
+		xml_parser.node_add("s:Envelope s:Body s:Fault detail UPnPError errorDescription", description)
 
-		self.data = xml_parser.cache_export(True)
+		self.data = direct_binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_parser.cache_export(True)))
 		self.send()
-	#
-
-	def send_result(self, action, result = [ ]):
-	#
-		"""
-Return a UPNP response for the requested SOAP action.
-
-:param action: SOAP action called
-:param result: UPnP result arguments
-
-:since: v0.1.00
-		"""
-
-		pass
 	#
 #
 

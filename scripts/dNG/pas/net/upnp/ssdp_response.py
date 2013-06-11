@@ -38,7 +38,7 @@ NOTE_END //n"""
 
 from os import uname
 
-from dNG.pas.pythonback import direct_bytes
+from dNG.pas.data.binary import direct_binary
 from .abstract_ssdp import direct_abstract_ssdp
 
 class direct_ssdp_response(direct_abstract_ssdp):
@@ -144,12 +144,12 @@ Invoke an SSDP M-SEARCH method on the unicast or multicast recipient.
 :since:  v0.1.00
 		"""
 
-		if (data != None): data = direct_bytes(data)
+		if (data != None): data = direct_binary.utf8_bytes(data)
 		os_uname = uname()
 
 		headers = self.headers.copy()
-		headers['Server'] = "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2])
-		headers['Content-Length'] = (0 if (data == None) else len(data))
+		headers['SERVER'] = "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2])
+		headers['CONTENT-LENGTH'] = (0 if (data == None) else len(data))
 
 		ssdp_header = "HTTP/1.1 {0}\r\n".format(self.http_status)
 
@@ -162,7 +162,7 @@ Invoke an SSDP M-SEARCH method on the unicast or multicast recipient.
 			else: ssdp_header += "{0}: {1}\r\n".format(header_name, headers[header_name])
 		#
 
-		ssdp_header = direct_bytes("{0}\r\n".format(ssdp_header))
+		ssdp_header = direct_binary.utf8_bytes("{0}\r\n".format(ssdp_header))
 
 		data = (ssdp_header if (data == None) else ssdp_header + data)
 		return self.write_data(data)

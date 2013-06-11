@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.action
+dNG.pas.data.upnp.devices.remote_ui_server_device
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -36,14 +36,13 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from copy import copy
+from dNG.pas.data.upnp.services.remote_ui_server import direct_remote_ui_server
+from .abstract_device import direct_abstract_device
 
-from .variable import direct_variable
-
-class direct_action(object):
+class direct_remote_ui_server_device(direct_abstract_device):
 #
 	"""
-The UPnP service action callable.
+The UPnP RemoteUIServerDevice:1 device implementation.
 
 :author:     direct Netware Group
 :copyright:  direct Netware Group - All rights reserved
@@ -54,58 +53,46 @@ The UPnP service action callable.
              GNU General Public License 2
 	"""
 
-	def __init__(self, service, action, variables):
+	def __init__(self):
 	#
 		"""
-Constructor __init__(direct_action)
+Constructor __init__(direct_remote_ui_server_device)
 
 :since: v0.1.00
 		"""
 
-		self.action = action
-		self.argument_variables = [ ]
-		self.result_variables = [ ]
-		self.return_variable = None
-		self.service = service
+		direct_abstract_device.__init__(self)
 
-		for argument_variable in variables['argument_variables']: self.argument_variables.append({ "name": argument_variable['name'], "variable": self.service.get_definition_variable(argument_variable['variable']) })
-		for result_variable in variables['result_variables']: self.result_variables.append({ "name": result_variable['name'], "variable": self.service.get_definition_variable(result_variable['variable']) })
-
-		if (variables['return_variable'] != None): self.return_variable = { "name": variables['return_variable']['name'], "variable": self.service.get_definition_variable(variables['return_variable']['variable']) }
+		self.type = "RemoteUIServerDevice"
+		self.upnp_domain = "schemas-upnp-org"
+		self.version = "1"
 	#
 
-	def __call__(self, **kwargs):
+	def init_device(self, control_point, udn = None, configid = None):
 	#
 		"""
-python.org: Called when the instance is "called" as a function.
+Initialize a host device.
 
-:param kwargs: UPnP "in" arguments
-
+:return: (bool) Returns true if initialization was successful.
 :since: v0.1.00
 		"""
 
-		arguments = (self.argument_variables.copy() if (hasattr(self.argument_variables, "copy")) else copy(self.argument_variables))
+		direct_abstract_device.init_device(self, control_point, udn, configid)
 
-		for name in kwargs:
-		#
-			for argument in arguments:
-			#
-				if (name == argument['name']): argument['value'] = direct_variable.get_upnp_value(argument['variable'], kwargs[name])
-			#
-		#
+		self.device_model = "UPnP remote UI server"
+		self.device_model_desc = "Python based UPnP remote UI server"
+		self.device_model_url = "http://www.direct-netware.de/redirect.py?pas;upnp"
+		self.device_model_version = "#echo(pasUPnPVersion)#"
+		self.manufacturer = "direct Netware Group"
+		self.manufacturer_url = "http://www.direct-netware.de"
+		self.spec_major = 1
+		self.spec_minor = 1
 
-		for argument in arguments:
-		#
-			if ("value" not in argument):
-			#
-				if ("value" in argument['variable']): argument['value'] = direct_variable.get_upnp_value(argument['variable'], argument['variable']['value'])
-				else: raise UnboundLocalError("'{0}' is not defined and has no default value".format(argument['name']))
-			#
-		#
+		service = direct_remote_ui_server()
+		if (service.init_service(self, configid = self.configid)): self.service_add(service)
 
-		self.service.request_soap_action(self.action, arguments)
+		return True
 	#
-
 #
 
 ##j## EOF

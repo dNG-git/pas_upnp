@@ -25,7 +25,7 @@ this program; if not, write to the Free Software Foundation, Inc.,
 
 http://www.direct-netware.de/redirect.py?licenses;gpl
 // -->
-<project name="PAS_UPnP" default="compile.pyBuilder">
+<project name="pas_UPnP" default="compile.pyBuilder">
 	<dirname property="pas.basedir" file="${ant.file}" />
 	<property file="${pas.basedir}/_extras/build.properties" />
 

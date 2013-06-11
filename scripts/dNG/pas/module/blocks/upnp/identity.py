@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.net.upnp.ssdp_listener_ipv4_unicast
+dNG.pas.module.blocks.upnp.identity
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -36,16 +36,16 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from socket import INADDR_ANY
+from dNG.pas.controller.http_upnp_request import direct_http_upnp_request
+from dNG.pas.data.upnp.exception import direct_exception
+from dNG.pas.data.upnp.devices.abstract_device import direct_abstract_device
+from dNG.pas.data.upnp.services.abstract_service import direct_abstract_service
+from .module import direct_module
 
-from dNG.pas.net.udpne_ipv4_socket import direct_udpne_ipv4_socket
-from dNG.pas.net.server.dispatcher import direct_dispatcher
-from .ssdp_request import direct_ssdp_request
-
-class direct_ssdp_listener_ipv4_unicast(direct_dispatcher):
+class direct_identity(direct_module):
 #
 	"""
-Listener instance receiving IPv4 unicast SSDP messages.
+Service for "m=upnp;s=identity"
 
 :author:     direct Netware Group
 :copyright:  (C) direct Netware Group - All rights reserved
@@ -56,16 +56,38 @@ Listener instance receiving IPv4 unicast SSDP messages.
              GNU General Public License 2
 	"""
 
-	def __init__(self, port = 1900):
+	def execute_device(self):
 	#
 		"""
-Constructor __init__(direct_ssdp_listener_ipv4_unicast)
+Action for "index"
+
+:since: v0.1.01
+		"""
+
+		if (not isinstance(self.request, direct_http_upnp_request)): raise direct_exception("pas_http_error_400")
+		upnp_device = self.request.get_upnp_device()
+		if (not isinstance(upnp_device, direct_abstract_device)): raise direct_exception("pas_http_error_400", 401)
+
+		self.response.init()
+		self.response.set_header("Content-Type", "text/plain")
+		self.response.set_raw_data(upnp_device.get_udn())
+	#
+
+	def execute_service(self):
+	#
+		"""
+Action for "service"
 
 :since: v0.1.00
 		"""
 
-		listener_socket = direct_udpne_ipv4_socket(( INADDR_ANY, port ))
-		direct_dispatcher.__init__(self, listener_socket, direct_ssdp_request, 25)
+		if (not isinstance(self.request, direct_http_upnp_request)): raise direct_exception("pas_http_error_400")
+		upnp_service = self.request.get_upnp_service()
+		if (not isinstance(upnp_service, direct_abstract_service)): raise direct_exception("pas_http_error_400", 401)
+
+		self.response.init()
+		self.response.set_header("Content-Type", "text/plain")
+		self.response.set_raw_data(upnp_service.get_udn())
 	#
 #
 

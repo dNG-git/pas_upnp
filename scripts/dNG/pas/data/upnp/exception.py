@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.devices.media_server
+dNG.pas.data.upnp.exception
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -36,49 +36,54 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from socket import gethostname
+from dNG.pas.data.translatable_exception import direct_translatable_exception
 
-from .abstract_device import direct_abstract_device
-
-class direct_media_server(direct_abstract_device):
+class direct_exception(direct_translatable_exception):
 #
 	"""
-The UPnP MediaServer:1 device implementation.
+"direct_exception" takes a UPnP error message and its error code for later
+output.
 
 :author:     direct Netware Group
 :copyright:  direct Netware Group - All rights reserved
 :package:    pas
 :subpackage: upnp
-:since:      v0.1.00
+:since:      v0.1.01
 :license:    http://www.direct-netware.de/redirect.py?licenses;gpl
              GNU General Public License 2
 	"""
 
-	def init_device(self, control_point, udn, configid = None):
+	def __init__(self, l10n_id, upnp_code = 501, value = None, py_exception = None):
 	#
 		"""
-Initialize a host device.
+Constructor __init__(direct_exception)
 
-:return: (bool) Returns true if initialization was successful.
-:since: v0.1.00
+:param l10n_id: L10n translatable key (prefixed with "errors_")
+:param upnp_code: UPnP error code
+:param value: Exception message value
+:param py_exception: Inner exception
+
+:since: v0.1.01
 		"""
 
-		direct_abstract_device.init_device(self, control_point, udn, configid)
+		self.upnp_code = upnp_code
+		"""
+UPnP error code
+		"""
 
-		self.device_model = "UPnP media server"
-		self.device_model_desc = "Python based UPnP media server"
-		self.device_model_url = "http://www.direct-netware.de/redirect.py?pas;upnp"
-		self.device_model_version = "#echo(pasUPnPVersion)#"
-		self.manufacturer = "direct Netware Group"
-		self.manufacturer_url = "http://www.direct-netware.de"
-		self.name = "{0} media server".format(gethostname())
-		self.spec_major = 1
-		self.spec_minor = 1
-		self.type = "MediaServer"
-		self.upnp_domain = "schemas-upnp-org"
-		self.version = "1"
+		direct_translatable_exception.__init__(self, l10n_id, value, py_exception)
+	#
 
-		return True
+	def get_upnp_code(self):
+	#
+		"""
+Return the UPnP error code.
+
+:return: (int) UPnP error code
+:since:  v0.1.01
+		"""
+
+		return self.upnp_code
 	#
 #
 

@@ -36,12 +36,14 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
+from dNG.data.json_parser import direct_json_parser
+from dNG.pas.plugins.hooks import direct_hooks
 from .abstract_service import direct_abstract_service
 
 class direct_callable_service(direct_abstract_service):
 #
 	"""
-Implementation for "urn:schemas-direct-netware-de:service:callableService:1".
+Implementation for "urn:schemas-direct-netware-de:service:CallableService:1".
 
 :author:     direct Netware Group
 :copyright:  direct Netware Group - All rights reserved
@@ -52,20 +54,29 @@ Implementation for "urn:schemas-direct-netware-de:service:callableService:1".
              GNU General Public License 2
 	"""
 
+	def call_hook(self, hook, json_arguments):
+	#
+		"""
+Calls the given hook and returns the result.
+
+:return: (mixed) Data returned by the called hook
+:since:  v0.1.01
+		"""
+
+		json_parser = direct_json_parser()
+		arguments = ({ } if (json_arguments.strip() == "") else json_parser.json2data(json_arguments))
+
+		result = direct_hooks.call(hook, **arguments)
+		return json_parser.data2json(result)
+	#
+
 	def init_service(self, device, service_id = None, configid = None):
 	#
 		"""
 Initialize a host service.
 
 :return: (bool) Returns true if initialization was successful.
-:since: v0.1.00
-
-self.variables[name] = { "is_sending_events": send_events, "is_multicasting_events": multicast_events, "type": var_type }
-self.variables[name]['value'] = xml_node['value']
-self.variables[name]['values_allowed'] = [ ]
-self.variables[name]['values_min'] = xml_node['value']
-self.variables[name]['values_max'] = xml_node['value']
-self.variables[name]['values_stepping'] = xml_node['value']
+:since:  v0.1.00
 		"""
 
 		if (service_id == None): service_id = "CallableService"
@@ -73,8 +84,8 @@ self.variables[name]['values_stepping'] = xml_node['value']
 
 		self.actions = {
 			"CallHook": {
-				"argument_variables": [ { "name": "Hook", "variable": "A_ARG_TYPE_Hook" }, { "name": "Hook", "variable": "A_ARG_TYPE_Json" } ],
-				"return_variable": { "name": "Result", "variable": "A_ARG_TYPE_Json" },
+				"argument_variables": [ { "name": "Hook", "variable": "A_ARG_TYPE_Hook" }, { "name": "JsonArguments", "variable": "A_ARG_TYPE_Json" } ],
+				"return_variable": { "name": "JsonResult", "variable": "A_ARG_TYPE_Json" },
 				"result_variables": [ ]
 			}
 		}
