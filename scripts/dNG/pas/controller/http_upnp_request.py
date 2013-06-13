@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.controller.http_upnp_request
+dNG.pas.controller.HttpUpnpRequest
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -38,16 +38,16 @@ NOTE_END //n"""
 
 from base64 import b64decode
 
-from dNG.data.xml_writer import direct_xml_writer
-from dNG.pas.data.binary import direct_binary
-from dNG.pas.data.http.request_body import direct_request_body
-from dNG.pas.data.http.request_headers_mixin import direct_request_headers_mixin
-from .abstract_inner_request import direct_abstract_inner_request
+from dNG.data.xml_writer import XmlWriter
+from dNG.pas.data.binary import Binary
+from dNG.pas.data.http.request_body import RequestBody
+from dNG.pas.data.http.request_headers_mixin import RequestHeadersMixin
+from .abstract_inner_http_request import AbstractInnerHttpRequest
 
-class direct_http_upnp_request(direct_abstract_inner_request, direct_request_headers_mixin):
+class HttpUpnpRequest(AbstractInnerHttpRequest):
 #
 	"""
-"direct_http_upnp_request" implements UPnP request types to get XML files,
+"HttpUpnpRequest" implements UPnP request types to get XML files,
 invoke SOAP methods or retrieve data.
 
 :author:     direct Netware Group
@@ -62,13 +62,13 @@ invoke SOAP methods or retrieve data.
 	def __init__(self):
 	#
 		"""
-Constructor __init__(direct_http_upnp_request)
+Constructor __init__(HttpUpnpRequest)
 
 :since: v0.1.00
 		"""
 
-		direct_abstract_inner_request.__init__(self)
-		direct_request_headers_mixin.__init__(self)
+		AbstractInnerHttpRequest.__init__(self)
+		RequestHeadersMixin.__init__(self)
 
 		self.upnp_control_point = None
 		"""
@@ -93,7 +93,7 @@ Retrieved WSGI request
 		"""
 Return the active UPnP ControlPoint.
 
-:return: (direct_control_point) UPnP ControlPoint
+:return: (ControlPoint) UPnP ControlPoint
 :since:  v0.1.00
 		"""
 
@@ -135,7 +135,7 @@ Sets the requested action.
 
 		var_return = None
 
-		request_body = direct_request_body()
+		request_body = RequestBody()
 		request_body = self.wsgi_request.configure_request_body(request_body, "text/xml")
 
 		soap_action = self.get_header("SoapAction")
@@ -148,8 +148,8 @@ Sets the requested action.
 
 			post_data = request_body.get(timeout)
 
-			xml_data = direct_binary.str(post_data.read())
-			xml_parser = direct_xml_writer()
+			xml_data = Binary.str(post_data.read())
+			xml_parser = XmlWriter()
 			xml_parser.ns_register("soap", "http://schemas.xmlsoap.org/soap/envelope/")
 			xml_parser.ns_register("upnpsns", urn)
 
@@ -200,7 +200,7 @@ Sets the requested action.
 				self.service = "stream"
 				self.action = "source"
 
-				self.set_dsd("src", direct_binary.str(b64decode(direct_binary.utf8_bytes(request_data[1]))))
+				self.set_dsd("src", Binary.str(b64decode(Binary.utf8_bytes(request_data[1]))))
 			#
 			elif (request_data[1] == "desc"):
 			#

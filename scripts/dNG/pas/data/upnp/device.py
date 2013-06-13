@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.device
+dNG.pas.data.upnp.Device
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -40,15 +40,15 @@ from os import uname
 from threading import RLock
 import re
 
-from dNG.data.xml_writer import direct_xml_writer
-from dNG.data.rfc.http import direct_http
-from dNG.pas.data.binary import direct_binary
-from dNG.pas.data.settings import direct_settings
-from dNG.pas.data.logging.log_line import direct_log_line
-from dNG.pas.module.named_loader import direct_named_loader
-from .service import direct_service
+from dNG.data.xml_writer import XmlWriter
+from dNG.data.rfc.http import Http
+from dNG.pas.data.binary import Binary
+from dNG.pas.data.settings import Settings
+from dNG.pas.data.logging.log_line import LogLine
+from dNG.pas.module.named_loader import NamedLoader
+from .service import Service
 
-class direct_device(object):
+class Device(object):
 #
 	"""
 The UPnP Basic:1 device implementation.
@@ -62,10 +62,6 @@ The UPnP Basic:1 device implementation.
              GNU General Public License 2
 	"""
 
-	RE_CAMEL_CASE_SPLITTER = direct_service.RE_CAMEL_CASE_SPLITTER
-	"""
-CamelCase RegExp
-	"""
 	RE_USN_URN = re.compile("^urn:(.+):(.+):(.*):(.*)$", re.I)
 	"""
 URN RegExp
@@ -74,7 +70,7 @@ URN RegExp
 	def __init__(self):
 	#
 		"""
-Constructor __init__(direct_device)
+Constructor __init__(Device)
 
 :since: v0.1.00
 		"""
@@ -168,7 +164,7 @@ Add the given device to the list of embedded devices.
 :since:  v0.1.00
 		"""
 
-		if (isinstance(device, direct_device)): self.embedded_devices[device.get_udn().lower()] = device
+		if (isinstance(device, Device)): self.embedded_devices[device.get_udn().lower()] = device
 		else: raise TypeError("Given object is not a supported UPnP device")
 	#
 
@@ -223,7 +219,7 @@ Remove the given device from the list of embedded devices.
 :since:  v0.1.00
 		"""
 
-		if (isinstance(device, direct_device)):
+		if (isinstance(device, Device)):
 		#
 			device = device.get_udn().lower()
 			if (device in self.embedded_devices): del(self.embedded_devices[device])
@@ -374,7 +370,7 @@ Add the given service to the list of services.
 :since:  v0.1.00
 		"""
 
-		if (isinstance(service, direct_service)): self.services[service.get_service_id().lower()] = service
+		if (isinstance(service, Service)): self.services[service.get_service_id().lower()] = service
 		else: raise TypeError("Given object is not a supported UPnP service")
 	#
 
@@ -407,12 +403,12 @@ Return a UPnP service for the given UPnP service ID.
 					#
 						os_uname = uname()
 
-						http_client = direct_http(scpd_url, event_handler = self.log_handler)
+						http_client = Http(scpd_url, event_handler = self.log_handler)
 						http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
-						http_client.set_ipv6_link_local_interface(direct_settings.get("pas_global_ipv6_link_local_interface"))
+						http_client.set_ipv6_link_local_interface(Settings.get("pas_global_ipv6_link_local_interface"))
 						http_response = http_client.request_get()
 
-						if (not isinstance(http_response['body'], Exception)): self.scpds[scpd_url] = direct_binary.str(http_response['body'])
+						if (not isinstance(http_response['body'], Exception)): self.scpds[scpd_url] = Binary.str(http_response['body'])
 					#
 
 					if (scpd_url in self.scpds):
@@ -470,7 +466,7 @@ Remove the given service from the list of services.
 :since:  v0.1.00
 		"""
 
-		if (isinstance(service, direct_service)):
+		if (isinstance(service, Service)):
 		#
 			service = service.get_service_id().lower()
 			if (service in self.services): del(self.services[service])
@@ -654,10 +650,10 @@ Initialize the device from a UPnP description.
 
 				if (usn != None):
 				#
-					embedded_identifier = direct_device.get_identifier(usn, identifier['bootid'], identifier['configid'])
+					embedded_identifier = Device.get_identifier(usn, identifier['bootid'], identifier['configid'])
 
-					embedded_device = direct_named_loader.get_instance("dNG.pas.data.upnp.devices.{0}".format(direct_device.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", embedded_identifier['type']).lower()), False)
-					if (embedded_device == None): embedded_device = direct_device()
+					embedded_device = NamedLoader.get_instance("dNG.pas.data.upnp.devices.{0}".format(embedded_identifier['type']), False)
+					if (embedded_device == None): embedded_device = Device()
 
 					embedded_xml_data = { "device": xml_parser.node_get("upnp:deviceList upnp:device#{0:d}".format(position), False) }
 					if (embedded_device.init_embedded_device_xml_tree(embedded_identifier, self.url_base, embedded_xml_data)): self.embedded_device_add(embedded_device)
@@ -747,7 +743,7 @@ Initialize the device from a UPnP description.
 
 			for position in range(0, services_count):
 			#
-				service = direct_service()
+				service = Service()
 				xml_node = xml_parser.node_get("upnp:serviceList upnp:service#{0:d}".format(position), False)
 				if (xml_node != False and "xml.item" in xml_node and service.init_metadata_xml_tree(self.identifier, self.url_base, { xml_node['xml.item']['tag']: xml_node })): self.service_add(service)
 			#
@@ -829,13 +825,13 @@ Initialize the device from a UPnP description.
 		#
 		except Exception as handled_exception:
 		#
-			direct_log_line.error(handled_exception)
+			LogLine.error(handled_exception)
 			var_return = False
 		#
 
 		if (var_return):
 		#
-			self.identifier = direct_device.get_identifier(usn_data['usn'], usn_data['bootid'], usn_data['configid'])
+			self.identifier = Device.get_identifier(usn_data['usn'], usn_data['bootid'], usn_data['configid'])
 
 			xml_node = xml_parser.node_get("upnp:root upnp:device upnp:serviceList", False)
 			if (xml_node != False and "xml.item" in xml_node): var_return = self.init_services_xml_tree({ xml_node['xml.item']['tag']: xml_node })
@@ -854,7 +850,7 @@ Returns a XML parser with predefined XML namespaces.
 :since:  v0.1.00
 		"""
 
-		var_return = direct_xml_writer()
+		var_return = XmlWriter()
 		var_return.ns_register("dlna", "urn:schemas-dlna-org:device-1-0")
 		var_return.ns_register("upnp", "urn:schemas-upnp-org:device-1-0")
 		return var_return
@@ -887,7 +883,7 @@ Parses the given USN string.
 :since:  v0.1.00
 		"""
 
-		usn = direct_binary.str(usn)
+		usn = Binary.str(usn)
 
 		if (type(usn) == str):
 		#
@@ -907,7 +903,7 @@ Parses the given USN string.
 				var_return['configid'] = configid
 			#
 
-			re_result = (direct_device.RE_USN_URN.match(usn_data[1]) if (len(usn_data) > 1) else None)
+			re_result = (Device.RE_USN_URN.match(usn_data[1]) if (len(usn_data) > 1) else None)
 
 			if (re_result != None):
 			#

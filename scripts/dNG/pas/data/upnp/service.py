@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.service
+dNG.pas.data.upnp.Service
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -43,14 +43,14 @@ import re
 try: from urllib.parse import urljoin
 except ImportError: from urlparse import urljoin
 
-from dNG.data.xml_writer import direct_xml_writer
-from dNG.data.rfc.http import direct_http
-from dNG.pas.data.binary import direct_binary
-from dNG.pas.module.named_loader import direct_named_loader
-from .service_proxy import direct_service_proxy
-from .variable import direct_variable
+from dNG.data.xml_writer import XmlWriter
+from dNG.data.rfc.http import Http
+from dNG.pas.data.binary import Binary
+from dNG.pas.module.named_loader import NamedLoader
+from .service_proxy import ServiceProxy
+from .variable import Variable
 
-class direct_service(object):
+class Service(object):
 #
 	"""
 The UPnP common service implementation.
@@ -80,7 +80,7 @@ URN RegExp
 	def __init__(self):
 	#
 		"""
-Constructor __init__(direct_service)
+Constructor __init__(Service)
 
 :since: v0.1.00
 		"""
@@ -93,7 +93,7 @@ Service actions defined in the SCPD
 		"""
 Parsed UPnP identifier
 		"""
-		self.log_handler = direct_named_loader.get_singleton("dNG.pas.data.logging.log_handler", False)
+		self.log_handler = NamedLoader.get_singleton("dNG.pas.data.logging.LogHandler", False)
 		"""
 The log_handler is called whenever debug messages should be logged or errors
 happened.
@@ -131,7 +131,7 @@ Service variables defined in the SCPD
 	def __del__(self):
 	#
 		"""
-Destructor __del__(direct_service)
+Destructor __del__(Service)
 
 :since: v0.1.00
 		"""
@@ -183,14 +183,14 @@ Returns the UPnP service name (URN without version).
 		"""
 Return a callable proxy object for UPnP actions and variables.
 
-:return: (direct_service_proxy) UPnP proxy
+:return: (ServiceProxy) UPnP proxy
 :since:  v0.1.00
 		"""
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpService.get_proxy()- (#echo(__LINE__)#)")
 
 		if (self.actions == None and self.variables == None): self.init_scpd()
-		return direct_service_proxy(self, self.actions, self.variables)
+		return ServiceProxy(self, self.actions, self.variables)
 	#
 
 	def get_service_id(self):
@@ -348,7 +348,7 @@ Initialize the device from a UPnP description.
 		if (var_return):
 		#
 			xml_node = xml_parser.node_get("upnp:service upnp:serviceType")
-			re_result = (None if (xml_node == False) else direct_service.RE_USN_URN.match(xml_node['value']))
+			re_result = (None if (xml_node == False) else Service.RE_USN_URN.match(xml_node['value']))
 
 			if (re_result == None or re_result.group(2) != "service"): var_return = False
 			else:
@@ -374,7 +374,7 @@ Initialize the device from a UPnP description.
 		if (var_return):
 		#
 			xml_node = xml_parser.node_get("upnp:service upnp:serviceId")
-			re_result = (None if (xml_node == False) else direct_service.RE_SERVICE_ID_URN.match(xml_node['value']))
+			re_result = (None if (xml_node == False) else Service.RE_SERVICE_ID_URN.match(xml_node['value']))
 
 			if (re_result == None or re_result.group(2) != "serviceId"): var_return = False
 			else: self.service_id = { "urn": xml_node['value'][4:], "domain": re_result.group(1), "id": re_result.group(3) }
@@ -383,13 +383,13 @@ Initialize the device from a UPnP description.
 		if (var_return):
 		#
 			xml_node = xml_parser.node_get("upnp:service upnp:SCPDURL")
-			self.url_scpd = direct_binary.str(urljoin(url_base, xml_node['value']))
+			self.url_scpd = Binary.str(urljoin(url_base, xml_node['value']))
 
 			xml_node = xml_parser.node_get("upnp:service upnp:controlURL")
-			self.url_control = direct_binary.str(urljoin(url_base, xml_node['value']))
+			self.url_control = Binary.str(urljoin(url_base, xml_node['value']))
 
 			xml_node = xml_parser.node_get("upnp:service upnp:eventSubURL")
-			self.url_event_control = (None if (xml_node['value'].strip == "") else direct_binary.str(urljoin(url_base, xml_node['value'])))
+			self.url_event_control = (None if (xml_node['value'].strip == "") else Binary.str(urljoin(url_base, xml_node['value'])))
 		#
 
 		return var_return
@@ -408,11 +408,11 @@ Initialize actions from the SCPD URL.
 
 		os_uname = uname()
 
-		http_client = direct_http(self.url_scpd, event_handler = self.log_handler)
+		http_client = Http(self.url_scpd, event_handler = self.log_handler)
 		http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
 		http_response = http_client.request_get()
 
-		if (not isinstance(http_response['body'], Exception)): var_return = self.init_xml_scpd(direct_binary.str(http_response['body']))
+		if (not isinstance(http_response['body'], Exception)): var_return = self.init_xml_scpd(Binary.str(http_response['body']))
 		elif (self.log_handler != None): self.log_handler.error(http_response['body'])
 
 		return var_return
@@ -428,7 +428,7 @@ Returns a XML parser with predefined XML namespaces.
 :since:  v0.1.00
 		"""
 
-		var_return = direct_xml_writer(node_type = OrderedDict)
+		var_return = XmlWriter(node_type = OrderedDict)
 		var_return.ns_register("scpd", "urn:schemas-upnp-org:service-1-0")
 		return var_return
 	#
@@ -489,7 +489,7 @@ Initialize actions from a SCPD.
 					name = xml_node['value']
 
 					xml_node = xml_parser.node_get("{0} scpd:dataType".format(xml_base_path))
-					var_type = direct_variable.get_native_type_from_xml(xml_parser, xml_node)
+					var_type = Variable.get_native_type_from_xml(xml_parser, xml_node)
 
 					if (var_type == False): raise ValueError("Invalid dataType definition found")
 					else: self.variables[name] = { "is_sending_events": send_events, "is_multicasting_events": multicast_events, "type": var_type }
@@ -638,14 +638,14 @@ Initialize actions from the SCPD URL.
 
 		for argument in arguments: xml_parser.node_add("{0} {1}".format(xml_base_path, argument['name']), argument['value'])
 
-		http_client = direct_http(self.url_control, event_handler = self.log_handler)
+		http_client = Http(self.url_control, event_handler = self.log_handler)
 		http_client.set_header("Content-Type", "text/xml; charset=UTF-8")
 		http_client.set_header("SoapAction", "{0}#{1}".format(urn, action))
 		http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
 
 		http_response = http_client.request_post(xml_parser.cache_export(True))
 
-		if (not isinstance(http_response['body'], Exception)): var_return = xml_parser.xml2data(direct_binary.str(http_response['body']))
+		if (not isinstance(http_response['body'], Exception)): var_return = xml_parser.xml2data(Binary.str(http_response['body']))
 		elif (self.log_handler != None): self.log_handler.error(http_response['body'])
 
 		if (var_return == True):

@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.resource
+dNG.pas.data.upnp.Resource
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -41,16 +41,16 @@ from collections import OrderedDict
 try: from urllib.parse import urlsplit
 except ImportError: from urlparse import urlsplit
 
-from dNG.data.xml_writer import direct_xml_writer
-from dNG.pas.data.binary import direct_binary
-from dNG.pas.data.text.l10n import direct_l10n
-from dNG.pas.module.named_loader import direct_named_loader
-from dNG.pas.plugins.hooks import direct_hooks
+from dNG.data.xml_writer import XmlWriter
+from dNG.pas.data.binary import Binary
+from dNG.pas.data.text.l10n import L10n
+from dNG.pas.module.named_loader import NamedLoader
+from dNG.pas.plugins.hooks import Hooks
 
-class direct_resource(object):
+class Resource(object):
 #
 	"""
-"direct_resource" represents an UPnP directory, file or virtual object.
+"Resource" represents an UPnP directory, file or virtual object.
 
 :author:     direct Netware Group
 :copyright:  direct Netware Group - All rights reserved
@@ -77,7 +77,7 @@ UPnP CDS item type
 	def __init__(self):
 	#
 		"""
-Constructor __init__(direct_resource)
+Constructor __init__(Resource)
 
 :since: v0.1.01
 		"""
@@ -239,17 +239,17 @@ Returns an embedded device.
 			resource_type = resource.get_type()
 
 			if (resource_type == None): xml_node_path = None
-			elif (resource_type & direct_resource.TYPE_CDS_CONTAINER == direct_resource.TYPE_CDS_CONTAINER):
+			elif (resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
 			#
 				xml_node_path = "{0} container#{1:d}".format(xml_base_path, content_containers)
 				content_containers += 1
 			#
-			elif (resource_type & direct_resource.TYPE_CDS_ITEM == direct_resource.TYPE_CDS_ITEM):
+			elif (resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM):
 			#
 				xml_node_path = "{0} item#{1:d}".format(xml_base_path, content_items)
 				content_items += 1
 			#
-			elif (resource_type & direct_resource.TYPE_CDS_RESOURCE == direct_resource.TYPE_CDS_RESOURCE):
+			elif (resource_type & Resource.TYPE_CDS_RESOURCE == Resource.TYPE_CDS_RESOURCE):
 			#
 				xml_node_path = "{0} res#{1:d}".format(xml_base_path, content_resources)
 				content_resources += 1
@@ -288,7 +288,7 @@ Returns an embedded device.
 
 		var_return = None
 
-		if (self.type != None and self.type & direct_resource.TYPE_CDS_CONTAINER == direct_resource.TYPE_CDS_CONTAINER):
+		if (self.type != None and self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
 		#
 			xml_writer = self.init_xml_parser()
 			xml_writer.node_add("DIDL-Lite", attributes = { "xmlns": "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/", "xmlns:dc": "http://purl.org/dc/elements/1.1/", "xmlns:upnp": "urn:schemas-upnp-org:metadata-1-0/upnp/" })
@@ -319,7 +319,7 @@ Initializes the content of a container.
 
 		if (self.id == "0"):
 		#
-			direct_hooks.call("dNG.pas.upnp.resource.get_root_containers", container = self)
+			Hooks.call("dNG.pas.upnp.resource.get_root_containers", container = self)
 			if (self.content_limit != None): self.content = self.content[self.content_offset:self.content_offset + self.content_limit]
 
 			return True
@@ -463,8 +463,8 @@ Returns the UPnP resource type class.
 
 		if (self.type != None):
 		#
-			if (self.type & direct_resource.TYPE_CDS_CONTAINER == direct_resource.TYPE_CDS_CONTAINER): var_return = "object.container"
-			elif (self.type & direct_resource.TYPE_CDS_ITEM == direct_resource.TYPE_CDS_ITEM): var_return = "object.item"
+			if (self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER): var_return = "object.container"
+			elif (self.type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): var_return = "object.item"
 		#
 
 		return var_return
@@ -537,9 +537,9 @@ Initialize a UPnP resource by CDS ID.
 
 		if (var_id == "0"):
 		#
-			self.name = direct_l10n.get("pas_upnp_container_root")
+			self.name = L10n.get("pas_upnp_container_root")
 			self.parent_id = "-1"
-			self.type = direct_resource.TYPE_CDS_CONTAINER
+			self.type = Resource.TYPE_CDS_CONTAINER
 
 			var_return = True
 		#
@@ -562,7 +562,7 @@ There are known broken clients defining XML namespaces without the trailing
 slash. We define both notations just in case.
 		"""
 
-		var_return = direct_xml_writer(node_type = OrderedDict)
+		var_return = XmlWriter(node_type = OrderedDict)
 		var_return.ns_register("dc", "http://purl.org/dc/elements/1.1")
 		var_return.ns_register("dc", "http://purl.org/dc/elements/1.1/")
 		var_return.ns_register("didl", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite")
@@ -586,7 +586,7 @@ Returns an embedded device.
 		resource_updatable = resource.get_updatable()
 		value = ""
 
-		if (resource_type & direct_resource.TYPE_CDS_CONTAINER == direct_resource.TYPE_CDS_CONTAINER):
+		if (resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
 		#
 			attributes = {
 				"id": resource.get_id(),
@@ -597,7 +597,7 @@ Returns an embedded device.
 			if (self.didl_fields == None or "childCount" in self.didl_fields): attributes['childCount'] = str(resource.get_total())
 			#	"searchable": ("0" if (resource.get_searchable()) else "1")
 		#
-		elif (resource_type & direct_resource.TYPE_CDS_ITEM == direct_resource.TYPE_CDS_ITEM):
+		elif (resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM):
 		#
 			attributes = {
 				"id": resource.get_id(),
@@ -605,7 +605,7 @@ Returns an embedded device.
 				"restricted": ("0" if (resource_updatable) else "1")
 			}
 		#
-		elif (resource_type & direct_resource.TYPE_CDS_RESOURCE == direct_resource.TYPE_CDS_RESOURCE):
+		elif (resource_type & Resource.TYPE_CDS_RESOURCE == Resource.TYPE_CDS_RESOURCE):
 		#
 			res_protocol = resource.get_didl_res_protocol()
 
@@ -615,7 +615,9 @@ Returns an embedded device.
 					"protocolInfo": res_protocol
 				}
 
-				url = direct_binary.str(resource.content_get(0))
+				if (self.size != None): attributes['size'] = self.size
+
+				url = Binary.str(resource.content_get(0))
 				if (type(url) == str): value = url
 			#
 		#
@@ -624,13 +626,13 @@ Returns an embedded device.
 		#
 			xml_writer.node_add(xml_node_path, value, attributes)
 
-			if (resource_type & direct_resource.TYPE_CDS_CONTAINER == direct_resource.TYPE_CDS_CONTAINER or resource_type & direct_resource.TYPE_CDS_ITEM == direct_resource.TYPE_CDS_ITEM):
+			if (resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER or resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM):
 			#
 				xml_writer.node_add("{0} dc:title".format(xml_node_path), resource.get_name())
 				xml_writer.node_add("{0} upnp:class".format(xml_node_path), resource.get_type_class())
 				if (self.didl_fields == None or "upnp:writeStatus" in self.didl_fields): xml_writer.node_add("{0} upnp:writeStatus".format(xml_node_path), ("WRITABLE" if (resource_updatable) else "NOT_WRITABLE"))
 
-				if (resource_type & direct_resource.TYPE_CDS_ITEM == direct_resource.TYPE_CDS_ITEM): resource.content_append_didl_xml_nodes(xml_writer, xml_node_path)
+				if (resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): resource.content_append_didl_xml_nodes(xml_writer, xml_node_path)
 			#
 		#
 	#
@@ -651,8 +653,8 @@ Returns an embedded device.
 			xml_writer = self.init_xml_parser()
 			xml_writer.node_add("DIDL-Lite", attributes = { "xmlns": "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/", "xmlns:dc": "http://purl.org/dc/elements/1.1/", "xmlns:upnp": "urn:schemas-upnp-org:metadata-1-0/upnp/" })
 
-			if (self.type & direct_resource.TYPE_CDS_CONTAINER == direct_resource.TYPE_CDS_CONTAINER): xml_node_path = "DIDL-Lite container"
-			elif (self.type & direct_resource.TYPE_CDS_ITEM == direct_resource.TYPE_CDS_ITEM): xml_node_path = "DIDL-Lite item"
+			if (self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER): xml_node_path = "DIDL-Lite container"
+			elif (self.type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): xml_node_path = "DIDL-Lite item"
 			else: xml_node_path = None
 
 			if (xml_node_path != None): self.metadata_add_didl_xml_node(xml_writer, xml_node_path, self)
@@ -694,7 +696,7 @@ Sets the UPnP resource update ID or increments it.
 		if (update_id == "++"): self.update_id += 1
 		elif (type(update_id) == int): self.update_id = update_id
 
-		#direct_gena.update_value("")
+		#Gena.update_value("")
 	#
 
 	@staticmethod
@@ -715,7 +717,7 @@ Load a UPnP resource by CDS ID.
 
 		if (var_id == "0" and cds != None):
 		#
-			var_return = direct_resource()
+			var_return = Resource()
 			var_return.init_cds_id(var_id, client_user_agent, cds.get_system_update_id())
 		#
 		elif ("://" in var_id):
@@ -724,10 +726,8 @@ Load a UPnP resource by CDS ID.
 
 			if (url_elements.scheme != ""):
 			#
-				resource_type_class = url_elements.scheme.replace("-", "_")
-				resource = direct_named_loader.get_instance("dNG.pas.data.upnp.resources.{0}".format(resource_type_class), False)
-
-				if (isinstance(resource, direct_resource) and resource.init_cds_id(var_id)): var_return = resource
+				resource = NamedLoader.get_instance("dNG.pas.data.upnp.resources.{0}".format("".join([word.capitalize() for word in url_elements.scheme.split("-")])), False)
+				if (isinstance(resource, Resource) and resource.init_cds_id(var_id)): var_return = resource
 			#
 		#
 

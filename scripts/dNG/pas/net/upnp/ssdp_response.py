@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.ssdp_response
+dNG.pas.net.upnp.SsdpResponse
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -38,10 +38,10 @@ NOTE_END //n"""
 
 from os import uname
 
-from dNG.pas.data.binary import direct_binary
-from .abstract_ssdp import direct_abstract_ssdp
+from dNG.pas.data.binary import Binary
+from .abstract_ssdp import AbstractSsdp
 
-class direct_ssdp_response(direct_abstract_ssdp):
+class SsdpResponse(AbstractSsdp):
 #
 	"""
 This class contains the UPnP SSDP message implementation. Its based on HTTP
@@ -59,12 +59,12 @@ for UDP.
 	def __init__(self, target, port = 1900, source_port = None):
 	#
 		"""
-Constructor __init__(direct_service)
+Constructor __init__(SsdpResponse)
 
 :since: v0.1.00
 		"""
 
-		direct_abstract_ssdp.__init__(self, target, port, source_port)
+		AbstractSsdp.__init__(self, target, port, source_port)
 
 		self.http_status = "200 OK"
 		"""
@@ -144,7 +144,7 @@ Invoke an SSDP M-SEARCH method on the unicast or multicast recipient.
 :since:  v0.1.00
 		"""
 
-		if (data != None): data = direct_binary.utf8_bytes(data)
+		if (data != None): data = Binary.utf8_bytes(data)
 		os_uname = uname()
 
 		headers = self.headers.copy()
@@ -162,7 +162,7 @@ Invoke an SSDP M-SEARCH method on the unicast or multicast recipient.
 			else: ssdp_header += "{0}: {1}\r\n".format(header_name, headers[header_name])
 		#
 
-		ssdp_header = direct_binary.utf8_bytes("{0}\r\n".format(ssdp_header))
+		ssdp_header = Binary.utf8_bytes("{0}\r\n".format(ssdp_header))
 
 		data = (ssdp_header if (data == None) else ssdp_header + data)
 		return self.write_data(data)

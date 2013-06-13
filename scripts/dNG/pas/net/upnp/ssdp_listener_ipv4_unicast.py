@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.net.upnp.ssdp_listener_ipv4_unicast
+dNG.pas.net.upnp.SsdpListenerIpv4Unicast
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -38,11 +38,11 @@ NOTE_END //n"""
 
 from socket import INADDR_ANY
 
-from dNG.pas.net.udpne_ipv4_socket import direct_udpne_ipv4_socket
-from dNG.pas.net.server.dispatcher import direct_dispatcher
-from .ssdp_request import direct_ssdp_request
+from dNG.pas.net.udp_ne_ipv4_socket import UdpNeIpv4Socket
+from dNG.pas.net.server.dispatcher import Dispatcher
+from .ssdp_request import SsdpRequest
 
-class direct_ssdp_listener_ipv4_unicast(direct_dispatcher):
+class SsdpListenerIpv4Unicast(Dispatcher):
 #
 	"""
 Listener instance receiving IPv4 unicast SSDP messages.
@@ -59,13 +59,13 @@ Listener instance receiving IPv4 unicast SSDP messages.
 	def __init__(self, port = 1900):
 	#
 		"""
-Constructor __init__(direct_ssdp_listener_ipv4_unicast)
+Constructor __init__(SsdpListenerIpv4Unicast)
 
 :since: v0.1.00
 		"""
 
-		listener_socket = direct_udpne_ipv4_socket(( INADDR_ANY, port ))
-		direct_dispatcher.__init__(self, listener_socket, direct_ssdp_request, 25)
+		listener_socket = UdpNeIpv4Socket(( INADDR_ANY, port ))
+		Dispatcher.__init__(self, listener_socket, SsdpRequest, 25)
 	#
 #
 

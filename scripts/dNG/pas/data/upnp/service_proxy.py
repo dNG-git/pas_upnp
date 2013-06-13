@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.service_proxy
+dNG.pas.data.upnp.ServiceProxy
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -36,10 +36,10 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from .action import direct_action
-from .variable import direct_variable
+from .action import Action
+from .variable import Variable
 
-class direct_service_proxy(object):
+class ServiceProxy(object):
 #
 	"""
 The UPnP service proxy provides a pythonic interface to SOAP actions.
@@ -56,7 +56,7 @@ The UPnP service proxy provides a pythonic interface to SOAP actions.
 	def __init__(self, service, actions, variables):
 	#
 		"""
-Constructor __init__(direct_service_proxy)
+Constructor __init__(ServiceProxy)
 
 :since: v0.1.00
 		"""
@@ -84,12 +84,12 @@ class tree for self).
 
 :param name: Attribute name
 
-:return: (direct_action) UPnP action callable
+:return: (Action) UPnP action callable
 :since:  v0.1.00
 		"""
 
-		if (self.actions != None and name in self.actions): return direct_action(self.service, name, self.actions[name])
-		elif (self.variables != None and name in self.variables): return direct_variable(self.service, name, self.variables[name])
+		if (self.actions != None and name in self.actions): return Action(self.service, name, self.actions[name])
+		elif (self.variables != None and name in self.variables): return Variable(self.service, name, self.variables[name])
 		else: raise AttributeError("UPnP SCPD does not contain a definition for '{0}'".format(name))
 	#
 #

@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.net.upnp.ssdp_listener_ipv4_multicast
+dNG.pas.net.upnp.SsdpListenerIpv4Multicast
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -38,11 +38,11 @@ NOTE_END //n"""
 
 import socket
 
-from dNG.pas.net.udpne_ipv4_socket import direct_udpne_ipv4_socket
-from dNG.pas.net.server.dispatcher import direct_dispatcher
-from .ssdp_request import direct_ssdp_request
+from dNG.pas.net.udp_ne_ipv4_socket import UdpNeIpv4Socket
+from dNG.pas.net.server.dispatcher import Dispatcher
+from .ssdp_request import SsdpRequest
 
-class direct_ssdp_listener_ipv4_multicast(direct_dispatcher):
+class SsdpListenerIpv4Multicast(Dispatcher):
 #
 	"""
 Listener instance receiving IPv4 multicast SSDP messages.
@@ -59,7 +59,7 @@ Listener instance receiving IPv4 multicast SSDP messages.
 	def __init__(self, ip):
 	#
 		"""
-Constructor __init__(direct_ssdp_listener_ipv4_multicast)
+Constructor __init__(SsdpListenerIpv4Multicast)
 
 :param ip: IPv4 address
 
@@ -75,9 +75,9 @@ True if multicast listener is active
 Listener IPv6 address
 		"""
 
-		listener_socket = direct_udpne_ipv4_socket(( "", 1900 ))
+		listener_socket = UdpNeIpv4Socket(( "", 1900 ))
 
-		direct_dispatcher.__init__(self, listener_socket, direct_ssdp_request, 1)
+		Dispatcher.__init__(self, listener_socket, SsdpRequest, 1)
 	#
 
 	def is_listening(self):
@@ -113,7 +113,7 @@ Run the main loop for this server instance.
 			#
 		#
 
-		direct_dispatcher.run(self)
+		Dispatcher.run(self)
 	#
 
 	def stop(self):
@@ -135,7 +135,7 @@ Stops the listener and unqueues all running sockets.
 			self.listener_active = False
 		#
 
-		direct_dispatcher.stop(self)
+		Dispatcher.stop(self)
 	#
 #
 

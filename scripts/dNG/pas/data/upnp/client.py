@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.client
+dNG.pas.data.upnp.Client
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -39,15 +39,15 @@ NOTE_END //n"""
 from os import path
 import re
 
-from dNG.data.file import direct_file
-from dNG.data.json_parser import direct_json_parser
-from dNG.pas.data.settings import direct_settings
-from dNG.pas.data.logging.log_line import direct_log_line
-from dNG.pas.data.text.input_filter import direct_input_filter
-from dNG.pas.module.named_loader import direct_named_loader
-from dNG.pas.plugins.hooks import direct_hooks
+from dNG.data.file import File
+from dNG.data.json_parser import JsonParser
+from dNG.pas.data.settings import Settings
+from dNG.pas.data.logging.log_line import LogLine
+from dNG.pas.data.text.input_filter import InputFilter
+from dNG.pas.module.named_loader import NamedLoader
+from dNG.pas.plugins.hooks import Hooks
 
-class direct_client(dict):
+class Client(dict):
 #
 	"""
 The UPnP client identified.
@@ -76,7 +76,7 @@ Return the json content from the given file.
 
 		var_return = None
 
-		cache_instance = direct_named_loader.get_singleton("dNG.pas.data.cache", False)
+		cache_instance = NamedLoader.get_singleton("dNG.pas.data.Cache", False)
 
 		try:
 		#
@@ -84,7 +84,7 @@ Return the json content from the given file.
 
 			if (json == None):
 			#
-				file_object = direct_file()
+				file_object = File()
 
 				if (file_object.open(file_pathname, True, "r")):
 				#
@@ -98,11 +98,11 @@ Return the json content from the given file.
 
 			if (json != None):
 			#
-				json_parser = direct_json_parser()
+				json_parser = JsonParser()
 				var_return = json_parser.json2data(json)
 			#
 		#
-		except Exception as handled_exception: direct_log_line.error(handled_exception)
+		except Exception as handled_exception: LogLine.error(handled_exception)
 
 		if (cache_instance != None): cache_instance.return_instance()
 		return var_return
@@ -121,8 +121,8 @@ it.
 :since:  v0.1.00
 		"""
 
-		var_return = direct_client.get_json_file(path.normpath(file_pathname))
-		if (type(var_return) == dict and "client_file" in var_return): var_return = direct_client.get_json_file(path.normpath("{0}/upnp/{1}".format(direct_settings.get("path_data"), direct_input_filter.filter_file_path(var_return['client_file']))))
+		var_return = Client.get_json_file(path.normpath(file_pathname))
+		if (type(var_return) == dict and "client_file" in var_return): var_return = Client.get_json_file(path.normpath("{0}/upnp/{1}".format(Settings.get("path_data"), InputFilter.filter_file_path(var_return['client_file']))))
 		return var_return
 	#
 
@@ -134,13 +134,13 @@ Return a UPnP client based on the given HTTP or SSDP user agent value.
 
 :param user_agent: HTTP or SSDP user agent value
 
-:return: (direct_client) UPnP client; None on error
+:return: (Client) UPnP client; None on error
 :since:  v0.1.00
 		"""
 
 		var_return = ""
 
-		replacement_list = direct_settings.get("pas_upnp_client_replacement_list", None)
+		replacement_list = Settings.get("pas_upnp_client_replacement_list", None)
 
 		if (type(replacement_list) == dict):
 		#
@@ -167,24 +167,24 @@ Return a UPnP client based on the given HTTP or SSDP user agent value.
 
 :param user_agent: HTTP or SSDP user agent value
 
-:return: (direct_client) UPnP client; None on error
+:return: (Client) UPnP client; None on error
 :since:  v0.1.00
 		"""
 
 		if (type(user_agent) == str):
 		#
-			var_return = direct_hooks.call("dNG.pas.upnp.client.user_agent_get", user_agent = user_agent)
+			var_return = Hooks.call("dNG.pas.upnp.client.user_agent_get", user_agent = user_agent)
 
 			if (var_return == None):
 			#
-				identifier = direct_client.get_user_agent_identifiers(user_agent)
-				direct_log_line.debug("pas.upnp client requested user agent with identifier '{0}'".format(identifier))
+				identifier = Client.get_user_agent_identifiers(user_agent)
+				LogLine.debug("pas.upnp client requested user agent with identifier '{0}'".format(identifier))
 
-				settings = direct_client.get_settings_file("{0}/upnp/user_agents/{1}.json".format(direct_settings.get("path_data"), identifier))
+				settings = Client.get_settings_file("{0}/upnp/user_agents/{1}.json".format(Settings.get("path_data"), identifier))
 
 				if (type(settings) == dict):
 				#
-					var_return = direct_client()
+					var_return = Client()
 					var_return.update(settings)
 				#
 			#

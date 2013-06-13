@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.ssdp_message
+dNG.pas.data.upnp.SsdpMessage
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -36,9 +36,9 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from .abstract_ssdp import direct_abstract_ssdp
+from .abstract_ssdp import AbstractSsdp
 
-class direct_ssdp_message(direct_abstract_ssdp):
+class SsdpMessage(AbstractSsdp):
 #
 	"""
 This class contains the UPnP SSDP message implementation. Its based on HTTP

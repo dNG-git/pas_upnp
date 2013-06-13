@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.abstract_ssdp
+dNG.pas.data.upnp.AbstractSsdp
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -39,14 +39,14 @@ NOTE_END //n"""
 from os import uname
 import socket
 
-from dNG.data.rfc.http import direct_http
-from dNG.pas.data.binary import direct_binary
-from dNG.pas.data.settings import direct_settings
-from dNG.pas.module.named_loader import direct_named_loader
-from dNG.pas.net.udpne_ipv4_socket import direct_udpne_ipv4_socket
-from dNG.pas.net.udpne_ipv6_socket import direct_udpne_ipv6_socket
+from dNG.data.rfc.http import Http
+from dNG.pas.data.binary import Binary
+from dNG.pas.data.settings import Settings
+from dNG.pas.module.named_loader import NamedLoader
+from dNG.pas.net.udp_ne_ipv4_socket import UdpNeIpv4Socket
+from dNG.pas.net.udp_ne_ipv6_socket import UdpNeIpv6Socket
 
-class direct_abstract_ssdp(direct_http):
+class AbstractSsdp(Http):
 #
 	"""
 This class contains a generic SSDP message implementation. Its based on HTTP
@@ -64,7 +64,7 @@ for UDP.
 	def __init__(self, target, port = 1900, source_port = None):
 	#
 		"""
-Constructor __init__(direct_service)
+Constructor __init__(AbstractSsdp)
 
 :since: v0.1.00
 		"""
@@ -78,10 +78,10 @@ SSDP target family
 SSDP target host
 		"""
 
-		direct_http.__init__(self, "ssdp://{0}:{1:d}/*".format(target, port))
-		self.set_ipv6_link_local_interface(direct_settings.get("pas_global_ipv6_link_local_interface"))
+		Http.__init__(self, "ssdp://{0}:{1:d}/*".format(target, port))
+		self.set_ipv6_link_local_interface(Settings.get("pas_global_ipv6_link_local_interface"))
 
-		self.log_handler = direct_named_loader.get_singleton("dNG.pas.data.logging.log_handler", False)
+		self.log_handler = NamedLoader.get_singleton("dNG.pas.data.logging.LogHandler", False)
 		"""
 The log_handler is called whenever debug messages should be logged or errors
 happened.
@@ -94,7 +94,7 @@ Active SSDP message socket
 		"""
 Sets a specific source port for messages sent.
 		"""
-		self.udp_hops = int(direct_settings.get("pas_upnp_ssdp_udp_hops", 2))
+		self.udp_hops = int(Settings.get("pas_upnp_ssdp_udp_hops", 2))
 		"""
 UDP validity (IPv4 TTL / IPv6 Hops) for SSDP messages.
 		"""
@@ -106,7 +106,7 @@ UDP validity (IPv4 TTL / IPv6 Hops) for SSDP messages.
 	def __del__(self):
 	#
 		"""
-Destructor __del__(direct_service)
+Destructor __del__(AbstractSsdp)
 
 :since: v0.1.00
 		"""
@@ -126,7 +126,7 @@ Returns a connection to the HTTP server.
 :since:  v0.1.00
 		"""
 
-		direct_http.configure(self, url)
+		Http.configure(self, url)
 
 		self.ssdp_host = (self.host[1:-1] if (":" in self.host) else self.host)
 		address_paths = socket.getaddrinfo(self.ssdp_host, self.port, socket.AF_UNSPEC, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -147,7 +147,7 @@ Invoke a given SSDP method on the unicast or multicast recipient.
 :since:  v0.1.00
 		"""
 
-		if (data != None): data = direct_binary.utf8_bytes(data)
+		if (data != None): data = Binary.utf8_bytes(data)
 		os_uname = uname()
 
 		headers = self.headers.copy()
@@ -166,7 +166,7 @@ Invoke a given SSDP method on the unicast or multicast recipient.
 			else: ssdp_header += "{0}: {1}\r\n".format(header_name, headers[header_name])
 		#
 
-		ssdp_header = direct_binary.utf8_bytes("{0}\r\n".format(ssdp_header))
+		ssdp_header = Binary.utf8_bytes("{0}\r\n".format(ssdp_header))
 
 		data = (ssdp_header if (data == None) else ssdp_header + data)
 		return self.write_data(data)
@@ -236,14 +236,14 @@ Send the given data to the defined recipient.
 		#
 			if (self.ssdp_family == socket.AF_INET):
 			#
-				self.socket = direct_udpne_ipv4_socket()
+				self.socket = UdpNeIpv4Socket()
 				if (self.source_port != None): self.socket.bind(( "", self.source_port ))
 				if (hasattr(socket, "IP_MULTICAST_LOOP")): self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 0)
 				if (hasattr(socket, "IP_MULTICAST_TTL")): self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, self.udp_hops)
 			#
 			else:
 			#
-				self.socket = direct_udpne_ipv6_socket()
+				self.socket = UdpNeIpv6Socket()
 				if (self.source_port != None): self.socket.bind(( "::", self.source_port ))
 				if (hasattr(socket, "IPV6_MULTICAST_LOOP")): self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_LOOP, 0)
 				if (hasattr(socket, "IPV6_MULTICAST_HOPS")): self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_HOPS, self.udp_hops)

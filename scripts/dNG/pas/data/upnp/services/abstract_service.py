@@ -36,13 +36,13 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from dNG.pas.data.http.links import direct_links
-from dNG.pas.data.upnp.client import direct_client
-from dNG.pas.data.upnp.exception import direct_exception
-from dNG.pas.data.upnp.service import direct_service
-from dNG.pas.data.upnp.variable import direct_variable
+from dNG.pas.data.http.links import Links
+from dNG.pas.data.upnp.client import Client
+from dNG.pas.data.upnp.upnp_exception import UpnpException
+from dNG.pas.data.upnp.service import Service
+from dNG.pas.data.upnp.variable import Variable
 
-class direct_abstract_service(direct_service):
+class AbstractService(Service):
 #
 	"""
 An extended, abstract service implementation for server services.
@@ -59,12 +59,12 @@ An extended, abstract service implementation for server services.
 	def __init__(self):
 	#
 		"""
-Constructor __init__(direct_abstract_service)
+Constructor __init__(AbstractService)
 
 :since: v0.1.00
 		"""
 
-		direct_service.__init__(self)
+		Service.__init__(self)
 
 		self.client_user_agent = None
 		"""
@@ -126,7 +126,7 @@ Returns the UPnP service name (URN without version).
 :since:  v0.1.00
 		"""
 
-		return ("{0}:service:{1}".format(self.upnp_domain, self.type) if (self.host_service) else direct_service.get_name(self))
+		return ("{0}:service:{1}".format(self.upnp_domain, self.type) if (self.host_service) else Service.get_name(self))
 	#
 
 	def get_service_id(self):
@@ -138,7 +138,7 @@ Returns the UPnP service ID.
 :since:  v0.1.00
 		"""
 
-		return (self.service_id if (self.host_service) else direct_service.get_service_id(self))
+		return (self.service_id if (self.host_service) else Service.get_service_id(self))
 	#
 
 	def get_service_id_urn(self):
@@ -150,7 +150,7 @@ Returns the UPnP serviceId value.
 :since:  v0.1.00
 		"""
 
-		return ("{0}:serviceId:{1}".format(self.upnp_domain, self.service_id) if (self.host_service) else direct_service.get_service_id_urn(self))
+		return ("{0}:serviceId:{1}".format(self.upnp_domain, self.service_id) if (self.host_service) else Service.get_service_id_urn(self))
 	#
 
 	def get_spec_version(self):
@@ -174,7 +174,7 @@ Returns the UPnP service type.
 :since:  v0.1.00
 		"""
 
-		return (self.type if (self.host_service) else direct_service.get_type(self))
+		return (self.type if (self.host_service) else Service.get_type(self))
 	#
 
 	def get_udn(self):
@@ -186,7 +186,7 @@ Returns the UPnP UDN value.
 :since:  v0.1.00
 		"""
 
-		return (self.udn if (self.host_service) else direct_service.get_udn(self))
+		return (self.udn if (self.host_service) else Service.get_udn(self))
 	#
 
 	def get_upnp_domain(self):
@@ -198,7 +198,7 @@ Returns the UPnP service specification domain.
 :since:  v0.1.00
 		"""
 
-		return (self.upnp_domain if (self.host_service) else direct_service.get_upnp_domain(self))
+		return (self.upnp_domain if (self.host_service) else Service.get_upnp_domain(self))
 	#
 
 	def get_urn(self):
@@ -210,7 +210,7 @@ Returns the UPnP serviceType value.
 :since:  v0.1.00
 		"""
 
-		return ("{0}:service:{1}:{2}".format(self.upnp_domain, self.type, self.version) if (self.host_service) else direct_service.get_urn(self))
+		return ("{0}:service:{1}:{2}".format(self.upnp_domain, self.type, self.version) if (self.host_service) else Service.get_urn(self))
 	#
 
 	def get_version(self):
@@ -222,7 +222,7 @@ Returns the UPnP service type version.
 :since:  v0.1.00
 		"""
 
-		return (self.version if (self.host_service) else direct_service.get_version(self))
+		return (self.version if (self.host_service) else Service.get_version(self))
 	#
 
 	def get_xml(self, flush = True):
@@ -241,7 +241,7 @@ Returns the UPnP SCPD.
 
 		var_return = self.init_xml_parser()
 
-		client = direct_client.load_user_agent(self.client_user_agent)
+		client = Client.load_user_agent(self.client_user_agent)
 		if (client != None and (not client.get("upnp_xml_cdata_encoded", True))): var_return.define_cdata_encoding(False)
 
 		attributes = { "xmlns": "urn:schemas-upnp-org:service-1-0" }
@@ -348,9 +348,9 @@ Executes the given SOAP action.
 		"""
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpService.handle_soap_call({0}, arguments_given)- (#echo(__LINE__)#)".format(action))
-		var_return = direct_exception("pas_http_error_500")
+		var_return = UpnpException("pas_http_error_500")
 
-		action_method = direct_abstract_service.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", action).lower()
+		action_method = AbstractService.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", action).lower()
 		arguments = { }
 		is_valid = (action in self.actions and hasattr(self, action_method))
 
@@ -363,7 +363,7 @@ Executes the given SOAP action.
 				if (argument['variable'] not in self.variables):
 				#
 					is_valid = False
-					var_return = direct_exception("pas_http_error_500")
+					var_return = UpnpException("pas_http_error_500")
 
 					break
 				#
@@ -372,19 +372,19 @@ Executes the given SOAP action.
 				else:
 				#
 					is_valid = False
-					var_return = direct_exception("pas_http_error_400", 402)
+					var_return = UpnpException("pas_http_error_400", 402)
 
 					break
 				#
 
 				if (is_valid):
 				#
-					argument_name = direct_abstract_service.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", argument['name']).lower()
-					arguments[argument_name] = direct_variable.get_native(direct_variable.get_native_type(self.variables[argument['variable']]), argument_given)
+					argument_name = AbstractService.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", argument['name']).lower()
+					arguments[argument_name] = Variable.get_native(Variable.get_native_type(self.variables[argument['variable']]), argument_given)
 				#
 			#
 		#
-		else: var_return = direct_exception("pas_http_error_400", 401)
+		else: var_return = UpnpException("pas_http_error_400", 401)
 
 		result = None
 
@@ -395,7 +395,7 @@ Executes the given SOAP action.
 		except Exception as handled_exception:
 		#
 			if (self.log_handler != None): self.log_handler.error(handled_exception)
-			var_return = direct_exception("pas_http_error_500")
+			var_return = UpnpException("pas_http_error_500")
 		#
 
 		if (isinstance(result, Exception)): var_return = result
@@ -406,22 +406,22 @@ Executes the given SOAP action.
 			var_return = [ ]
 			var_type = type(result)
 
-			if (var_type != dict and len(return_values) != 1): var_return = direct_exception("pas_http_error_500")
+			if (var_type != dict and len(return_values) != 1): var_return = UpnpException("pas_http_error_500")
 			else:
 			#
 				for return_value in return_values:
 				#
-					return_value_name = direct_abstract_service.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", return_value['name']).lower()
+					return_value_name = AbstractService.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", return_value['name']).lower()
 
 					if (var_type == dict): result_value = (result[return_value_name] if (return_value_name in result) else None)
 					else: result_value = result
 
 					if (return_value['variable'] not in self.variables or result_value == None):
 					#
-						var_return = direct_exception("pas_http_error_500")
+						var_return = UpnpException("pas_http_error_500")
 						break
 					#
-					else: var_return.append({ "name": return_value['name'], "value": direct_variable.get_upnp_value(self.variables[return_value['variable']], result_value) })
+					else: var_return.append({ "name": return_value['name'], "value": Variable.get_upnp_value(self.variables[return_value['variable']], result_value) })
 				#
 			#
 		#
@@ -444,7 +444,7 @@ Initialize a host service.
 		self.variables = { }
 		self.udn = device.get_udn()
 
-		self.url_base = "{0}{1}/".format(device.get_url_base(), direct_links.escape(service_id))
+		self.url_base = "{0}{1}/".format(device.get_url_base(), Links.escape(service_id))
 		self.url_control = "{0}control".format(self.url_base)
 		self.url_event_control = "{0}eventsub".format(self.url_base)
 		self.url_scpd = "{0}xml".format(self.url_base)

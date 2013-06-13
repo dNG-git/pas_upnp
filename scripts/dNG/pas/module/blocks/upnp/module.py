@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.module.blocks.upnp.module
+dNG.pas.module.blocks.upnp.Module
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -36,10 +36,10 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from dNG.pas.controller.http_upnp_response import direct_http_upnp_response
-from dNG.pas.module.blocks.abstract_block import direct_abstract_block
+from dNG.pas.controller.http_upnp_response import HttpUpnpResponse
+from dNG.pas.module.blocks.abstract_block import AbstractBlock
 
-class direct_module(direct_abstract_block):
+class Module(AbstractBlock):
 #
 	"""
 module for "upnp"
@@ -64,8 +64,8 @@ Initialize block from the given request and response.
 :since: v0.1.00
 		"""
 
-		direct_abstract_block.init(self, request, response)
-		if (isinstance(self.response, direct_http_upnp_response)): self.response.client_set_user_agent(self.request.get_header("User-Agent"))
+		AbstractBlock.init(self, request, response)
+		if (isinstance(self.response, HttpUpnpResponse)): self.response.client_set_user_agent(self.request.get_header("User-Agent"))
 	#
 #
 

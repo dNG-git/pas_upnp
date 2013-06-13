@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.module.blocks.upnp.control
+dNG.pas.module.blocks.upnp.Control
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -36,13 +36,13 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from dNG.pas.controller.http_upnp_request import direct_http_upnp_request
-from dNG.pas.data.upnp.exception import direct_exception
-from dNG.pas.data.upnp.services.abstract_service import direct_abstract_service
-from dNG.pas.plugins.hooks import direct_hooks
-from .module import direct_module
+from dNG.pas.controller.http_upnp_request import HttpUpnpRequest
+from dNG.pas.data.upnp.upnp_exception import UpnpException
+from dNG.pas.data.upnp.services.abstract_service import AbstractService
+from dNG.pas.plugins.hooks import Hooks
+from .module import Module
 
-class direct_control(direct_module):
+class Control(Module):
 #
 	"""
 Service for "m=upnp;s=control"
@@ -64,17 +64,17 @@ Action for "request"
 :since: v0.1.00
 		"""
 
-		if (not isinstance(self.request, direct_http_upnp_request)): raise direct_exception("pas_http_error_400")
+		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_error_400")
 		upnp_service = self.request.get_upnp_service()
-		if (not isinstance(upnp_service, direct_abstract_service)): raise direct_exception("pas_http_error_400", 401)
+		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_error_400", 401)
 
-		direct_hooks.call("dNG.pas.http.l10n.upnp.control.init")
+		Hooks.call("dNG.pas.http.l10n.upnp.control.init")
 
 		soap_request = self.request.get_soap_request()
 		upnp_service.client_set_user_agent(self.request.get_header("User-Agent"))
 
 		if (soap_request != None): self.response.handle_result(soap_request['urn'], soap_request['action'], upnp_service.handle_soap_call(soap_request['action'], soap_request['arguments']))
-		else: raise direct_exception("pas_http_error_500")
+		else: raise UpnpException("pas_http_error_500")
 	#
 #
 

@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.exception
+dNG.pas.data.upnp.UpnpException
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -36,12 +36,12 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from dNG.pas.data.translatable_exception import direct_translatable_exception
+from dNG.pas.data.translatable_exception import TranslatableException
 
-class direct_exception(direct_translatable_exception):
+class UpnpException(TranslatableException):
 #
 	"""
-"direct_exception" takes a UPnP error message and its error code for later
+"UpnpException" takes a UPnP error message and its error code for later
 output.
 
 :author:     direct Netware Group
@@ -56,7 +56,7 @@ output.
 	def __init__(self, l10n_id, upnp_code = 501, value = None, py_exception = None):
 	#
 		"""
-Constructor __init__(direct_exception)
+Constructor __init__(UpnpException)
 
 :param l10n_id: L10n translatable key (prefixed with "errors_")
 :param upnp_code: UPnP error code
@@ -71,7 +71,7 @@ Constructor __init__(direct_exception)
 UPnP error code
 		"""
 
-		direct_translatable_exception.__init__(self, l10n_id, value, py_exception)
+		TranslatableException.__init__(self, l10n_id, value, py_exception)
 	#
 
 	def get_upnp_code(self):

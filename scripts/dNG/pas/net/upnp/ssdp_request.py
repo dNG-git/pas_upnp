@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.net.upnp.ssdp_request
+dNG.pas.net.upnp.SsdpRequest
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -38,11 +38,11 @@ NOTE_END //n"""
 
 import re
 
-from dNG.data.rfc.http import direct_http
-from dNG.pas.module.named_loader import direct_named_loader
-from dNG.pas.net.server.handler import direct_handler
+from dNG.data.rfc.http import Http
+from dNG.pas.module.named_loader import NamedLoader
+from dNG.pas.net.server.handler import Handler
 
-class direct_ssdp_request(direct_handler):
+class SsdpRequest(Handler):
 #
 	"""
 Class for handling a received SSDP message.
@@ -74,7 +74,7 @@ Active conversation
 
 		if (http_data != None):
 		#
-			http_headers = direct_http.header_get(http_data)
+			http_headers = Http.header_get(http_data)
 
 			if ("@http" in http_headers):
 			#
@@ -93,7 +93,7 @@ Active conversation
 		#
 			bootid = (int(http_headers['BOOTID.UPNP.ORG']) if ("BOOTID.UPNP.ORG" in http_headers) else None)
 			configid = (int(http_headers['CONFIGID.UPNP.ORG']) if ("CONFIGID.UPNP.ORG" in http_headers) else None)
-			control_point = direct_named_loader.get_singleton("dNG.pas.net.upnp.control_point")
+			control_point = NamedLoader.get_singleton("dNG.pas.net.upnp.ControlPoint")
 
 			if (http_headers['NTS'] == "ssdp:alive" or http_headers['NTS'] == "ssdp:update"):
 			#
@@ -107,7 +107,7 @@ Active conversation
 						bootid_old = (int(http_headers['BOOTID.UPNP.ORG']) if ("BOOTID.UPNP.ORG" in http_headers) else None)
 					#
 
-					re_result = direct_ssdp_request.RE_HTTP_HEADER_MAX_AGE.search(http_headers['CACHE-CONTROL'])
+					re_result = SsdpRequest.RE_HTTP_HEADER_MAX_AGE.search(http_headers['CACHE-CONTROL'])
 					unicast_port = (int(http_headers['SEARCHPORT.UPNP.ORG']) if ("SEARCHPORT.UPNP.ORG" in http_headers) else None)
 
 					if (re_result != None): control_point.update_usn(http_headers['SERVER'], http_headers['USN'], bootid, bootid_old, configid, int(re_result.group(2)), unicast_port, http_request_version, http_headers['LOCATION'], http_headers)
@@ -125,7 +125,7 @@ Active conversation
 			wait_timeout = (int(http_headers['MX']) if ("MX" in http_headers) else 1)
 			if (wait_timeout > 5): wait_timeout = 5
 
-			control_point = direct_named_loader.get_singleton("dNG.pas.net.upnp.control_point")
+			control_point = NamedLoader.get_singleton("dNG.pas.net.upnp.ControlPoint")
 			control_point.search(self.address, wait_timeout, http_headers['ST'], http_headers)
 			control_point.return_instance()
 		#

@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.module.blocks.upnp.identity
+dNG.pas.module.blocks.upnp.Identity
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -36,13 +36,13 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from dNG.pas.controller.http_upnp_request import direct_http_upnp_request
-from dNG.pas.data.upnp.exception import direct_exception
-from dNG.pas.data.upnp.devices.abstract_device import direct_abstract_device
-from dNG.pas.data.upnp.services.abstract_service import direct_abstract_service
-from .module import direct_module
+from dNG.pas.controller.http_upnp_request import HttpUpnpRequest
+from dNG.pas.data.upnp.upnp_exception import UpnpException
+from dNG.pas.data.upnp.devices.abstract_device import AbstractDevice
+from dNG.pas.data.upnp.services.abstract_service import AbstractService
+from .module import Module
 
-class direct_identity(direct_module):
+class Identity(Module):
 #
 	"""
 Service for "m=upnp;s=identity"
@@ -64,9 +64,9 @@ Action for "index"
 :since: v0.1.01
 		"""
 
-		if (not isinstance(self.request, direct_http_upnp_request)): raise direct_exception("pas_http_error_400")
+		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_error_400")
 		upnp_device = self.request.get_upnp_device()
-		if (not isinstance(upnp_device, direct_abstract_device)): raise direct_exception("pas_http_error_400", 401)
+		if (not isinstance(upnp_device, AbstractDevice)): raise UpnpException("pas_http_error_400", 401)
 
 		self.response.init()
 		self.response.set_header("Content-Type", "text/plain")
@@ -81,9 +81,9 @@ Action for "service"
 :since: v0.1.00
 		"""
 
-		if (not isinstance(self.request, direct_http_upnp_request)): raise direct_exception("pas_http_error_400")
+		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_error_400")
 		upnp_service = self.request.get_upnp_service()
-		if (not isinstance(upnp_service, direct_abstract_service)): raise direct_exception("pas_http_error_400", 401)
+		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_error_400", 401)
 
 		self.response.init()
 		self.response.set_header("Content-Type", "text/plain")

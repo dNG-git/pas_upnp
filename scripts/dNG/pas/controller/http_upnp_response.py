@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.controller.http_upnp_response
+dNG.pas.controller.HttpUpnpResponse
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -40,15 +40,15 @@ from collections import OrderedDict
 from os import uname
 from time import time
 
-from dNG.data.xml_writer import direct_xml_writer
-from dNG.data.rfc.basics import direct_basics as direct_rfc_basics
-from dNG.pas.data.binary import direct_binary
-from dNG.pas.data.text.l10n import direct_l10n
-from dNG.pas.data.upnp.client import direct_client
-from dNG.pas.data.upnp.exception import direct_exception as direct_upnp_exception
-from .abstract_http_response import direct_abstract_http_response
+from dNG.data.xml_writer import XmlWriter
+from dNG.data.rfc.basics import Basics as RfcBasics
+from dNG.pas.data.binary import Binary
+from dNG.pas.data.text.l10n import L10n
+from dNG.pas.data.upnp.client import Client
+from dNG.pas.data.upnp.upnp_exception import UpnpException
+from .abstract_http_response import AbstractHttpResponse
 
-class direct_http_upnp_response(direct_abstract_http_response):
+class HttpUpnpResponse(AbstractHttpResponse):
 #
 	"""
 The following class implements the response object for XHTML content.
@@ -65,12 +65,12 @@ The following class implements the response object for XHTML content.
 	def __init__(self):
 	#
 		"""
-Constructor __init__(direct_http_upnp_response)
+Constructor __init__(HttpUpnpResponse)
 
 :since: v0.1.00
 		"""
 
-		direct_abstract_http_response.__init__(self)
+		AbstractHttpResponse.__init__(self)
 
 		self.client_user_agent = None
 		"""
@@ -108,7 +108,7 @@ compression setting and information about P3P.
 		os_uname = uname()
 
 		self.set_header("Content-Type", "text/xml; charset=UTF-8")
-		self.set_header("Date", direct_rfc_basics.get_rfc1123_datetime(time()))
+		self.set_header("Date", RfcBasics.get_rfc1123_datetime(time()))
 		self.set_header("Server", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2]))
 	#
 
@@ -125,14 +125,14 @@ Return a UPNP response for the requested SOAP action.
 
 		if (isinstance(result, Exception)):
 		#
-			if (isinstance(result, direct_upnp_exception)): self.send_error(result.get_upnp_code(), "{0:l10n_message}".format(result))
-			else: self.send_error(501, direct_l10n.get("errors_core_unknown_error"))
+			if (isinstance(result, UpnpException)): self.send_error(result.get_upnp_code(), "{0:l10n_message}".format(result))
+			else: self.send_error(501, L10n.get("errors_core_unknown_error"))
 		#
 		else:
 		#
-			xml_parser = direct_xml_writer(node_type = OrderedDict)
+			xml_parser = XmlWriter(node_type = OrderedDict)
 
-			client = direct_client.load_user_agent(self.client_user_agent)
+			client = Client.load_user_agent(self.client_user_agent)
 			if (client != None and (not client.get("upnp_xml_cdata_encoded", True))): xml_parser.define_cdata_encoding(False)
 
 			xml_parser.node_add("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "s:encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
@@ -144,7 +144,7 @@ Return a UPNP response for the requested SOAP action.
 
 			for result_value in result: xml_parser.node_add("{0} {1}".format(xml_base_path, result_value['name']), result_value['value'])
 
-			self.data = direct_binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_parser.cache_export(True)))
+			self.data = Binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_parser.cache_export(True)))
 		#
 	#
 
@@ -168,7 +168,7 @@ Sends the prepared response.
 		#
 			self.set_header("HTTP/1.1", "HTTP/1.1 500 Internal Server Error", True)
 
-			if (self.errors == None): self.send_error(501, direct_l10n.get("errors_core_unknown_error"))
+			if (self.errors == None): self.send_error(501, L10n.get("errors_core_unknown_error"))
 			else: self.send_error((self.errors[0]['code'] if ("code" in self.errors[0]) else 501), self.errors[0]['message'])
 		#
 	#
@@ -184,7 +184,7 @@ Return a UPNP response for the requested SOAP action.
 :since: v0.1.00
 		"""
 
-		xml_parser = direct_xml_writer()
+		xml_parser = XmlWriter()
 
 		xml_parser.node_add("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "s:encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
 		xml_parser.node_add("s:Envelope s:Header")
@@ -199,7 +199,7 @@ Return a UPNP response for the requested SOAP action.
 		xml_parser.node_add("s:Envelope s:Body s:Fault detail UPnPError errorCode", str(code))
 		xml_parser.node_add("s:Envelope s:Body s:Fault detail UPnPError errorDescription", description)
 
-		self.data = direct_binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_parser.cache_export(True)))
+		self.data = Binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_parser.cache_export(True)))
 		self.send()
 	#
 #

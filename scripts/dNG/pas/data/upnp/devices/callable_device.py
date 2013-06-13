@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.devices.callable_device
+dNG.pas.data.upnp.devices.CallableDevice
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -36,10 +36,10 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from dNG.pas.data.upnp.services.callable_service import direct_callable_service
-from .abstract_device import direct_abstract_device
+from dNG.pas.data.upnp.services.callable_service import CallableService
+from .abstract_device import AbstractDevice
 
-class direct_callable_device(direct_abstract_device):
+class CallableDevice(AbstractDevice):
 #
 	"""
 Implementation for "urn:schemas-direct-netware-de:device:CallableDevice:1".
@@ -56,12 +56,12 @@ Implementation for "urn:schemas-direct-netware-de:device:CallableDevice:1".
 	def __init__(self):
 	#
 		"""
-Constructor __init__(direct_callable_device)
+Constructor __init__(CallableDevice)
 
 :since: v0.1.00
 		"""
 
-		direct_abstract_device.__init__(self)
+		AbstractDevice.__init__(self)
 
 		self.type = "CallableDevice"
 		self.upnp_domain = "schemas-direct-netware-de"
@@ -77,7 +77,7 @@ Initialize a host device.
 :since: v0.1.00
 		"""
 
-		direct_abstract_device.init_device(self, control_point, udn, configid)
+		AbstractDevice.init_device(self, control_point, udn, configid)
 
 		self.device_model = "UPnP Python server"
 		self.device_model_desc = "Python based UPnP server software"
@@ -88,7 +88,7 @@ Initialize a host device.
 		self.spec_major = 1
 		self.spec_minor = 1
 
-		service = direct_callable_service()
+		service = CallableService()
 		if (service.init_service(self, configid = self.configid)): self.service_add(service)
 
 		return True

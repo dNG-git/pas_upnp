@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.action
+dNG.pas.data.upnp.Action
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -38,9 +38,9 @@ NOTE_END //n"""
 
 from copy import copy
 
-from .variable import direct_variable
+from .variable import Variable
 
-class direct_action(object):
+class Action(object):
 #
 	"""
 The UPnP service action callable.
@@ -57,7 +57,7 @@ The UPnP service action callable.
 	def __init__(self, service, action, variables):
 	#
 		"""
-Constructor __init__(direct_action)
+Constructor __init__(Action)
 
 :since: v0.1.00
 		"""
@@ -90,7 +90,7 @@ python.org: Called when the instance is "called" as a function.
 		#
 			for argument in arguments:
 			#
-				if (name == argument['name']): argument['value'] = direct_variable.get_upnp_value(argument['variable'], kwargs[name])
+				if (name == argument['name']): argument['value'] = Variable.get_upnp_value(argument['variable'], kwargs[name])
 			#
 		#
 
@@ -98,7 +98,7 @@ python.org: Called when the instance is "called" as a function.
 		#
 			if ("value" not in argument):
 			#
-				if ("value" in argument['variable']): argument['value'] = direct_variable.get_upnp_value(argument['variable'], argument['variable']['value'])
+				if ("value" in argument['variable']): argument['value'] = Variable.get_upnp_value(argument['variable'], argument['variable']['value'])
 				else: raise UnboundLocalError("'{0}' is not defined and has no default value".format(argument['name']))
 			#
 		#

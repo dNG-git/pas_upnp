@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.net.upnp.control_point
+dNG.pas.net.upnp.ControlPoint
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -42,30 +42,31 @@ from os import uname
 from random import randint
 from random import uniform as randfloat
 from time import time
-import re, socket
+import re
+import socket
 
 try: from urllib.parse import urljoin, urlsplit
 except ImportError: from urlparse import urljoin, urlsplit
 
-from dNG.data.rfc.basics import direct_basics as direct_rfc_basics
-from dNG.data.rfc.http import direct_http
-from dNG.pas.controller.http_upnp_request import direct_http_upnp_request
-from dNG.pas.controller.predefined_http_request import direct_predefined_http_request
-from dNG.pas.data.abstract_timed_tasks import direct_abstract_timed_tasks
-from dNG.pas.data.binary import direct_binary
-from dNG.pas.data.settings import direct_settings
-from dNG.pas.data.http.virtual_config import direct_virtual_config
-from dNG.pas.data.text.l10n import direct_l10n
-from dNG.pas.data.upnp.device import direct_device
-from dNG.pas.module.named_loader import direct_named_loader
-from dNG.pas.net.upnp.ssdp_message import direct_ssdp_message
-from dNG.pas.net.upnp.ssdp_response import direct_ssdp_response
-from dNG.pas.plugins.hooks import direct_hooks
-from .gena import direct_gena
-from .ssdp_listener_ipv4_multicast import direct_ssdp_listener_ipv4_multicast
-from .ssdp_listener_ipv6_multicast import direct_ssdp_listener_ipv6_multicast
+from dNG.data.rfc.basics import Basics as RfcBasics
+from dNG.data.rfc.http import Http
+from dNG.pas.controller.http_upnp_request import HttpUpnpRequest
+from dNG.pas.controller.predefined_http_request import PredefinedHttpRequest
+from dNG.pas.data.abstract_timed_tasks import AbstractTimedTasks
+from dNG.pas.data.binary import Binary
+from dNG.pas.data.settings import Settings
+from dNG.pas.data.http.virtual_config import VirtualConfig
+from dNG.pas.data.text.l10n import L10n
+from dNG.pas.data.upnp.device import Device
+from dNG.pas.module.named_loader import NamedLoader
+from dNG.pas.net.upnp.ssdp_message import SsdpMessage
+from dNG.pas.net.upnp.ssdp_response import SsdpResponse
+from dNG.pas.plugins.hooks import Hooks
+from .gena import Gena
+from .ssdp_listener_ipv4_multicast import SsdpListenerIpv4Multicast
+from .ssdp_listener_ipv6_multicast import SsdpListenerIpv6Multicast
 
-class direct_control_point(direct_abstract_timed_tasks):
+class ControlPoint(AbstractTimedTasks):
 #
 	"""
 The UPnP ControlPoint.
@@ -99,10 +100,6 @@ Search result announcement
 	"""
 UPnP service announcement
 	"""
-	RE_CAMEL_CASE_SPLITTER = direct_device.RE_CAMEL_CASE_SPLITTER
-	"""
-CamelCase RegExp
-	"""
 	REANNOUNCE_DEVICE = 6
 	"""
 Subsequent UPnP device announcement
@@ -111,12 +108,12 @@ Subsequent UPnP device announcement
 	def __init__(self):
 	#
 		"""
-Constructor __init__(direct_control_point)
+Constructor __init__(ControlPoint)
 
 :since: v0.1.00
 		"""
 
-		direct_abstract_timed_tasks.__init__(self)
+		AbstractTimedTasks.__init__(self)
 
 		self.bootid = 0
 		"""
@@ -138,7 +135,7 @@ UPnP GENA manager
 		"""
 HTTP Accept-Language value
 		"""
-		self.http_language = (direct_l10n.get("lang_iso") if (direct_l10n.is_defined("lang_iso")) else None)
+		self.http_language = (L10n.get("lang_iso") if (L10n.is_defined("lang_iso")) else None)
 		"""
 HTTP Accept-Language value
 		"""
@@ -150,7 +147,7 @@ HTTP Accept-Language value
 		"""
 Unicast IPv4 listener
 		"""
-		self.listener_port = int(direct_settings.get("pas_upnp_device_port", 1900))
+		self.listener_port = int(Settings.get("pas_upnp_device_port", 1900))
 		"""
 Unicast port in the range 49152-65535 (searchport.upnp.org)
 		"""
@@ -191,17 +188,17 @@ Unread UPnP description URLs
 List of devices with its services
 		"""
 
-		self.log_handler = direct_named_loader.get_singleton("dNG.pas.data.logging.log_handler", False)
+		self.log_handler = NamedLoader.get_singleton("dNG.pas.data.logging.LogHandler", False)
 
 		if (self.http_language == None):
 		#
 			system_language = getlocale()[0]
-			http_language = re.sub("\\W", "", (direct_settings.get("core_lang", "en_US") if (system_language == None or system_language == "c") else system_language))
+			http_language = re.sub("\\W", "", (Settings.get("core_lang", "en_US") if (system_language == None or system_language == "c") else system_language))
 		#
 		else: http_language = self.http_language.replace("_", "")
 
-		if (direct_settings.is_defined("core_lang_{0}".format(http_language))): http_language = direct_settings.get("core_lang_{0}".format(http_language))
-		elif (direct_settings.is_defined("core_lang_{0}".format(http_language[:2]))): http_language = direct_settings.get("core_lang_{0}".format(http_language[:2]))
+		if (Settings.is_defined("core_lang_{0}".format(http_language))): http_language = Settings.get("core_lang_{0}".format(http_language))
+		elif (Settings.is_defined("core_lang_{0}".format(http_language[:2]))): http_language = Settings.get("core_lang_{0}".format(http_language[:2]))
 
 		lang_iso_domain = http_language[:2]
 
@@ -224,15 +221,15 @@ Announces host device changes over SSDP.
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.announce(var_type, usn, location, additional_data)- (#echo(__LINE__)#)")
 
-		identifier = (None if (usn == None) else direct_device.get_identifier(usn, self.bootid, self.configid))
+		identifier = (None if (usn == None) else Device.get_identifier(usn, self.bootid, self.configid))
 
 		announce_targets = [ ]
 		if (self.listeners_multicast_ipv4 > 0): announce_targets.append("239.255.255.250")
 		if (self.listeners_multicast_ipv6 > 0): announce_targets += [ "[ff02::c]", "[ff04::c]", "[ff05::c]", "[ff08::c]", "[ff0e::c]" ]
 
-		with direct_control_point.synchronized:
+		with ControlPoint.synchronized:
 		#
-			if (var_type == direct_control_point.ANNOUNCE_DEVICE_SHUTDOWN and identifier != None):
+			if (var_type == ControlPoint.ANNOUNCE_DEVICE_SHUTDOWN and identifier != None):
 			#
 				if (identifier['uuid'] in self.managed_devices):
 				#
@@ -244,7 +241,7 @@ Announces host device changes over SSDP.
 						for announce_target in announce_targets:
 						#
 							service = device.service_get(service_id)
-							ssdp_request = direct_ssdp_message(announce_target)
+							ssdp_request = SsdpMessage(announce_target)
 							ssdp_request.set_header("NTS", "ssdp:byebye")
 							ssdp_request.set_header("NT", "urn:{0}".format(service.get_urn()))
 							ssdp_request.set_header("USN", "uuid:{0}::urn:{1}".format(service.get_udn(), service.get_urn()))
@@ -257,7 +254,7 @@ Announces host device changes over SSDP.
 
 				for announce_target in announce_targets:
 				#
-					ssdp_request = direct_ssdp_message(announce_target)
+					ssdp_request = SsdpMessage(announce_target)
 					ssdp_request.set_header("NTS", "ssdp:byebye")
 					ssdp_request.set_header("NT", "urn:{0}".format(identifier['urn']))
 					ssdp_request.set_header("USN", usn)
@@ -267,7 +264,7 @@ Announces host device changes over SSDP.
 
 					if (identifier['class'] == "device"):
 					#
-						ssdp_request = direct_ssdp_message(announce_target)
+						ssdp_request = SsdpMessage(announce_target)
 						ssdp_request.set_header("NTS", "ssdp:byebye")
 						ssdp_request.set_header("NT", "uuid:{0}".format(identifier['uuid']))
 						ssdp_request.set_header("USN", "uuid:{0}".format(identifier['uuid']))
@@ -278,7 +275,7 @@ Announces host device changes over SSDP.
 
 					if (self.rootdevice_is_known(identifier['uuid'])):
 					#
-						ssdp_request = direct_ssdp_message(announce_target)
+						ssdp_request = SsdpMessage(announce_target)
 						ssdp_request.set_header("NTS", "ssdp:byebye")
 						ssdp_request.set_header("NT", "upnp:rootdevice")
 						ssdp_request.set_header("USN", "uuid:{0}::upnp:rootdevice".format(identifier['uuid']))
@@ -290,11 +287,11 @@ Announces host device changes over SSDP.
 
 				self.tasks_remove(identifier['usn'], "reannounce_device")
 			#
-			elif ((var_type == direct_control_point.ANNOUNCE_DEVICE or var_type == direct_control_point.REANNOUNCE_DEVICE) and identifier != None and location != None):
+			elif ((var_type == ControlPoint.ANNOUNCE_DEVICE or var_type == ControlPoint.REANNOUNCE_DEVICE) and identifier != None and location != None):
 			#
 				for announce_target in announce_targets:
 				#
-					ssdp_request = direct_ssdp_message(announce_target)
+					ssdp_request = SsdpMessage(announce_target)
 					ssdp_request.set_header("Cache-Control", "max-age=3600")
 					ssdp_request.set_header("NTS", "ssdp:alive")
 					ssdp_request.set_header("NT", "urn:{0}".format(identifier['urn']))
@@ -306,7 +303,7 @@ Announces host device changes over SSDP.
 
 					if (identifier['class'] == "device"):
 					#
-						ssdp_request = direct_ssdp_message(announce_target)
+						ssdp_request = SsdpMessage(announce_target)
 						ssdp_request.set_header("Cache-Control", "max-age=3600")
 						ssdp_request.set_header("NTS", "ssdp:alive")
 						ssdp_request.set_header("NT", "uuid:{0}".format(identifier['uuid']))
@@ -319,7 +316,7 @@ Announces host device changes over SSDP.
 
 					if (self.rootdevice_is_known(identifier['uuid'])):
 					#
-						ssdp_request = direct_ssdp_message(announce_target)
+						ssdp_request = SsdpMessage(announce_target)
 						ssdp_request.set_header("Cache-Control", "max-age=3600")
 						ssdp_request.set_header("NTS", "ssdp:alive")
 						ssdp_request.set_header("NT", "upnp:rootdevice")
@@ -341,7 +338,7 @@ Announces host device changes over SSDP.
 						for announce_target in announce_targets:
 						#
 							service = device.service_get(service_id)
-							ssdp_request = direct_ssdp_message(announce_target)
+							ssdp_request = SsdpMessage(announce_target)
 							ssdp_request.set_header("Cache-Control", "max-age=3600")
 							ssdp_request.set_header("NTS", "ssdp:alive")
 							ssdp_request.set_header("NT", "urn:{0}".format(service.get_urn()))
@@ -354,18 +351,18 @@ Announces host device changes over SSDP.
 					#
 				#
 
-				if (var_type == direct_control_point.ANNOUNCE_DEVICE): self.task_add(0.3, "reannounce_device", usn = usn, location = location)
+				if (var_type == ControlPoint.ANNOUNCE_DEVICE): self.task_add(0.3, "reannounce_device", usn = usn, location = location)
 				else:
 				#
 					wait_seconds = randint(600, 1800)
 					self.task_add(wait_seconds, "reannounce_device", usn = usn, location = location)
 				#
 			#
-			elif (var_type == direct_control_point.ANNOUNCE_SEARCH_RESULT and identifier != None and location != None and additional_data != None and "search_target" in additional_data and "target_host" in additional_data and "target_port" in additional_data):
+			elif (var_type == ControlPoint.ANNOUNCE_SEARCH_RESULT and identifier != None and location != None and additional_data != None and "search_target" in additional_data and "target_host" in additional_data and "target_port" in additional_data):
 			#
-				ssdp_request = direct_ssdp_response(additional_data['target_host'], additional_data['target_port'])
+				ssdp_request = SsdpResponse(additional_data['target_host'], additional_data['target_port'])
 				ssdp_request.set_header("Cache-Control", "max-age=3600")
-				ssdp_request.set_header("Date", direct_rfc_basics.get_rfc1123_datetime(time()))
+				ssdp_request.set_header("Date", RfcBasics.get_rfc1123_datetime(time()))
 				ssdp_request.set_header("EXT", "")
 				ssdp_request.set_header("ST", additional_data['search_target'])
 				ssdp_request.set_header("USN", usn)
@@ -391,7 +388,7 @@ Delete the parsed UPnP identifier from the ControlPoint list.
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.delete(identifier, additional_data)- (#echo(__LINE__)#)")
 
-		with direct_control_point.synchronized:
+		with ControlPoint.synchronized:
 		#
 			if (identifier['usn'] in self.usns and (identifier['bootid'] == None or self.usns[identifier['usn']]['bootid'] <= identifier['bootid'])):
 			#
@@ -401,8 +398,8 @@ Delete the parsed UPnP identifier from the ControlPoint list.
 
 				if (usn_data['uuid'] in self.managed_devices):
 				#
-					direct_hooks.call("dNG.pas.upnp.control_point.host_device_remove", identifier = usn_data)
-					self.announce(direct_control_point.ANNOUNCE_DEVICE_SHUTDOWN, identifier['usn'])
+					Hooks.call("dNG.pas.upnp.control_point.host_device_remove", identifier = usn_data)
+					self.announce(ControlPoint.ANNOUNCE_DEVICE_SHUTDOWN, identifier['usn'])
 					del(self.managed_devices[usn_data['uuid']])
 				#
 				elif ("url_desc_read" in usn_data):
@@ -412,7 +409,7 @@ Delete the parsed UPnP identifier from the ControlPoint list.
 						for ip in usn_data['ips']: self.gena.cancel(("{0}:{1}:{2}".format(usn_data['domain'], usn_data['class'], usn_data['type']) if ("urn" in usn_data) else None), ip)
 					#
 
-					direct_hooks.call("dNG.pas.upnp.control_point.usn_delete", identifier = usn_data)
+					Hooks.call("dNG.pas.upnp.control_point.usn_delete", identifier = usn_data)
 				#
 
 				self.delete_upnp_desc(identifier)
@@ -479,11 +476,11 @@ Delete the USN from the ControlPoint list.
 
 		if (len(usn) > 41):
 		#
-			identifier = direct_device.get_identifier(usn, bootid, configid)
+			identifier = Device.get_identifier(usn, bootid, configid)
 
 			if (identifier != None):
 			#
-				with direct_control_point.synchronized:
+				with ControlPoint.synchronized:
 				#
 					if (identifier['usn'] in self.usns and identifier['uuid'] not in self.managed_devices): self.delete(identifier, additional_data)
 				#
@@ -504,7 +501,7 @@ Delete all USNs from the given list.
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.delete_usns(usns)- (#echo(__LINE__)#)")
 
-		with direct_control_point.synchronized:
+		with ControlPoint.synchronized:
 		#
 			for usn in usns:
 			#
@@ -528,14 +525,14 @@ supported and must be handled separately.
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.device_add(device)- (#echo(__LINE__)#)")
 		var_return = True
 
-		if (isinstance(device, direct_device) and device.is_managed()):
+		if (isinstance(device, Device) and device.is_managed()):
 		#
-			with direct_control_point.synchronized:
+			with ControlPoint.synchronized:
 			#
 				if (self.configid < 16777216): self.configid += 1
 				else: self.configid = 0
 
-				device_identifier = direct_device.get_identifier("uuid:{0}::urn:{1}".format(device.get_udn(), device.get_urn()), self.bootid, self.configid)
+				device_identifier = Device.get_identifier("uuid:{0}::urn:{1}".format(device.get_udn(), device.get_urn()), self.bootid, self.configid)
 
 				if (device_identifier != None and device_identifier['usn'] not in self.usns):
 				#
@@ -547,19 +544,19 @@ supported and must be handled separately.
 					self.managed_devices[device_identifier['uuid']] = device
 					self.usns[device_identifier['usn']] = device_identifier
 
-					self.announce(direct_control_point.ANNOUNCE_DEVICE_SHUTDOWN, device_identifier['usn'], device_identifier['url_desc'])
+					self.announce(ControlPoint.ANNOUNCE_DEVICE_SHUTDOWN, device_identifier['usn'], device_identifier['url_desc'])
 
 					wait_seconds = randfloat(0.2, 0.4)
 					self.task_add(wait_seconds, "announce_device", usn = device_identifier['usn'], location = device_identifier['url_desc'])
 
-					direct_hooks.call("dNG.pas.upnp.control_point.host_device_add", identifier = device_identifier)
+					Hooks.call("dNG.pas.upnp.control_point.host_device_add", identifier = device_identifier)
 
 					embedded_device_uuids = device.embedded_device_get_uuids()
 
 					for uuid in embedded_device_uuids:
 					#
 						embedded_device = device.embedded_device_get(uuid)
-						embedded_device_identifier = direct_device.get_identifier("uuid:{0}::urn:{1}".format(embedded_device.get_udn(), embedded_device.get_urn()), self.bootid, self.configid)
+						embedded_device_identifier = Device.get_identifier("uuid:{0}::urn:{1}".format(embedded_device.get_udn(), embedded_device.get_urn()), self.bootid, self.configid)
 						if (self.log_handler != None): self.log_handler.info("pas.upnp adds UPnP device USN '{0}'".format(embedded_device_identifier['usn']))
 
 						embedded_device_identifier['managed'] = True
@@ -570,12 +567,12 @@ supported and must be handled separately.
 						wait_seconds = randfloat(0.4, 0.6)
 						self.task_add(wait_seconds, "announce_device", usn = embedded_device_identifier['usn'], location = embedded_device_identifier['url_desc'])
 
-						direct_hooks.call("dNG.pas.upnp.control_point.host_device_add", identifier = embedded_device_identifier)
+						Hooks.call("dNG.pas.upnp.control_point.host_device_add", identifier = embedded_device_identifier)
 					#
 
 					if (self.gena == None):
 					#
-						self.gena = direct_gena.get_instance()
+						self.gena = Gena.get_instance()
 						self.gena.start()
 					#
 				#
@@ -627,11 +624,11 @@ Remove a device from the managed list and announce the change.
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.device_remove(device)- (#echo(__LINE__)#)")
 		var_return = False
 
-		if (isinstance(device, direct_device) and device.is_managed()):
+		if (isinstance(device, Device) and device.is_managed()):
 		#
-			with direct_control_point.synchronized:
+			with ControlPoint.synchronized:
 			#
-				device_identifier = direct_device.get_identifier("uuid:{0}::urn:{1}".format(device.get_udn(), device.get_urn()), self.bootid, self.configid)
+				device_identifier = Device.get_identifier("uuid:{0}::urn:{1}".format(device.get_udn(), device.get_urn()), self.bootid, self.configid)
 
 				if (device_identifier != None and device_identifier['usn'] in self.usns):
 				#
@@ -646,7 +643,7 @@ Remove a device from the managed list and announce the change.
 						#
 							usn = "uuid:{0}::urn:{1}".format(self.managed_devices[uuid].get_udn(), self.managed_devices[uuid].get_urn())
 							self.tasks_remove(usn, "reannounce_device")
-							self.announce(direct_control_point.REANNOUNCE_DEVICE, usn, self.managed_devices[uuid].get_desc_url())
+							self.announce(ControlPoint.REANNOUNCE_DEVICE, usn, self.managed_devices[uuid].get_desc_url())
 						#
 					#
 
@@ -677,7 +674,7 @@ Return the raw XML UPnP description for the given identifier.
 
 		var_return = None
 
-		with direct_control_point.synchronized:
+		with ControlPoint.synchronized:
 		#
 			if ("url_desc_read" in identifier and identifier['url_desc_read'] in self.upnp_desc): var_return = self.upnp_desc[identifier['url_desc_read']]['xml_data']
 			elif ("url_desc" in identifier and identifier['url_desc'] in self.upnp_desc): var_return = self.upnp_desc[identifier['url_desc']]['xml_data']
@@ -730,7 +727,7 @@ Get the implementation specific next "run()" UNIX timestamp.
 :since:  v0.1.00
 		"""
 
-		with direct_control_point.synchronized:
+		with ControlPoint.synchronized:
 		#
 			if (len(self.tasks) > 0): var_return = self.tasks[0]['timestamp']
 			else: var_return = -1
@@ -769,7 +766,7 @@ Return the raw XML UPnP description for the given identifier.
 
 			if (virtual_path != None):
 			#
-				with direct_control_point.synchronized:
+				with ControlPoint.synchronized:
 				#
 					device = None
 					request_data = virtual_path.split("/", 2)
@@ -792,7 +789,7 @@ Return the raw XML UPnP description for the given identifier.
 		#
 			if (self.log_handler != None): self.log_handler.warning("pas.upnp refused client '{0}'".format(client_host))
 
-			var_return = direct_predefined_http_request()
+			var_return = PredefinedHttpRequest()
 			var_return.set_output_format("http_upnp")
 			var_return.set_module("output")
 			var_return.set_service("http")
@@ -801,7 +798,7 @@ Return the raw XML UPnP description for the given identifier.
 		#
 		elif (not is_valid):
 		#
-			var_return = direct_predefined_http_request()
+			var_return = PredefinedHttpRequest()
 			var_return.set_output_format("http_upnp")
 			var_return.set_module("output")
 			var_return.set_service("http")
@@ -810,7 +807,7 @@ Return the raw XML UPnP description for the given identifier.
 		#
 		else:
 		#
-			var_return = direct_http_upnp_request()
+			var_return = HttpUpnpRequest()
 			var_return.set_request(http_wsgi_request, self, device, request_data)
 		#
 
@@ -828,12 +825,12 @@ Returns true if the given IP is a allowed to send UPnP control requests.
 :since:  v0.1.00
 		"""
 
-		allowed_networks = direct_settings.get("pas_upnp_allowed_networks")
+		allowed_networks = Settings.get("pas_upnp_allowed_networks")
 		var_return = False
 
 		if (allowed_networks == None):
 		#
-			with direct_control_point.synchronized:
+			with ControlPoint.synchronized:
 			#
 				for usn in self.usns:
 				#
@@ -876,25 +873,25 @@ Starts all multicast listeners based on the IP address given.
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.listeners_multicast_add({0})- (#echo(__LINE__)#)".format(ip))
 
-		with direct_control_point.synchronized:
+		with ControlPoint.synchronized:
 		#
 			if (ip not in self.listeners_multicast):
 			#
 				if (":" in ip):
 				#
 					self.listeners_multicast[ip] = [
-						direct_ssdp_listener_ipv6_multicast(ip),
-						direct_ssdp_listener_ipv6_multicast(ip, "ff04::c"),
-						direct_ssdp_listener_ipv6_multicast(ip, "ff05::c"),
-						direct_ssdp_listener_ipv6_multicast(ip, "ff08::c"),
-						direct_ssdp_listener_ipv6_multicast(ip, "ff0e::c")
+						SsdpListenerIpv6Multicast(ip),
+						SsdpListenerIpv6Multicast(ip, "ff04::c"),
+						SsdpListenerIpv6Multicast(ip, "ff05::c"),
+						SsdpListenerIpv6Multicast(ip, "ff08::c"),
+						SsdpListenerIpv6Multicast(ip, "ff0e::c")
 					]
 
 					self.listeners_multicast_ipv6 += 1
 				#
 				else:
 				#
-					self.listeners_multicast[ip] = [ direct_ssdp_listener_ipv4_multicast(ip) ]
+					self.listeners_multicast[ip] = [ SsdpListenerIpv4Multicast(ip) ]
 					self.listeners_multicast_ipv4 += 1
 				#
 
@@ -916,7 +913,7 @@ Stops all multicast listeners based on the IP address given.
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.listeners_multicast_remove({0})- (#echo(__LINE__)#)".format(ip))
 
-		with direct_control_point.synchronized:
+		with ControlPoint.synchronized:
 		#
 			if (ip in self.listeners_multicast):
 			#
@@ -940,7 +937,7 @@ Parse unread UPnP descriptions.
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.read_upnp_descs()- (#echo(__LINE__)#)")
 
-		with direct_control_point.synchronized:
+		with ControlPoint.synchronized:
 		#
 			upnp_desc_unread = self.upnp_desc_unread.copy()
 			self.upnp_desc_unread.clear()
@@ -957,10 +954,10 @@ Parse unread UPnP descriptions.
 			#
 				if (self.log_handler != None): self.log_handler.debug("pas.upnp reads UPnP device description from '{0}'".format(url))
 
-				http_client = direct_http(url, event_handler = self.log_handler)
+				http_client = Http(url, event_handler = self.log_handler)
 				http_client.set_header("Accept-Language", self.http_language)
 				http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
-				http_client.set_ipv6_link_local_interface(direct_settings.get("pas_global_ipv6_link_local_interface"))
+				http_client.set_ipv6_link_local_interface(Settings.get("pas_global_ipv6_link_local_interface"))
 
 				http_response = http_client.request_get()
 				if (isinstance(http_response['body'], Exception)): raise http_response['body']
@@ -973,10 +970,10 @@ Parse unread UPnP descriptions.
 
 			if (http_response != None):
 			#
-				with direct_control_point.synchronized:
+				with ControlPoint.synchronized:
 				#
-					if (url in self.upnp_desc): self.upnp_desc[url]['xml_data'] = direct_binary.str(http_response['body'])
-					else: self.upnp_desc[url] = { "xml_data": direct_binary.str(http_response['body']), "usns": [ ] }
+					if (url in self.upnp_desc): self.upnp_desc[url]['xml_data'] = Binary.str(http_response['body'])
+					else: self.upnp_desc[url] = { "xml_data": Binary.str(http_response['body']), "usns": [ ] }
 
 					for usn in usns:
 					#
@@ -987,7 +984,7 @@ Parse unread UPnP descriptions.
 
 							self.upnp_desc[url]['usns'].append(usn)
 
-							direct_hooks.call("dNG.pas.upnp.control_point.usn_new", identifier = self.usns[usn])
+							Hooks.call("dNG.pas.upnp.control_point.usn_new", identifier = self.usns[usn])
 						#
 					#
 				#
@@ -1003,12 +1000,12 @@ The last "return_instance()" call will free the singleton reference.
 :since: v0.1.00
 		"""
 
-		with direct_control_point.synchronized:
+		with ControlPoint.synchronized:
 		#
-			if (direct_control_point.instance != None):
+			if (ControlPoint.instance != None):
 			#
-				if (direct_control_point.ref_count > 0): direct_control_point.ref_count -= 1
-				if (direct_control_point.ref_count == 0): direct_control_point.instance = None
+				if (ControlPoint.ref_count > 0): ControlPoint.ref_count -= 1
+				if (ControlPoint.ref_count == 0): ControlPoint.instance = None
 			#
 		#
 	#
@@ -1022,9 +1019,9 @@ removed if the timeout expires.
 :param usn: UPnP USN
 		"""
 
-		with direct_control_point.synchronized:
+		with ControlPoint.synchronized:
 		#
-			identifier = direct_device.get_identifier(usn, self.bootid, self.configid)
+			identifier = Device.get_identifier(usn, self.bootid, self.configid)
 
 			if (identifier['uuid'] in self.rootdevices):
 			#
@@ -1065,7 +1062,7 @@ Return a UPnP rootdevice for the given identifier.
 
 		var_return = None
 
-		with direct_control_point.synchronized:
+		with ControlPoint.synchronized:
 		#
 			if (identifier['class'] == "device" and identifier['usn'] in self.usns):
 			#
@@ -1079,8 +1076,8 @@ Return a UPnP rootdevice for the given identifier.
 				#
 					if (self.log_handler != None): self.log_handler.debug("pas.upnp got request to create an object for device '{0}'".format(identifier['usn']))
 
-					var_return = (direct_named_loader.get_instance("dNG.pas.data.upnp.devices.{0}".format(direct_control_point.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", identifier['type']).lower()), False) if (identifier['class'] == "device") else None)
-					if (var_return == None): var_return = direct_device()
+					var_return = (NamedLoader.get_instance("dNG.pas.data.upnp.devices.{0}".format(identifier['type']), False) if (identifier['class'] == "device") else None)
+					if (var_return == None): var_return = Device()
 					if (var_return.init_xml_desc(self.usns[identifier['usn']], self.get_desc_xml(identifier)) == False): var_return = None
 				#
 			#
@@ -1097,9 +1094,9 @@ Remove a rootdevice from the list of known root devices.
 :param usn: UPnP USN
 		"""
 
-		identifier = direct_device.get_identifier(usn, self.bootid, self.configid)
+		identifier = Device.get_identifier(usn, self.bootid, self.configid)
 
-		with direct_control_point.synchronized:
+		with ControlPoint.synchronized:
 		#
 			if (identifier['uuid'] in self.rootdevices):
 			#
@@ -1120,24 +1117,24 @@ Worker loop
 :since:  v0.1.00
 		"""
 
-		direct_control_point.synchronized.acquire()
+		ControlPoint.synchronized.acquire()
 
 		if (len(self.tasks) > 0 and self.tasks[0]['timestamp'] <= time()):
 		#
 			task = self.tasks.pop(0)
-			direct_control_point.synchronized.release()
+			ControlPoint.synchronized.release()
 
-			direct_abstract_timed_tasks.run(self)
+			AbstractTimedTasks.run(self)
 
 			try:
 			#
 				if (self.log_handler != None): self.log_handler.debug("pas.upnp runs task type '{0}'".format(task['type']))
 
-				if (task['type'] == "announce_device"): self.announce(direct_control_point.ANNOUNCE_DEVICE, task['usn'], task['location'])
-				elif (task['type'] == "announce_search_result"): self.announce(direct_control_point.ANNOUNCE_SEARCH_RESULT, task['usn'], task['location'], task)
+				if (task['type'] == "announce_device"): self.announce(ControlPoint.ANNOUNCE_DEVICE, task['usn'], task['location'])
+				elif (task['type'] == "announce_search_result"): self.announce(ControlPoint.ANNOUNCE_SEARCH_RESULT, task['usn'], task['location'], task)
 				elif (task['type'] == "delete"): self.delete(task['identifier'])
 				elif (task['type'] == "read_upnp_descs"): self.read_upnp_descs()
-				elif (task['type'] == "reannounce_device"): self.announce(direct_control_point.REANNOUNCE_DEVICE, task['usn'], task['location'])
+				elif (task['type'] == "reannounce_device"): self.announce(ControlPoint.REANNOUNCE_DEVICE, task['usn'], task['location'])
 				elif (task['type'] == "rootdevice_remove"): self.rootdevice_remove(task['usn'])
 			#
 			except Exception as handled_exception:
@@ -1147,8 +1144,8 @@ Worker loop
 		#
 		else:
 		#
-			direct_control_point.synchronized.release()
-			direct_abstract_timed_tasks.run(self)
+			ControlPoint.synchronized.release()
+			AbstractTimedTasks.run(self)
 		#
 	#
 
@@ -1171,12 +1168,12 @@ Searches for hosted devices matching the given UPnP search target.
 		elif (search_target.startswith("urn:")):
 		#
 			condition = search_target
-			condition_identifier = direct_device.get_identifier("uuid:00000000-0000-0000-0000-000000000000::{0}".format(search_target), None, None)
+			condition_identifier = Device.get_identifier("uuid:00000000-0000-0000-0000-000000000000::{0}".format(search_target), None, None)
 		#
 		elif (len(search_target) > 41):
 		#
 			condition = search_target
-			condition_identifier = direct_device.get_identifier(search_target, None, None)
+			condition_identifier = Device.get_identifier(search_target, None, None)
 		#
 		else: condition = False
 
@@ -1184,7 +1181,7 @@ Searches for hosted devices matching the given UPnP search target.
 
 		if (condition != False):
 		#
-			with direct_control_point.synchronized:
+			with ControlPoint.synchronized:
 			#
 				if (condition_identifier == None and condition == "upnp:rootdevice"):
 				#
@@ -1298,24 +1295,24 @@ Starts all UPnP listeners and announces itself.
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.start()- (#echo(__LINE__)#)")
 
-		self.http_host = direct_hooks.call("dNG.pas.http.server.get_host")
-		self.http_port = direct_hooks.call("dNG.pas.http.server.get_port")
+		self.http_host = Hooks.call("dNG.pas.http.server.get_host")
+		self.http_port = Hooks.call("dNG.pas.http.server.get_port")
 		if (self.http_host == None or self.http_port == None): raise RuntimeError("HTTP server must provide the hostname and port for the UPnP ControlPoint", 64)
 
-		direct_hooks.load("upnp")
+		Hooks.load("upnp")
 
-		with direct_control_point.synchronized:
+		with ControlPoint.synchronized:
 		#
 			self.bootid += 1
 
-			ip_addresses = direct_settings.get("pas_upnp_bind_network_addresses")
+			ip_addresses = Settings.get("pas_upnp_bind_network_addresses")
 			listener_addresses = 0
 
 			if (type(ip_addresses) != list):
 			#
 				ip_addresses = [ ]
 
-				if (direct_settings.get("pas_upnp_bind_network_detect_addresses", True)):
+				if (Settings.get("pas_upnp_bind_network_detect_addresses", True)):
 				#
 					ip_address_paths = socket.getaddrinfo(self.http_host, None, socket.AF_UNSPEC, 0, socket.IPPROTO_UDP)
 
@@ -1345,11 +1342,11 @@ Starts all UPnP listeners and announces itself.
 				if (socket.has_ipv6): self.listeners_multicast_add("::0")
 			#
 
-			direct_virtual_config.set_virtual_path("/upnp/", { "uri": "upnp_path", "uri_prefix": "/upnp/" }, self.handle_soap_request)
+			VirtualConfig.set_virtual_path("/upnp/", { "uri": "upnp_path", "uri_prefix": "/upnp/" }, self.handle_soap_request)
 		#
 
-		direct_abstract_timed_tasks.start(self)
-		direct_hooks.call("dNG.pas.upnp.control_point.startup")
+		AbstractTimedTasks.start(self)
+		Hooks.call("dNG.pas.upnp.control_point.startup")
 		if (self.log_handler != None): self.log_handler.info("pas.upnp server starts with bootid '{0:d}' and configid '{1:d}'".format(self.bootid, self.configid))
 
 		return last_return
@@ -1368,20 +1365,20 @@ Stops all UPnP listeners and deregisters itself.
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.stop()- (#echo(__LINE__)#)")
 
-		direct_hooks.call("dNG.pas.upnp.control_point.shutdown")
+		Hooks.call("dNG.pas.upnp.control_point.shutdown")
 
-		with direct_control_point.synchronized:
+		with ControlPoint.synchronized:
 		#
 			self.delete_usns(self.usns.copy())
 			self.usns = { }
 
-			direct_virtual_config.unset_virtual_path("/upnp/")
+			VirtualConfig.unset_virtual_path("/upnp/")
 
 			listeners_multicast = self.listeners_multicast.copy()
 			for ip in listeners_multicast: self.listeners_multicast_remove(ip)
 		#
 
-		direct_abstract_timed_tasks.stop(self)
+		AbstractTimedTasks.stop(self)
 		if (self.log_handler != None): self.log_handler.info("pas.upnp server stopped")
 
 		return last_return
@@ -1403,7 +1400,7 @@ Update the list with the given parsed UPnP identifier.
 
 		index = 1
 
-		with direct_control_point.synchronized:
+		with ControlPoint.synchronized:
 		#
 			timestamp = time() + wait_seconds
 
@@ -1461,7 +1458,7 @@ Delete the USN from the list of UPnP descriptions.
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.tasks_remove({0}, var_type)- (#echo(__LINE__)#)".format(usn))
 
-		with direct_control_point.synchronized:
+		with ControlPoint.synchronized:
 		#
 			index = len(self.tasks)
 
@@ -1506,7 +1503,7 @@ Update the list with the given parsed UPnP identifier.
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.update({0}, identifier, bootid, bootid_old, configid, {1:d}, unicast_port, {2:.1f}, {3}, additional_data)- (#echo(__LINE__)#)".format(servername, timeout, http_version, url))
 
-		url_base = direct_binary.str(urljoin(url, "."))
+		url_base = Binary.str(urljoin(url, "."))
 		usn_data = identifier.copy()
 		usn_data.update({ "http_version": http_version, "ssdpname": servername, "unicast_port": unicast_port, "url_base": url_base, "url_desc": url })
 		url_elements = urlsplit(url_base)
@@ -1525,7 +1522,7 @@ Update the list with the given parsed UPnP identifier.
 			if (len(ips) > 0): usn_data['ips'] = ips
 		#
 
-		with direct_control_point.synchronized:
+		with ControlPoint.synchronized:
 		#
 			if (self.log_handler != None): self.log_handler.info("pas.upnp updates USN '{0}'".format(identifier['usn']))
 
@@ -1626,11 +1623,11 @@ Update the list with the given USN.
 
 		if (len(usn) > 41):
 		#
-			identifier = direct_device.get_identifier(usn, bootid, configid)
+			identifier = Device.get_identifier(usn, bootid, configid)
 
 			if (identifier != None):
 			#
-				with direct_control_point.synchronized:
+				with ControlPoint.synchronized:
 				#
 					if (identifier['uuid'] not in self.managed_devices):
 					#
@@ -1650,22 +1647,22 @@ Get the control_point singleton.
 
 :param count: Count "get()" request
 
-:return: (direct_control_point) Object on success
+:return: (ControlPoint) Object on success
 :since:  v0.1.00
 		"""
 
-		with direct_control_point.synchronized:
+		with ControlPoint.synchronized:
 		#
-			if (direct_control_point.instance == None):
+			if (ControlPoint.instance == None):
 			#
-				direct_settings.read_file("{0}/settings/pas_upnp.json".format(direct_settings.get("path_data")))
-				direct_control_point.instance = direct_control_point()
+				Settings.read_file("{0}/settings/pas_upnp.json".format(Settings.get("path_data")))
+				ControlPoint.instance = ControlPoint()
 			#
 
-			if (count): direct_control_point.ref_count += 1
+			if (count): ControlPoint.ref_count += 1
 		#
 
-		return direct_control_point.instance
+		return ControlPoint.instance
 	#
 #
 

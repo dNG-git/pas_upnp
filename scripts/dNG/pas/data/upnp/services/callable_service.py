@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.services.callable_service
+dNG.pas.data.upnp.services.CallableService
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -36,11 +36,11 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from dNG.data.json_parser import direct_json_parser
-from dNG.pas.plugins.hooks import direct_hooks
-from .abstract_service import direct_abstract_service
+from dNG.data.json_parser import JsonParser
+from dNG.pas.plugins.hooks import Hooks
+from .abstract_service import AbstractService
 
-class direct_callable_service(direct_abstract_service):
+class CallableService(AbstractService):
 #
 	"""
 Implementation for "urn:schemas-direct-netware-de:service:CallableService:1".
@@ -63,10 +63,10 @@ Calls the given hook and returns the result.
 :since:  v0.1.01
 		"""
 
-		json_parser = direct_json_parser()
+		json_parser = JsonParser()
 		arguments = ({ } if (json_arguments.strip() == "") else json_parser.json2data(json_arguments))
 
-		result = direct_hooks.call(hook, **arguments)
+		result = Hooks.call(hook, **arguments)
 		return json_parser.data2json(result)
 	#
 
@@ -80,7 +80,7 @@ Initialize a host service.
 		"""
 
 		if (service_id == None): service_id = "CallableService"
-		direct_abstract_service.init_service(self, device, service_id, configid)
+		AbstractService.init_service(self, device, service_id, configid)
 
 		self.actions = {
 			"CallHook": {

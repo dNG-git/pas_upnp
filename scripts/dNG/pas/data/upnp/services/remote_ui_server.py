@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.services.remote_ui_server
+dNG.pas.data.upnp.services.RemoteUiServer
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -36,9 +36,9 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from .abstract_service import direct_abstract_service
+from .abstract_service import AbstractService
 
-class direct_remote_ui_server(direct_abstract_service):
+class RemoteUiServer(AbstractService):
 #
 	"""
 Implementation for "urn:schemas-upnp-org:service:RemoteUIServer:1".
@@ -76,7 +76,7 @@ Initialize a host service.
 		"""
 
 		if (service_id == None): service_id = "RemoteUIServer"
-		direct_abstract_service.init_service(self, device, service_id, configid)
+		AbstractService.init_service(self, device, service_id, configid)
 
 		self.actions = {
 			"GetCompatibleUIs": {

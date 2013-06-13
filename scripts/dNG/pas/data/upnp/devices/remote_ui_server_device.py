@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.devices.remote_ui_server_device
+dNG.pas.data.upnp.devices.RemoteUiServerDevice
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -36,10 +36,10 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from dNG.pas.data.upnp.services.remote_ui_server import direct_remote_ui_server
-from .abstract_device import direct_abstract_device
+from dNG.pas.data.upnp.services.remote_ui_server import RemoteUiServer
+from .abstract_device import AbstractDevice
 
-class direct_remote_ui_server_device(direct_abstract_device):
+class RemoteUiServerDevice(AbstractDevice):
 #
 	"""
 The UPnP RemoteUIServerDevice:1 device implementation.
@@ -56,12 +56,12 @@ The UPnP RemoteUIServerDevice:1 device implementation.
 	def __init__(self):
 	#
 		"""
-Constructor __init__(direct_remote_ui_server_device)
+Constructor __init__(RemoteUiServerDevice)
 
 :since: v0.1.00
 		"""
 
-		direct_abstract_device.__init__(self)
+		AbstractDevice.__init__(self)
 
 		self.type = "RemoteUIServerDevice"
 		self.upnp_domain = "schemas-upnp-org"
@@ -77,7 +77,7 @@ Initialize a host device.
 :since: v0.1.00
 		"""
 
-		direct_abstract_device.init_device(self, control_point, udn, configid)
+		AbstractDevice.init_device(self, control_point, udn, configid)
 
 		self.device_model = "UPnP remote UI server"
 		self.device_model_desc = "Python based UPnP remote UI server"
@@ -88,7 +88,7 @@ Initialize a host device.
 		self.spec_major = 1
 		self.spec_minor = 1
 
-		service = direct_remote_ui_server()
+		service = RemoteUiServer()
 		if (service.init_service(self, configid = self.configid)): self.service_add(service)
 
 		return True

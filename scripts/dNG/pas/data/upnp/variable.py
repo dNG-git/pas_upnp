@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.variable
+dNG.pas.data.upnp.Variable
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -45,10 +45,10 @@ import re
 try: from urllib.parse import urlsplit
 except ImportError: from urlparse import urlsplit
 
-from dNG.data.rfc.basics import direct_basics
-from dNG.pas.data.binary import direct_binary
+from dNG.data.rfc.basics import Basics as RfcBasics
+from dNG.pas.data.binary import Binary
 
-class direct_variable(object):
+class Variable(object):
 #
 	"""
 The UPnP service action callable.
@@ -82,13 +82,13 @@ value.
 		if (type(native_type) == tuple):
 		#
 			if (native_type[1] == "xmlns"): var_return = value
-			elif (native_type[1] == "base64"): var_return = direct_binary.raw_str(b64decode(direct_binary.utf8_bytes(value)))
-			elif (native_type[1] == "date"): var_return = direct_basics.get_iso8601_timestamp(value, time = False)
-			elif (native_type[1] == "dateTime"): var_return = direct_basics.get_iso8601_timestamp(value, timezone = False)
-			elif (native_type[1] == "dateTime.tz"): var_return = direct_basics.get_iso8601_timestamp(value)
-			elif (native_type[1] == "hex"): var_return = direct_binary.raw_str(unhexlify(direct_binary.utf8_bytes(value)))
-			elif (native_type[1] == "time"): var_return = direct_basics.get_iso8601_timestamp(value, False, timezone = False)
-			elif (native_type[1] == "time.tz"): var_return = direct_basics.get_iso8601_timestamp(value, False)
+			elif (native_type[1] == "base64"): var_return = Binary.raw_str(b64decode(Binary.utf8_bytes(value)))
+			elif (native_type[1] == "date"): var_return = RfcBasics.get_iso8601_timestamp(value, time = False)
+			elif (native_type[1] == "dateTime"): var_return = RfcBasics.get_iso8601_timestamp(value, timezone = False)
+			elif (native_type[1] == "dateTime.tz"): var_return = RfcBasics.get_iso8601_timestamp(value)
+			elif (native_type[1] == "hex"): var_return = Binary.raw_str(unhexlify(Binary.utf8_bytes(value)))
+			elif (native_type[1] == "time"): var_return = RfcBasics.get_iso8601_timestamp(value, False, timezone = False)
+			elif (native_type[1] == "time.tz"): var_return = RfcBasics.get_iso8601_timestamp(value, False)
 			elif (native_type[1] == "uri" and re.match("^\\w+\\:\\w", value) == None): raise TypeError("Given value mismatches defined format for URIs")
 			elif (native_type[1] == "uuid" and (not value.startswith("uuid:"))): raise TypeError("Given value mismatches defined format for UUIDs")
 			elif (native_type[0] != str): var_return = native_type[0](value)
@@ -163,16 +163,16 @@ XML node.
 
 			if ("attributes" in xml_node and "type" in xml_node['attributes']):
 			#
-				if (xml_node['attributes']['type'].startswith("urn:")): var_return = var_return = direct_variable.get_native_type({ "type": "xmlns", "type_xmlns": xml_node['attributes']['type'] })
+				if (xml_node['attributes']['type'].startswith("urn:")): var_return = var_return = Variable.get_native_type({ "type": "xmlns", "type_xmlns": xml_node['attributes']['type'] })
 				else:
 				#
-					re_result = direct_variable.RE_NODE_NAME_XMLNS.match(xml_node['attributes']['type'])
+					re_result = Variable.RE_NODE_NAME_XMLNS.match(xml_node['attributes']['type'])
 					uri = xml_parser.ns_get_uri(xml_node['attributes']['type'])
 
-					if (re_result != None and uri != ""): var_return = var_return = direct_variable.get_native_type({ "type": "xmlns", "type_xmlns": "{0}:{1}".format(uri, re_result.group(2)) })
+					if (re_result != None and uri != ""): var_return = var_return = Variable.get_native_type({ "type": "xmlns", "type_xmlns": "{0}:{1}".format(uri, re_result.group(2)) })
 				#
 			#
-			else: var_return = direct_variable.get_native_type({ "type": xml_node['value'] })
+			else: var_return = Variable.get_native_type({ "type": xml_node['value'] })
 		#
 		else: var_return = False
 
@@ -193,11 +193,11 @@ value.
 :since:  v0.1.01
 		"""
 
-		native_type = direct_variable.get_native_type(variable)
+		native_type = Variable.get_native_type(variable)
 
 		if (type(native_type) == tuple):
 		#
-			value_normalized = (direct_binary.str(value) if (native_type[0] == str) else value)
+			value_normalized = (Binary.str(value) if (native_type[0] == str) else value)
 			var_type = type(value_normalized)
 
 			if (var_type != native_type[0]): raise TypeError("Given value mismatches defined format")
@@ -208,27 +208,27 @@ value.
 			#
 			elif (len(native_type[1]) > 1):
 			#
-				if (native_type[1] == "base64"): var_return = direct_binary.str(b64encode(direct_binary.bytes(value) if (value == value_normalized) else value))
+				if (native_type[1] == "base64"): var_return = Binary.str(b64encode(Binary.bytes(value) if (value == value_normalized) else value))
 				elif (native_type[1] == "f14.4"): var_return = "{0:14.4g}".format(value).strip()
 				elif (native_type[1] == "date"): var_return = strftime("%Y-%m-%d", localtime(value))
 				elif (native_type[1] == "dateTime"): var_return = strftime("%Y-%m-%dT%H:%M:%S", localtime(value))
 				elif (native_type[1] == "dateTime.tz"): var_return = strftime("%Y-%m-%dT%H:%M:%S%Z", localtime(value))
-				elif (native_type[1] == "hex"): var_return = direct_binary.str(hexlify(direct_binary.bytes(value) if (value == value_normalized) else value))
+				elif (native_type[1] == "hex"): var_return = Binary.str(hexlify(Binary.bytes(value) if (value == value_normalized) else value))
 				elif (native_type[1] == "time"): var_return = strftime("%H:%M:%S", localtime(value))
 				elif (native_type[1] == "time.tz"): var_return = strftime("%H:%M:%S%Z", localtime(value))
 				elif (native_type[1] == "uri" and len(urlsplit(value).scheme.strip()) < 1): raise TypeError("Given value is not a valid URI")
-				elif (native_type[1] == "uuid" and direct_variable.RE_UUID.match(value_normalized) == None): raise TypeError("Given value is not a valid UUID")
+				elif (native_type[1] == "uuid" and Variable.RE_UUID.match(value_normalized) == None): raise TypeError("Given value is not a valid UUID")
 				else: var_return = value_normalized
 			#
 			else:
 			#
-				pack("={0}".format(native_type[1]), (direct_binary.utf8_bytes(value) if (var_type == str and value == value_normalized) else value))
+				pack("={0}".format(native_type[1]), (Binary.utf8_bytes(value) if (var_type == str and value == value_normalized) else value))
 				var_return = "{0}".format(value_normalized)
 			#
 		#
 		else:
 		#
-			if (native_type == str): value = direct_binary.str(value)
+			if (native_type == str): value = Binary.str(value)
 			var_type = type(value)
 
 			if (var_type != native_type): raise TypeError("Given value mismatches defined format")

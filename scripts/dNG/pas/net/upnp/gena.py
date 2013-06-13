@@ -47,11 +47,11 @@ except ImportError: import md5 as hashlib
 try: from urllib.parse import urlsplit
 except ImportError: from urlparse import urlsplit
 
-from dNG.pas.data.abstract_timed_tasks import direct_abstract_timed_tasks
-from dNG.pas.data.binary import direct_binary
-from dNG.pas.module.named_loader import direct_named_loader
+from dNG.pas.data.abstract_timed_tasks import AbstractTimedTasks
+from dNG.pas.data.binary import Binary
+from dNG.pas.module.named_loader import NamedLoader
 
-class direct_gena(direct_abstract_timed_tasks):
+class Gena(AbstractTimedTasks):
 #
 	"""
 The UPnP GENA manager.
@@ -68,12 +68,12 @@ The UPnP GENA manager.
 	def __init__(self):
 	#
 		"""
-Constructor __init__(direct_gena)
+Constructor __init__(Gena)
 
 :since: v0.1.00
 		"""
 
-		direct_abstract_timed_tasks.__init__(self)
+		AbstractTimedTasks.__init__(self)
 
 		self.subscriptions = None
 		"""
@@ -88,19 +88,19 @@ Active subscriptions
 Cached notifications for submission
 		"""
 
-		self.log_handler = direct_named_loader.get_singleton("dNG.pas.data.logging.log_handler", False)
+		self.log_handler = NamedLoader.get_singleton("dNG.pas.data.logging.LogHandler", False)
 	#
 
 	def __del__(self):
 	#
 		"""
-Destructor __del__(direct_gena)
+Destructor __del__(Gena)
 
 :since: v0.1.00
 		"""
 
 		if (self.subscriptions != None): self.stop()
-		direct_abstract_timed_tasks.__del__(self)
+		AbstractTimedTasks.__del__(self)
 	#
 
 	def cancel(self, service_name, ip):
@@ -119,7 +119,7 @@ preferred if possible.
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpGena.cancel(service_name, {0})- (#echo(__LINE__)#)".format(ip))
 		var_return = False
 
-		with direct_gena.synchronized:
+		with Gena.synchronized:
 		#
 			if (service_name == None): subscriptions = self.subscriptions.copy()
 			elif (service_name in self.subscriptions): subscriptions = { service_name: self.subscriptions[service_name].copy() }
@@ -167,7 +167,7 @@ Removes the subscription identified by the given SID.
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpGena.deregister({0}, {1})- (#echo(__LINE__)#)".format(service_name, sid))
 		var_return = False
 
-		with direct_gena.synchronized:
+		with Gena.synchronized:
 		#
 			if (service_name in self.subscriptions):
 			#
@@ -210,7 +210,7 @@ Get the implementation specific next "run()" UNIX timestamp.
 :since:  v0.1.00
 		"""
 
-		with direct_gena.synchronized:
+		with Gena.synchronized:
 		#
 			if (len(self.timeouts) > 0): var_return = self.timeouts[0]['timestamp']
 			else: var_return = -1
@@ -238,11 +238,11 @@ name.
 
 		index = 1
 
-		with direct_gena.synchronized:
+		with Gena.synchronized:
 		#
 			if (service_name not in self.subscriptions or callback_url not in self.subscriptions[service_name]):
 			#
-				var_return = "uuid:{0}".format(uuid(NAMESPACE_URL, "upnp-gena://{0}/{1}".format(socket.getfqdn(), hashlib.md5(direct_binary.utf8_bytes(callback_url)).hexdigest())))
+				var_return = "uuid:{0}".format(uuid(NAMESPACE_URL, "upnp-gena://{0}/{1}".format(socket.getfqdn(), hashlib.md5(Binary.utf8_bytes(callback_url)).hexdigest())))
 				if (service_name not in self.subscriptions): self.subscriptions[service_name] = { }
 
 				self.subscriptions[service_name][callback_url] = { "seq": 0, "sid": var_return }
@@ -302,7 +302,7 @@ Renews an subscription identified by the given SID.
 
 		index = 1
 
-		with direct_gena.synchronized:
+		with Gena.synchronized:
 		#
 			sid_callback_url = None
 
@@ -349,16 +349,16 @@ The last "return_instance()" call will free the singleton reference.
 :since: v0.1.00
 		"""
 
-		with direct_gena.synchronized:
+		with Gena.synchronized:
 		#
-			if (direct_gena.instance != None):
+			if (Gena.instance != None):
 			#
-				if (direct_gena.ref_count > 0): direct_gena.ref_count -= 1
+				if (Gena.ref_count > 0): Gena.ref_count -= 1
 
-				if (direct_gena.ref_count == 0):
+				if (Gena.ref_count == 0):
 				#
-					direct_gena.instance.stop()
-					direct_gena.instance = None
+					Gena.instance.stop()
+					Gena.instance = None
 				#
 			#
 		#
@@ -373,7 +373,7 @@ Worker loop
 :since:  v0.1.00
 		"""
 
-		direct_gena.synchronized.acquire()
+		Gena.synchronized.acquire()
 
 		if (len(self.timeouts) > 0 and self.timeouts[0]['timestamp'] <= time()):
 		#
@@ -385,13 +385,13 @@ Worker loop
 				if (len(self.subscriptions[timeout_entry['service_name']]) < 1): del(self.subscriptions[timeout_entry['service_name']])
 			#
 
-			direct_gena.synchronized.release()
+			Gena.synchronized.release()
 
 			if (self.log_handler != None): self.log_handler.debug("pas.upnp GENA removes subscription '{0}'".format(timeout_entry['service_name']))
 		#
-		else: direct_gena.synchronized.release()
+		else: Gena.synchronized.release()
 
-		direct_abstract_timed_tasks.run(self)
+		AbstractTimedTasks.run(self)
 	#
 
 	def start(self, params = None, last_return = None):
@@ -407,7 +407,7 @@ Starts the GENA manager.
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpGena.start()- (#echo(__LINE__)#)")
 
-		direct_abstract_timed_tasks.start(self)
+		AbstractTimedTasks.start(self)
 		self.subscriptions = { }
 
 		return last_return
@@ -426,7 +426,7 @@ Stops the GENA manager.
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpGena.stop()- (#echo(__LINE__)#)")
 
-		direct_abstract_timed_tasks.stop(self)
+		AbstractTimedTasks.stop(self)
 		self.subscriptions = None
 
 		return last_return
@@ -440,17 +440,17 @@ Get the GENA singleton.
 
 :param count: Count "get()" request
 
-:return: (direct_gena) Object on success
+:return: (Gena) Object on success
 :since:  v0.1.00
 		"""
 
-		with direct_gena.synchronized:
+		with Gena.synchronized:
 		#
-			if (direct_gena.instance == None): direct_gena.instance = direct_gena()
-			if (count): direct_gena.ref_count += 1
+			if (Gena.instance == None): Gena.instance = Gena()
+			if (count): Gena.ref_count += 1
 		#
 
-		return direct_gena.instance
+		return Gena.instance
 	#
 #
 

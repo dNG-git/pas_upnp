@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.devices.abstract_device
+dNG.pas.data.upnp.devices.AbstractDevice
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -42,13 +42,13 @@ from socket import gethostname
 from uuid import NAMESPACE_URL
 from uuid import uuid3 as uuid
 
-from dNG.pas.data.http.links import direct_links
-from dNG.pas.data.logging.log_line import direct_log_line
-from dNG.pas.data.upnp.client import direct_client
-from dNG.pas.data.upnp.device import direct_device
-from dNG.pas.data.upnp.services.abstract_service import direct_abstract_service
+from dNG.pas.data.http.links import Links
+from dNG.pas.data.logging.log_line import LogLine
+from dNG.pas.data.upnp.client import Client
+from dNG.pas.data.upnp.device import Device
+from dNG.pas.data.upnp.services.abstract_service import AbstractService
 
-class direct_abstract_device(direct_device):
+class AbstractDevice(Device):
 #
 	"""
 An extended, abstract device implementation for server devices.
@@ -65,12 +65,12 @@ An extended, abstract device implementation for server devices.
 	def __init__(self):
 	#
 		"""
-Constructor __init__(direct_abstract_device)
+Constructor __init__(AbstractDevice)
 
 :since: v0.1.00
 		"""
 
-		direct_device.__init__(self)
+		Device.__init__(self)
 
 		self.client_user_agent = None
 		"""
@@ -136,7 +136,7 @@ Returns the UPnP device type.
 :since:  v0.1.00
 		"""
 
-		return (self.type if (self.host_device) else direct_device.get_type(self))
+		return (self.type if (self.host_device) else Device.get_type(self))
 	#
 
 	def get_udn(self):
@@ -148,7 +148,7 @@ Returns the UPnP UDN value.
 :since:  v0.1.00
 		"""
 
-		return (self.udn if (self.host_device) else direct_device.get_udn(self))
+		return (self.udn if (self.host_device) else Device.get_udn(self))
 	#
 
 	def get_upnp_domain(self):
@@ -160,7 +160,7 @@ Returns the UPnP device specification domain.
 :since:  v0.1.00
 		"""
 
-		return (self.upnp_domain if (self.host_device) else direct_device.get_upnp_domain(self))
+		return (self.upnp_domain if (self.host_device) else Device.get_upnp_domain(self))
 	#
 
 	def get_urn(self):
@@ -172,7 +172,7 @@ Returns the UPnP deviceType value.
 :since:  v0.1.00
 		"""
 
-		return ("{0}:device:{1}:{2}".format(self.upnp_domain, self.type, self.version) if (self.host_device) else direct_device.get_urn(self))
+		return ("{0}:device:{1}:{2}".format(self.upnp_domain, self.type, self.version) if (self.host_device) else Device.get_urn(self))
 	#
 
 	def get_version(self):
@@ -184,7 +184,7 @@ Returns the UPnP device type version.
 :since:  v0.1.00
 		"""
 
-		return (self.version if (self.host_device) else direct_device.get_version(self))
+		return (self.version if (self.host_device) else Device.get_version(self))
 	#
 
 	def get_xml(self, flush = True):
@@ -199,11 +199,11 @@ Returns the UPnP device description.
 :since:  v0.1.00
 		"""
 
-		direct_log_line.debug("#echo(__FILEPATH__)# -upnpDevice.get_xml()- (#echo(__LINE__)#)")
+		LogLine.debug("#echo(__FILEPATH__)# -upnpDevice.get_xml()- (#echo(__LINE__)#)")
 
 		var_return = self.init_xml_parser()
 
-		client = direct_client.load_user_agent(self.client_user_agent)
+		client = Client.load_user_agent(self.client_user_agent)
 		if (client != None and (not client.get("upnp_xml_cdata_encoded", True))): var_return.define_cdata_encoding(False)
 
 		attributes = { "xmlns": "urn:schemas-upnp-org:device-1-0" }
@@ -272,7 +272,7 @@ given XML node path.
 			#
 				service = self.service_get(service_name)
 
-				if (isinstance(service, direct_abstract_service)):
+				if (isinstance(service, AbstractService)):
 				#
 					xml_service_base_path = "{0} serviceList service#{1:d}".format(xml_base_path, position)
 
@@ -298,7 +298,7 @@ given XML node path.
 			#
 				device = self.embedded_device_get(uuid)
 
-				if (isinstance(device, direct_abstract_device)):
+				if (isinstance(device, AbstractDevice)):
 				#
 					xml_writer.node_add("{0} deviceList device#{1:d}".format(xml_base_path, position))
 
@@ -323,7 +323,7 @@ Initialize a host device.
 		if (self.name == None): self.name = "{0} {1}".format(gethostname(), self.type)
 		self.udn = (str(uuid(NAMESPACE_URL, "upnp://{0}:{1:d}/{2}".format(control_point.get_http_host(), control_point.get_http_port(), hexlify(urandom(10))))) if (udn == None) else udn)
 
-		url = "http://{0}:{1:d}/upnp/{2}".format(control_point.get_http_host(), control_point.get_http_port(), direct_links.escape(self.udn))
+		url = "http://{0}:{1:d}/upnp/{2}".format(control_point.get_http_host(), control_point.get_http_port(), Links.escape(self.udn))
 		self.desc_url = "{0}/desc".format(url)
 		self.url_base = "{0}/".format(url)
 
