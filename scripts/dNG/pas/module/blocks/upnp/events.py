@@ -91,7 +91,7 @@ Action for "request"
 			gena = Gena.get_instance()
 			timeout = self.request.get_header("Timeout")
 
-			re_result = (None if (timeout == None) else re.match("^Second-(\d+)$", timeout))
+			re_result = (None if (timeout == None) else re.match("^Second-(\\d+)$", timeout))
 
 			if (re_result == None):
 			#

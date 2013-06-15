@@ -56,7 +56,7 @@ Class for handling a received SSDP message.
              GNU General Public License 2
 	"""
 
-	RE_HTTP_HEADER_MAX_AGE = re.compile("(^|[ ,]+)max\-age=(\d+)([, ]+|$)")
+	RE_HTTP_HEADER_MAX_AGE = re.compile("(^|[ ,]+)max\\-age=(\\d+)([, ]+|$)")
 
 	def thread_run(self):
 	#

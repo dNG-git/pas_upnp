@@ -147,13 +147,13 @@ Return a UPnP client based on the given HTTP or SSDP user agent value.
 			for upnp_value in replacement_list: user_agent = user_agent.replace(upnp_value, replacement_list[upnp_value])
 		#
 
-		for re_result in re.finditer("([\d\w\.]+\W[0-9\.]+)", user_agent):
+		for re_result in re.finditer("([\\d\\w\\.]+\\W[0-9\\.]+)", user_agent):
 		#
 			if (var_return != ""): var_return += "_"
-			var_return += re.sub("\W+", "_", re_result.group(1))
+			var_return += re.sub("\\W+", "_", re_result.group(1))
 		#
 
-		if (var_return == ""): var_return = re.sub("\W+", "_", var_return).lower()
+		if (var_return == ""): var_return = re.sub("\\W+", "_", var_return).lower()
 		else: var_return = var_return.lower()
 
 		return var_return
