@@ -103,7 +103,6 @@ Action for "request"
 			if (gena_sid == None):
 			#
 				gena_sid = gena.register(upnp_service.get_name(), callback_url.strip("<>"), timeout)
-				gena.return_instance()
 
 				if (gena_sid == False): raise UpnpException("pas_http_error_404", 412)
 				else:
@@ -117,7 +116,6 @@ Action for "request"
 			else:
 			#
 				result = gena.reregister(upnp_service.get_name(), gena_sid, timeout)
-				gena.return_instance()
 
 				if (result == False): raise UpnpException("pas_http_error_404", 412)
 				else:

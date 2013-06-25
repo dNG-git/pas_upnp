@@ -117,8 +117,6 @@ Active conversation
 			#
 			elif (http_headers['NTS'] == "ssdp:byebye"): control_point.delete_usn(http_headers['USN'], bootid, configid, http_headers)
 			elif (self.log_handler != None): self.log_handler.debug("pas.upnp received unknown NOTIFY nts '{0}'".format(http_headers['NTS']))
-
-			control_point.return_instance()
 		#
 		elif (http_request == "M-SEARCH" and http_request_path == "*" and "MAN" in http_headers and http_headers['MAN'].strip("\"") == "ssdp:discover" and "ST" in http_headers):
 		#
@@ -127,7 +125,6 @@ Active conversation
 
 			control_point = NamedLoader.get_singleton("dNG.pas.net.upnp.ControlPoint")
 			control_point.search(self.address, wait_timeout, http_headers['ST'], http_headers)
-			control_point.return_instance()
 		#
 	#
 #

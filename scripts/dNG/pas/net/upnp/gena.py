@@ -39,6 +39,7 @@ NOTE_END //n"""
 from time import time
 from uuid import NAMESPACE_URL
 from uuid import uuid3 as uuid
+from weakref import ref
 import socket
 
 try: import hashlib
@@ -63,6 +64,11 @@ The UPnP GENA manager.
 :since:      v0.1.00
 :license:    http://www.direct-netware.de/redirect.py?licenses;gpl
              GNU General Public License 2
+	"""
+
+	weakref_instance = None
+	"""
+ControlPoint weakref instance
 	"""
 
 	def __init__(self):
@@ -99,7 +105,7 @@ Destructor __del__(Gena)
 :since: v0.1.00
 		"""
 
-		if (self.subscriptions != None): self.stop()
+		if (self.subscriptions != None): Gena.stop(self)
 		AbstractTimedTasks.__del__(self)
 	#
 
@@ -341,29 +347,6 @@ Renews an subscription identified by the given SID.
 		return var_return
 	#
 
-	def return_instance(self):
-	#
-		"""
-The last "return_instance()" call will free the singleton reference.
-
-:since: v0.1.00
-		"""
-
-		with Gena.synchronized:
-		#
-			if (Gena.instance != None):
-			#
-				if (Gena.ref_count > 0): Gena.ref_count -= 1
-
-				if (Gena.ref_count == 0):
-				#
-					Gena.instance.stop()
-					Gena.instance = None
-				#
-			#
-		#
-	#
-
 	def run(self):
 	#
 		"""
@@ -433,24 +416,29 @@ Stops the GENA manager.
 	#
 
 	@staticmethod
-	def get_instance(count = True):
+	def get_instance():
 	#
 		"""
 Get the GENA singleton.
-
-:param count: Count "get()" request
 
 :return: (Gena) Object on success
 :since:  v0.1.00
 		"""
 
+		var_return = None
+
 		with Gena.synchronized:
 		#
-			if (Gena.instance == None): Gena.instance = Gena()
-			if (count): Gena.ref_count += 1
+			if (Gena.weakref_instance != None): var_return = Gena.weakref_instance()
+
+			if (var_return == None):
+			#
+				var_return = Gena()
+				Gena.weakref_instance = ref(var_return)
+			#
 		#
 
-		return Gena.instance
+		return var_return
 	#
 #
 

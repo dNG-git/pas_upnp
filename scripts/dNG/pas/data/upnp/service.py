@@ -128,17 +128,6 @@ Service variables defined in the SCPD
 		"""
 	#
 
-	def __del__(self):
-	#
-		"""
-Destructor __del__(Service)
-
-:since: v0.1.00
-		"""
-
-		if (self.log_handler != None): self.log_handler.return_instance()
-	#
-
 	def get_configid(self):
 	#
 		"""

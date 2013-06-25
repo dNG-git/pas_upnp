@@ -77,34 +77,28 @@ Return the json content from the given file.
 		var_return = None
 
 		cache_instance = NamedLoader.get_singleton("dNG.pas.data.Cache", False)
+		json = (None if (cache_instance == None) else cache_instance.get_file(file_pathname))
 
-		try:
+		if (json == None):
 		#
-			json = (None if (cache_instance == None) else cache_instance.get_file(file_pathname))
+			file_object = File()
 
-			if (json == None):
+			if (file_object.open(file_pathname, True, "r")):
 			#
-				file_object = File()
+				json = file_object.read()
+				file_object.close()
 
-				if (file_object.open(file_pathname, True, "r")):
-				#
-					json = file_object.read()
-					file_object.close()
-
-					json = json.replace("\r", "")
-					if (cache_instance != None): cache_instance.set_file(file_pathname, json)
-				#
-			#
-
-			if (json != None):
-			#
-				json_parser = JsonParser()
-				var_return = json_parser.json2data(json)
+				json = json.replace("\r", "")
+				if (cache_instance != None): cache_instance.set_file(file_pathname, json)
 			#
 		#
-		except Exception as handled_exception: LogLine.error(handled_exception)
 
-		if (cache_instance != None): cache_instance.return_instance()
+		if (json != None):
+		#
+			json_parser = JsonParser()
+			var_return = json_parser.json2data(json)
+		#
+
 		return var_return
 	#
 

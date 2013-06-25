@@ -112,7 +112,6 @@ Destructor __del__(AbstractSsdp)
 		"""
 
 		if (self.socket != None): self.socket.close()
-		if (self.log_handler != None): self.log_handler.return_instance()
 	#
 
 	def configure(self, url):

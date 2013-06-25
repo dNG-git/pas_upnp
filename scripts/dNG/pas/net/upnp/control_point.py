@@ -42,6 +42,7 @@ from os import uname
 from random import randint
 from random import uniform as randfloat
 from time import time
+from weakref import ref
 import re
 import socket
 
@@ -103,6 +104,11 @@ UPnP service announcement
 	REANNOUNCE_DEVICE = 6
 	"""
 Subsequent UPnP device announcement
+	"""
+
+	weakref_instance = None
+	"""
+ControlPoint weakref instance
 	"""
 
 	def __init__(self):
@@ -647,12 +653,7 @@ Remove a device from the managed list and announce the change.
 						#
 					#
 
-					if (len(self.managed_devices) < 1 and self.gena != None):
-					#
-						self.gena.return_instance()
-						self.gena = None
-					#
-
+					if (len(self.managed_devices) < 1 and self.gena != None): self.gena = None
 					var_return = True
 				#
 			#
@@ -988,24 +989,6 @@ Parse unread UPnP descriptions.
 						#
 					#
 				#
-			#
-		#
-	#
-
-	def return_instance(self):
-	#
-		"""
-The last "return_instance()" call will free the singleton reference.
-
-:since: v0.1.00
-		"""
-
-		with ControlPoint.synchronized:
-		#
-			if (ControlPoint.instance != None):
-			#
-				if (ControlPoint.ref_count > 0): ControlPoint.ref_count -= 1
-				if (ControlPoint.ref_count == 0): ControlPoint.instance = None
 			#
 		#
 	#
@@ -1640,29 +1623,31 @@ Update the list with the given USN.
 	#
 
 	@staticmethod
-	def get_instance(count = True):
+	def get_instance():
 	#
 		"""
 Get the control_point singleton.
-
-:param count: Count "get()" request
 
 :return: (ControlPoint) Object on success
 :since:  v0.1.00
 		"""
 
+		var_return = None
+
 		with ControlPoint.synchronized:
 		#
-			if (ControlPoint.instance == None):
+			if (ControlPoint.weakref_instance != None): var_return = ControlPoint.weakref_instance()
+
+			if (var_return == None):
 			#
 				Settings.read_file("{0}/settings/pas_upnp.json".format(Settings.get("path_data")))
-				ControlPoint.instance = ControlPoint()
-			#
+				var_return = ControlPoint()
 
-			if (count): ControlPoint.ref_count += 1
+				ControlPoint.weakref_instance = ref(var_return)
+			#
 		#
 
-		return ControlPoint.instance
+		return var_return
 	#
 #
 
