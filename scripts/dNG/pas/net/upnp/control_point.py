@@ -53,7 +53,7 @@ from dNG.data.rfc.basics import Basics as RfcBasics
 from dNG.data.rfc.http import Http
 from dNG.pas.controller.http_upnp_request import HttpUpnpRequest
 from dNG.pas.controller.predefined_http_request import PredefinedHttpRequest
-from dNG.pas.data.abstract_timed_tasks import AbstractTimedTasks
+from dNG.pas.data.tasks.abstract_timed import AbstractTimed
 from dNG.pas.data.binary import Binary
 from dNG.pas.data.settings import Settings
 from dNG.pas.data.http.virtual_config import VirtualConfig
@@ -67,7 +67,7 @@ from .gena import Gena
 from .ssdp_listener_ipv4_multicast import SsdpListenerIpv4Multicast
 from .ssdp_listener_ipv6_multicast import SsdpListenerIpv6Multicast
 
-class ControlPoint(AbstractTimedTasks):
+class ControlPoint(AbstractTimed):
 #
 	"""
 The UPnP ControlPoint.
@@ -119,7 +119,7 @@ Constructor __init__(ControlPoint)
 :since: v0.1.00
 		"""
 
-		AbstractTimedTasks.__init__(self)
+		AbstractTimed.__init__(self)
 
 		self.bootid = 0
 		"""
@@ -215,17 +215,17 @@ List of devices with its services
 		if (lang_iso_domain != "en"): self.http_language += ", en-US, en"
 	#
 
-	def announce(self, var_type, usn = None, location = None, additional_data = None):
+	def _announce(self, _type, usn = None, location = None, additional_data = None):
 	#
 		"""
 Announces host device changes over SSDP.
 
-:param var_type: SSDP message type
+:param _type: SSDP message type
 :param usn: UPnP USN
 :param location: Location of the UPnP description
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.announce(var_type, usn, location, additional_data)- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint._announce(_type, usn, location, additional_data)- (#echo(__LINE__)#)")
 
 		identifier = (None if (usn == None) else Device.get_identifier(usn, self.bootid, self.configid))
 
@@ -235,7 +235,7 @@ Announces host device changes over SSDP.
 
 		with ControlPoint.synchronized:
 		#
-			if (var_type == ControlPoint.ANNOUNCE_DEVICE_SHUTDOWN and identifier != None):
+			if (_type == ControlPoint.ANNOUNCE_DEVICE_SHUTDOWN and identifier != None):
 			#
 				if (identifier['uuid'] in self.managed_devices):
 				#
@@ -291,9 +291,9 @@ Announces host device changes over SSDP.
 					#
 				#
 
-				self.tasks_remove(identifier['usn'], "reannounce_device")
+				self._tasks_remove(identifier['usn'], "reannounce_device")
 			#
-			elif ((var_type == ControlPoint.ANNOUNCE_DEVICE or var_type == ControlPoint.REANNOUNCE_DEVICE) and identifier != None and location != None):
+			elif ((_type == ControlPoint.ANNOUNCE_DEVICE or _type == ControlPoint.REANNOUNCE_DEVICE) and identifier != None and location != None):
 			#
 				for announce_target in announce_targets:
 				#
@@ -357,14 +357,14 @@ Announces host device changes over SSDP.
 					#
 				#
 
-				if (var_type == ControlPoint.ANNOUNCE_DEVICE): self.task_add(0.3, "reannounce_device", usn = usn, location = location)
+				if (_type == ControlPoint.ANNOUNCE_DEVICE): self._task_add(0.3, "reannounce_device", usn = usn, location = location)
 				else:
 				#
 					wait_seconds = randint(600, 1800)
-					self.task_add(wait_seconds, "reannounce_device", usn = usn, location = location)
+					self._task_add(wait_seconds, "reannounce_device", usn = usn, location = location)
 				#
 			#
-			elif (var_type == ControlPoint.ANNOUNCE_SEARCH_RESULT and identifier != None and location != None and additional_data != None and "search_target" in additional_data and "target_host" in additional_data and "target_port" in additional_data):
+			elif (_type == ControlPoint.ANNOUNCE_SEARCH_RESULT and identifier != None and location != None and additional_data != None and "search_target" in additional_data and "target_host" in additional_data and "target_port" in additional_data):
 			#
 				ssdp_request = SsdpResponse(additional_data['target_host'], additional_data['target_port'])
 				ssdp_request.set_header("Cache-Control", "max-age=3600")
@@ -380,7 +380,7 @@ Announces host device changes over SSDP.
 		#
 	#
 
-	def delete(self, identifier, additional_data = None):
+	def _delete(self, identifier, additional_data = None):
 	#
 		"""
 Delete the parsed UPnP identifier from the ControlPoint list.
@@ -388,11 +388,10 @@ Delete the parsed UPnP identifier from the ControlPoint list.
 :param identifier: Parsed UPnP identifier
 :param additional_data: Additional data received
 
-:access: protected
-:since:  v0.1.00
+:since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.delete(identifier, additional_data)- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint._delete(identifier, additional_data)- (#echo(__LINE__)#)")
 
 		with ControlPoint.synchronized:
 		#
@@ -400,12 +399,12 @@ Delete the parsed UPnP identifier from the ControlPoint list.
 			#
 				usn_data = self.usns[identifier['usn']]
 
-				if (self.log_handler != None): self.log_handler.info("pas.upnp deletes USN '{0}'".format(identifier['usn']))
+				if (self.log_handler != None): self.log_handler.info("pas.upnp.ControlPoint deletes USN '{0}'".format(identifier['usn']))
 
 				if (usn_data['uuid'] in self.managed_devices):
 				#
 					Hooks.call("dNG.pas.upnp.control_point.host_device_remove", identifier = usn_data)
-					self.announce(ControlPoint.ANNOUNCE_DEVICE_SHUTDOWN, identifier['usn'])
+					self._announce(ControlPoint.ANNOUNCE_DEVICE_SHUTDOWN, identifier['usn'])
 					del(self.managed_devices[usn_data['uuid']])
 				#
 				elif ("url_desc_read" in usn_data):
@@ -418,14 +417,14 @@ Delete the parsed UPnP identifier from the ControlPoint list.
 					Hooks.call("dNG.pas.upnp.control_point.usn_delete", identifier = usn_data)
 				#
 
-				self.delete_upnp_desc(identifier)
+				self._delete_upnp_desc(identifier)
 
 				"""
 Always delete the device itself first. Known related devices and services
 can be safely deleted afterwards.
 				"""
 
-				self.tasks_remove(identifier['usn'])
+				self._tasks_remove(identifier['usn'])
 				del(self.usns[identifier['usn']])
 
 				if (identifier['device'] in self.devices):
@@ -436,7 +435,7 @@ can be safely deleted afterwards.
 					#
 						self.rootdevice_remove(identifier['usn'])
 
-						self.delete_usns(self.devices[identifier['device']])
+						self._delete_usns(self.devices[identifier['device']])
 						if (identifier['device'] in self.devices): del(self.devices[identifier['device']])
 					#
 				#
@@ -444,18 +443,17 @@ can be safely deleted afterwards.
 		#
 	#
 
-	def delete_upnp_desc(self, identifier):
+	def _delete_upnp_desc(self, identifier):
 	#
 		"""
 Delete the USN from the list of UPnP descriptions.
 
 :param identifier: Parsed UPnP identifier
 
-:access: protected
-:since:  v0.1.00
+:since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.delete_upnp_desc(identifier)- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint._delete_upnp_desc(identifier)- (#echo(__LINE__)#)")
 
 		upnp_desc = self.upnp_desc.copy()
 
@@ -488,30 +486,29 @@ Delete the USN from the ControlPoint list.
 			#
 				with ControlPoint.synchronized:
 				#
-					if (identifier['usn'] in self.usns and identifier['uuid'] not in self.managed_devices): self.delete(identifier, additional_data)
+					if (identifier['usn'] in self.usns and identifier['uuid'] not in self.managed_devices): self._delete(identifier, additional_data)
 				#
 			#
 		#
 	#
 
-	def delete_usns(self, usns):
+	def _delete_usns(self, usns):
 	#
 		"""
 Delete all USNs from the given list.
 
 :param usns: USN list
 
-:access: protected
-:since:  v0.1.00
+:since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.delete_usns(usns)- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint._delete_usns(usns)- (#echo(__LINE__)#)")
 
 		with ControlPoint.synchronized:
 		#
 			for usn in usns:
 			#
-				if (usn in self.usns): self.delete(self.usns[usn])
+				if (usn in self.usns): self._delete(self.usns[usn])
 			#
 		#
 	#
@@ -528,8 +525,8 @@ supported and must be handled separately.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.device_add(device)- (#echo(__LINE__)#)")
-		var_return = True
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint.device_add(device)- (#echo(__LINE__)#)")
+		_return = True
 
 		if (isinstance(device, Device) and device.is_managed()):
 		#
@@ -542,7 +539,7 @@ supported and must be handled separately.
 
 				if (device_identifier != None and device_identifier['usn'] not in self.usns):
 				#
-					if (self.log_handler != None): self.log_handler.info("pas.upnp adds UPnP root device USN '{0}'".format(device_identifier['usn']))
+					if (self.log_handler != None): self.log_handler.info("pas.upnp.ControlPoint adds UPnP root device USN '{0}'".format(device_identifier['usn']))
 
 					if (device_identifier['uuid'] not in self.rootdevices): self.rootdevices.append(device_identifier['uuid'])
 					device_identifier['managed'] = True
@@ -550,10 +547,10 @@ supported and must be handled separately.
 					self.managed_devices[device_identifier['uuid']] = device
 					self.usns[device_identifier['usn']] = device_identifier
 
-					self.announce(ControlPoint.ANNOUNCE_DEVICE_SHUTDOWN, device_identifier['usn'], device_identifier['url_desc'])
+					self._announce(ControlPoint.ANNOUNCE_DEVICE_SHUTDOWN, device_identifier['usn'], device_identifier['url_desc'])
 
 					wait_seconds = randfloat(0.2, 0.4)
-					self.task_add(wait_seconds, "announce_device", usn = device_identifier['usn'], location = device_identifier['url_desc'])
+					self._task_add(wait_seconds, "announce_device", usn = device_identifier['usn'], location = device_identifier['url_desc'])
 
 					Hooks.call("dNG.pas.upnp.control_point.host_device_add", identifier = device_identifier)
 
@@ -563,7 +560,7 @@ supported and must be handled separately.
 					#
 						embedded_device = device.embedded_device_get(uuid)
 						embedded_device_identifier = Device.get_identifier("uuid:{0}::urn:{1}".format(embedded_device.get_udn(), embedded_device.get_urn()), self.bootid, self.configid)
-						if (self.log_handler != None): self.log_handler.info("pas.upnp adds UPnP device USN '{0}'".format(embedded_device_identifier['usn']))
+						if (self.log_handler != None): self.log_handler.info("pas.upnp.ControlPoint adds UPnP device USN '{0}'".format(embedded_device_identifier['usn']))
 
 						embedded_device_identifier['managed'] = True
 						embedded_device_identifier['url_desc'] = embedded_device.get_desc_url()
@@ -571,7 +568,7 @@ supported and must be handled separately.
 						self.usns[embedded_device_identifier['usn']] = embedded_device_identifier
 
 						wait_seconds = randfloat(0.4, 0.6)
-						self.task_add(wait_seconds, "announce_device", usn = embedded_device_identifier['usn'], location = embedded_device_identifier['url_desc'])
+						self._task_add(wait_seconds, "announce_device", usn = embedded_device_identifier['usn'], location = embedded_device_identifier['url_desc'])
 
 						Hooks.call("dNG.pas.upnp.control_point.host_device_add", identifier = embedded_device_identifier)
 					#
@@ -582,12 +579,12 @@ supported and must be handled separately.
 						self.gena.start()
 					#
 				#
-				else: var_return = False
+				else: _return = False
 			#
 		#
-		else: var_return = False
+		else: _return = False
 
-		return var_return
+		return _return
 	#
 
 	def device_get(self, identifier):
@@ -601,19 +598,19 @@ Return a UPnP device for the given identifier.
 :since:  v0.1.00
 		"""
 
-		var_return = None
+		_return = None
 
 		device = self.rootdevice_get(identifier)
 
 		if (device != None):
 		#
-			if (device.get_udn() == identifier['uuid']): var_return = device
-			else: var_return = device.embedded_device_get(identifier['uuid'])
+			if (device.get_udn() == identifier['uuid']): _return = device
+			else: _return = device.embedded_device_get(identifier['uuid'])
 
-			if (var_return != None and var_return.is_managed()): var_return.set_configid(self.configid)
+			if (_return != None and _return.is_managed()): _return.set_configid(self.configid)
 		#
 
-		return var_return
+		return _return
 	#
 
 	def device_remove(self, device):
@@ -627,8 +624,8 @@ Remove a device from the managed list and announce the change.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.device_remove(device)- (#echo(__LINE__)#)")
-		var_return = False
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint.device_remove(device)- (#echo(__LINE__)#)")
+		_return = False
 
 		if (isinstance(device, Device) and device.is_managed()):
 		#
@@ -641,25 +638,25 @@ Remove a device from the managed list and announce the change.
 					if (self.configid < 16777216): self.configid += 1
 					else: self.configid = 0
 
-					self.delete(device_identifier)
+					self._delete(device_identifier)
 
 					for uuid in self.managed_devices:
 					#
 						if (device_identifier['uuid'] != uuid):
 						#
 							usn = "uuid:{0}::urn:{1}".format(self.managed_devices[uuid].get_udn(), self.managed_devices[uuid].get_urn())
-							self.tasks_remove(usn, "reannounce_device")
-							self.announce(ControlPoint.REANNOUNCE_DEVICE, usn, self.managed_devices[uuid].get_desc_url())
+							self._tasks_remove(usn, "reannounce_device")
+							self._announce(ControlPoint.REANNOUNCE_DEVICE, usn, self.managed_devices[uuid].get_desc_url())
 						#
 					#
 
 					if (len(self.managed_devices) < 1 and self.gena != None): self.gena = None
-					var_return = True
+					_return = True
 				#
 			#
 		#
 
-		return var_return
+		return _return
 	#
 
 	def get_desc_xml(self, identifier):
@@ -673,26 +670,26 @@ Return the raw XML UPnP description for the given identifier.
 :since:  v0.1.00
 		"""
 
-		var_return = None
+		_return = None
 
 		with ControlPoint.synchronized:
 		#
-			if ("url_desc_read" in identifier and identifier['url_desc_read'] in self.upnp_desc): var_return = self.upnp_desc[identifier['url_desc_read']]['xml_data']
-			elif ("url_desc" in identifier and identifier['url_desc'] in self.upnp_desc): var_return = self.upnp_desc[identifier['url_desc']]['xml_data']
+			if ("url_desc_read" in identifier and identifier['url_desc_read'] in self.upnp_desc): _return = self.upnp_desc[identifier['url_desc_read']]['xml_data']
+			elif ("url_desc" in identifier and identifier['url_desc'] in self.upnp_desc): _return = self.upnp_desc[identifier['url_desc']]['xml_data']
 			else:
 			#
 				for url in self.upnp_desc:
 				#
 					if (identifier['usn'] in self.upnp_desc[url]['usns']):
 					#
-						var_return = self.upnp_desc[url]['xml_data']
+						_return = self.upnp_desc[url]['xml_data']
 						break
 					#
 				#
 			#
 		#
 
-		return var_return
+		return _return
 	#
 
 	def get_http_host(self):
@@ -717,12 +714,11 @@ Returns the UPnP HTTP server port.
 		return self.http_port
 	#
 
-	def get_next_update_timestamp(self):
+	def _get_next_update_timestamp(self):
 	#
 		"""
 Get the implementation specific next "run()" UNIX timestamp.
 
-:access: protected
 :return: (int) UNIX timestamp; -1 if no further "run()" is required at the
          moment
 :since:  v0.1.00
@@ -730,11 +726,11 @@ Get the implementation specific next "run()" UNIX timestamp.
 
 		with ControlPoint.synchronized:
 		#
-			if (len(self.tasks) > 0): var_return = self.tasks[0]['timestamp']
-			else: var_return = -1
+			if (len(self.tasks) > 0): _return = self.tasks[0]['timestamp']
+			else: _return = -1
 		#
 
-		return var_return
+		return _return
 	#
 
 	def handle_soap_request(self, http_wsgi_request, virtual_config):
@@ -748,7 +744,7 @@ Return the raw XML UPnP description for the given identifier.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.handle_soap_request(http_wsgi_request, virtual_config)- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint.handle_soap_request(http_wsgi_request, virtual_config)- (#echo(__LINE__)#)")
 
 		client_host = http_wsgi_request.get_client_host()
 		is_allowed = False
@@ -788,31 +784,31 @@ Return the raw XML UPnP description for the given identifier.
 
 		if (not is_allowed):
 		#
-			if (self.log_handler != None): self.log_handler.warning("pas.upnp refused client '{0}'".format(client_host))
+			if (self.log_handler != None): self.log_handler.warning("pas.upnp.ControlPoint refused client '{0}'".format(client_host))
 
-			var_return = PredefinedHttpRequest()
-			var_return.set_output_format("http_upnp")
-			var_return.set_module("output")
-			var_return.set_service("http")
-			var_return.set_action("error")
-			var_return.set_dsd("code", "403")
+			_return = PredefinedHttpRequest()
+			_return.set_output_format("http_upnp")
+			_return.set_module("output")
+			_return.set_service("http")
+			_return.set_action("error")
+			_return.set_dsd("code", "403")
 		#
 		elif (not is_valid):
 		#
-			var_return = PredefinedHttpRequest()
-			var_return.set_output_format("http_upnp")
-			var_return.set_module("output")
-			var_return.set_service("http")
-			var_return.set_action("error")
-			var_return.set_dsd("code", "400")
+			_return = PredefinedHttpRequest()
+			_return.set_output_format("http_upnp")
+			_return.set_module("output")
+			_return.set_service("http")
+			_return.set_action("error")
+			_return.set_dsd("code", "400")
 		#
 		else:
 		#
-			var_return = HttpUpnpRequest()
-			var_return.set_request(http_wsgi_request, self, device, request_data)
+			_return = HttpUpnpRequest()
+			_return.set_request(http_wsgi_request, self, device, request_data)
 		#
 
-		return var_return
+		return _return
 	#
 
 	def is_ip_allowed(self, ip):
@@ -827,7 +823,7 @@ Returns true if the given IP is a allowed to send UPnP control requests.
 		"""
 
 		allowed_networks = Settings.get("pas_upnp_allowed_networks")
-		var_return = False
+		_return = False
 
 		if (allowed_networks == None):
 		#
@@ -837,7 +833,7 @@ Returns true if the given IP is a allowed to send UPnP control requests.
 				#
 					if ("ips" in self.usns[usn] and ip in self.usns[usn]['ips']):
 					#
-						var_return= True
+						_return= True
 						break
 					#
 				#
@@ -852,27 +848,26 @@ Returns true if the given IP is a allowed to send UPnP control requests.
 
 				if (ip.startswith(network_prefix)):
 				#
-					var_return = True
+					_return = True
 					break
 				#
 			#
 		#
 
-		return var_return
+		return _return
 	#
 
-	def listeners_multicast_add(self, ip):
+	def _listeners_multicast_add(self, ip):
 	#
 		"""
 Starts all multicast listeners based on the IP address given.
 
 :param ip: IPv4 / IPv6 address
 
-:access: protected
-:since:  v0.1.01
+:since: v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.listeners_multicast_add({0})- (#echo(__LINE__)#)".format(ip))
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint._listeners_multicast_add({0})- (#echo(__LINE__)#)".format(ip))
 
 		with ControlPoint.synchronized:
 		#
@@ -901,18 +896,17 @@ Starts all multicast listeners based on the IP address given.
 		#
 	#
 
-	def listeners_multicast_remove(self, ip):
+	def _listeners_multicast_remove(self, ip):
 	#
 		"""
 Stops all multicast listeners based on the IP address given.
 
 :param ip: IPv4 / IPv6 address
 
-:access: protected
-:since:  v0.1.01
+:since: v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.listeners_multicast_remove({0})- (#echo(__LINE__)#)".format(ip))
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint._listeners_multicast_remove({0})- (#echo(__LINE__)#)".format(ip))
 
 		with ControlPoint.synchronized:
 		#
@@ -927,16 +921,15 @@ Stops all multicast listeners based on the IP address given.
 		#
 	#
 
-	def read_upnp_descs(self):
+	def _read_upnp_descs(self):
 	#
 		"""
 Parse unread UPnP descriptions.
 
-:access: protected
-:since:  v0.1.00
+:since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.read_upnp_descs()- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint._read_upnp_descs()- (#echo(__LINE__)#)")
 
 		with ControlPoint.synchronized:
 		#
@@ -953,7 +946,7 @@ Parse unread UPnP descriptions.
 
 			try:
 			#
-				if (self.log_handler != None): self.log_handler.debug("pas.upnp reads UPnP device description from '{0}'".format(url))
+				if (self.log_handler != None): self.log_handler.debug("pas.upnp.ControlPoint reads UPnP device description from '{0}'".format(url))
 
 				http_client = Http(url, event_handler = self.log_handler)
 				http_client.set_header("Accept-Language", self.http_language)
@@ -966,7 +959,7 @@ Parse unread UPnP descriptions.
 			except Exception as handled_exception:
 			#
 				if (self.log_handler != None): self.log_handler.error(handled_exception)
-				self.delete_usns(usns)
+				self._delete_usns(usns)
 			#
 
 			if (http_response != None):
@@ -1008,17 +1001,17 @@ removed if the timeout expires.
 
 			if (identifier['uuid'] in self.rootdevices):
 			#
-				if (self.log_handler != None): self.log_handler.debug("pas.upnp renews TTL for UPnP root device USN '{0}' (TTL '{1:d}')".format(usn, timeout))
+				if (self.log_handler != None): self.log_handler.debug("pas.upnp.ControlPoint renews TTL for UPnP root device USN '{0}' (TTL '{1:d}')".format(usn, timeout))
 
-				self.tasks_remove(usn, "rootdevice_remove")
-				self.task_add(timeout, "rootdevice_remove", usn = usn)
+				self._tasks_remove(usn, "rootdevice_remove")
+				self._task_add(timeout, "rootdevice_remove", usn = usn)
 			#
 			else:
 			#
-				if (self.log_handler != None): self.log_handler.debug("pas.upnp adds UPnP root device USN '{0}' (TTL '{1:d}')".format(usn, timeout))
+				if (self.log_handler != None): self.log_handler.debug("pas.upnp.ControlPoint adds UPnP root device USN '{0}' (TTL '{1:d}')".format(usn, timeout))
 
 				self.rootdevices.append(identifier['uuid'])
-				self.task_add(timeout, "rootdevice_remove", usn = usn)
+				self._task_add(timeout, "rootdevice_remove", usn = usn)
 			#
 		#
 	#
@@ -1043,7 +1036,7 @@ Return a UPnP rootdevice for the given identifier.
 :since:  v0.1.00
 		"""
 
-		var_return = None
+		_return = None
 
 		with ControlPoint.synchronized:
 		#
@@ -1051,22 +1044,22 @@ Return a UPnP rootdevice for the given identifier.
 			#
 				if (identifier['uuid'] in self.managed_devices):
 				#
-					if (self.log_handler != None): self.log_handler.debug("pas.upnp got request to return the hosted device '{0}'".format(identifier['usn']))
-					var_return = self.managed_devices[identifier['uuid']]
-					var_return.set_configid(self.configid)
+					if (self.log_handler != None): self.log_handler.debug("pas.upnp.ControlPoint got request to return the hosted device '{0}'".format(identifier['usn']))
+					_return = self.managed_devices[identifier['uuid']]
+					_return.set_configid(self.configid)
 				#
 				else:
 				#
-					if (self.log_handler != None): self.log_handler.debug("pas.upnp got request to create an object for device '{0}'".format(identifier['usn']))
+					if (self.log_handler != None): self.log_handler.debug("pas.upnp.ControlPoint got request to create an object for device '{0}'".format(identifier['usn']))
 
-					var_return = (NamedLoader.get_instance("dNG.pas.data.upnp.devices.{0}".format(identifier['type']), False) if (identifier['class'] == "device") else None)
-					if (var_return == None): var_return = Device()
-					if (var_return.init_xml_desc(self.usns[identifier['usn']], self.get_desc_xml(identifier)) == False): var_return = None
+					_return = (NamedLoader.get_instance("dNG.pas.data.upnp.devices.{0}".format(identifier['type']), False) if (identifier['class'] == "device") else None)
+					if (_return == None): _return = Device()
+					if (_return.init_xml_desc(self.usns[identifier['usn']], self.get_desc_xml(identifier)) == False): _return = None
 				#
 			#
 		#
 
-		return var_return
+		return _return
 	#
 
 	def rootdevice_remove(self, usn):
@@ -1083,10 +1076,10 @@ Remove a rootdevice from the list of known root devices.
 		#
 			if (identifier['uuid'] in self.rootdevices):
 			#
-				if (self.log_handler != None): self.log_handler.debug("pas.upnp removes UPnP root device USN '{0}'".format(usn))
+				if (self.log_handler != None): self.log_handler.debug("pas.upnp.ControlPoint removes UPnP root device USN '{0}'".format(usn))
 
 				self.rootdevices.remove(identifier['uuid'])
-				self.tasks_remove(usn, "rootdevice_remove")
+				self._tasks_remove(usn, "rootdevice_remove")
 			#
 		#
 	#
@@ -1096,8 +1089,7 @@ Remove a rootdevice from the list of known root devices.
 		"""
 Worker loop
 
-:access: protected
-:since:  v0.1.00
+:since: v0.1.00
 		"""
 
 		ControlPoint.synchronized.acquire()
@@ -1107,17 +1099,17 @@ Worker loop
 			task = self.tasks.pop(0)
 			ControlPoint.synchronized.release()
 
-			AbstractTimedTasks.run(self)
+			AbstractTimed.run(self)
 
 			try:
 			#
-				if (self.log_handler != None): self.log_handler.debug("pas.upnp runs task type '{0}'".format(task['type']))
+				if (self.log_handler != None): self.log_handler.debug("pas.upnp.ControlPoint runs task type '{0}'".format(task['type']))
 
-				if (task['type'] == "announce_device"): self.announce(ControlPoint.ANNOUNCE_DEVICE, task['usn'], task['location'])
-				elif (task['type'] == "announce_search_result"): self.announce(ControlPoint.ANNOUNCE_SEARCH_RESULT, task['usn'], task['location'], task)
-				elif (task['type'] == "delete"): self.delete(task['identifier'])
-				elif (task['type'] == "read_upnp_descs"): self.read_upnp_descs()
-				elif (task['type'] == "reannounce_device"): self.announce(ControlPoint.REANNOUNCE_DEVICE, task['usn'], task['location'])
+				if (task['type'] == "announce_device"): self._announce(ControlPoint.ANNOUNCE_DEVICE, task['usn'], task['location'])
+				elif (task['type'] == "announce_search_result"): self._announce(ControlPoint.ANNOUNCE_SEARCH_RESULT, task['usn'], task['location'], task)
+				elif (task['type'] == "delete"): self._delete(task['identifier'])
+				elif (task['type'] == "read_upnp_descs"): self._read_upnp_descs()
+				elif (task['type'] == "reannounce_device"): self._announce(ControlPoint.REANNOUNCE_DEVICE, task['usn'], task['location'])
 				elif (task['type'] == "rootdevice_remove"): self.rootdevice_remove(task['usn'])
 			#
 			except Exception as handled_exception:
@@ -1128,7 +1120,7 @@ Worker loop
 		else:
 		#
 			ControlPoint.synchronized.release()
-			AbstractTimedTasks.run(self)
+			AbstractTimed.run(self)
 		#
 	#
 
@@ -1260,7 +1252,7 @@ Searches for hosted devices matching the given UPnP search target.
 			if (len(results) > 0):
 			#
 				wait_seconds = randfloat(0, source_wait_timeout / len(results))
-				for result in results: self.task_add(wait_seconds, "announce_search_result", usn = result['usn'], location = result['location'], search_target = result['search_target'], target_host = ("[{0}]".format(source_data[0]) if (":" in source_data[0]) else source_data[0]), target_port = source_data[1])
+				for result in results: self._task_add(wait_seconds, "announce_search_result", usn = result['usn'], location = result['location'], search_target = result['search_target'], target_host = ("[{0}]".format(source_data[0]) if (":" in source_data[0]) else source_data[0]), target_port = source_data[1])
 			#
 		#
 	#
@@ -1276,7 +1268,7 @@ Starts all UPnP listeners and announces itself.
 :since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.start()- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint.start()- (#echo(__LINE__)#)")
 
 		self.http_host = Hooks.call("dNG.pas.http.server.get_host")
 		self.http_port = Hooks.call("dNG.pas.http.server.get_port")
@@ -1304,7 +1296,7 @@ Starts all UPnP listeners and announces itself.
 						if (ip_address_data[0] == socket.AF_INET or (socket.has_ipv6 and ip_address_data[0])): ip_addresses.append(ip_address_data[4][0])
 					#
 
-					if (self.log_handler != None and len(ip_addresses) < 1): self.log_handler.warning("pas.upnp server was unable to find available networks")
+					if (self.log_handler != None and len(ip_addresses) < 1): self.log_handler.warning("pas.upnp.ControlPoint was unable to find available networks")
 				#
 			#
 
@@ -1312,25 +1304,25 @@ Starts all UPnP listeners and announces itself.
 			#
 				if (ip_address[:4] != "127." and ip_address != "::1"):
 				#
-					self.listeners_multicast_add(ip_address)
+					self._listeners_multicast_add(ip_address)
 					listener_addresses += 1
 				#
 			#
 
 			if (listener_addresses < 1):
 			#
-				if (self.log_handler != None): self.log_handler.debug("pas.upnp server will bind to all interfaces")
+				if (self.log_handler != None): self.log_handler.debug("pas.upnp.ControlPoint will bind to all interfaces")
 
-				self.listeners_multicast_add("0.0.0.0")
-				if (socket.has_ipv6): self.listeners_multicast_add("::0")
+				self._listeners_multicast_add("0.0.0.0")
+				if (socket.has_ipv6): self._listeners_multicast_add("::0")
 			#
 
 			VirtualConfig.set_virtual_path("/upnp/", { "uri": "upnp_path", "uri_prefix": "/upnp/" }, self.handle_soap_request)
 		#
 
-		AbstractTimedTasks.start(self)
+		AbstractTimed.start(self)
 		Hooks.call("dNG.pas.upnp.control_point.startup")
-		if (self.log_handler != None): self.log_handler.info("pas.upnp server starts with bootid '{0:d}' and configid '{1:d}'".format(self.bootid, self.configid))
+		if (self.log_handler != None): self.log_handler.info("pas.upnp.ControlPoint starts with bootid '{0:d}' and configid '{1:d}'".format(self.bootid, self.configid))
 
 		return last_return
 	#
@@ -1346,40 +1338,39 @@ Stops all UPnP listeners and deregisters itself.
 :since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.stop()- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint.stop()- (#echo(__LINE__)#)")
 
 		Hooks.call("dNG.pas.upnp.control_point.shutdown")
 
 		with ControlPoint.synchronized:
 		#
-			self.delete_usns(self.usns.copy())
+			self._delete_usns(self.usns.copy())
 			self.usns = { }
 
 			VirtualConfig.unset_virtual_path("/upnp/")
 
 			listeners_multicast = self.listeners_multicast.copy()
-			for ip in listeners_multicast: self.listeners_multicast_remove(ip)
+			for ip in listeners_multicast: self._listeners_multicast_remove(ip)
 		#
 
-		AbstractTimedTasks.stop(self)
-		if (self.log_handler != None): self.log_handler.info("pas.upnp server stopped")
+		AbstractTimed.stop(self)
+		if (self.log_handler != None): self.log_handler.info("pas.upnp.ControlPoint stopped")
 
 		return last_return
 	#
 
-	def task_add(self, wait_seconds, var_type, **kwargs):
+	def _task_add(self, wait_seconds, _type, **kwargs):
 	#
 		"""
 Update the list with the given parsed UPnP identifier.
 
 :param wait_seconds: Seconds to wait
-:param var_type: Task type to be added
+:param _type: Task type to be added
 
-:access: protected
-:since:  v0.1.00
+:since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.task_add({0:.2f}, {1})- (#echo(__LINE__)#)".format(wait_seconds, var_type))
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint._task_add({0:.2f}, {1})- (#echo(__LINE__)#)".format(wait_seconds, _type))
 
 		index = 1
 
@@ -1420,26 +1411,25 @@ Update the list with the given parsed UPnP identifier.
 			#
 
 			task = kwargs
-			task.update({ "timestamp": timestamp, "type": var_type })
+			task.update({ "timestamp": timestamp, "type": _type })
 			self.tasks.insert(index, task)
 		#
 
 		if (index < 1): self.update_timestamp()
 	#
 
-	def tasks_remove(self, usn, var_type = None):
+	def _tasks_remove(self, usn, _type = None):
 	#
 		"""
 Delete the USN from the list of UPnP descriptions.
 
 :param usn: UPnP USN
-:param var_type: Task type to be deleted
+:param _type: Task type to be deleted
 
-:access: protected
-:since:  v0.1.00
+:since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.tasks_remove({0}, var_type)- (#echo(__LINE__)#)".format(usn))
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint._tasks_remove({0}, _type)- (#echo(__LINE__)#)".format(usn))
 
 		with ControlPoint.synchronized:
 		#
@@ -1454,7 +1444,7 @@ Delete the USN from the list of UPnP descriptions.
 				#
 					index -= 1
 
-					if (var_type == None or task['type'] == var_type):
+					if (_type == None or task['type'] == _type):
 					#
 						if ("identifier" in task and usn == task['identifier']['usn']): self.tasks.pop(index)
 						elif ("usn" in task and usn == task['usn']): self.tasks.pop(index)
@@ -1464,7 +1454,7 @@ Delete the USN from the list of UPnP descriptions.
 		#
 	#
 
-	def update(self, servername, identifier, bootid, bootid_old, configid, timeout, unicast_port, http_version, url, additional_data = None):
+	def _update(self, servername, identifier, bootid, bootid_old, configid, timeout, unicast_port, http_version, url, additional_data = None):
 	#
 		"""
 Update the list with the given parsed UPnP identifier.
@@ -1480,11 +1470,10 @@ Update the list with the given parsed UPnP identifier.
 :param url: UPnP description location
 :param additional_data: Additional data received
 
-:access: protected
-:since:  v0.1.00
+:since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpControlPoint.update({0}, identifier, bootid, bootid_old, configid, {1:d}, unicast_port, {2:.1f}, {3}, additional_data)- (#echo(__LINE__)#)".format(servername, timeout, http_version, url))
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint._update({0}, identifier, bootid, bootid_old, configid, {1:d}, unicast_port, {2:.1f}, {3}, additional_data)- (#echo(__LINE__)#)".format(servername, timeout, http_version, url))
 
 		url_base = Binary.str(urljoin(url, "."))
 		usn_data = identifier.copy()
@@ -1507,7 +1496,7 @@ Update the list with the given parsed UPnP identifier.
 
 		with ControlPoint.synchronized:
 		#
-			if (self.log_handler != None): self.log_handler.info("pas.upnp updates USN '{0}'".format(identifier['usn']))
+			if (self.log_handler != None): self.log_handler.info("pas.upnp.ControlPoint updates USN '{0}'".format(identifier['usn']))
 
 			is_update = False
 			read_config = True
@@ -1564,15 +1553,15 @@ Three possibilities:
 				if (is_update):
 				#
 					self.usns[identifier['usn']].update(usn_data)
-					self.tasks_remove(identifier['usn'], "delete")
-					self.task_add(timeout, "delete", identifier = identifier)
+					self._tasks_remove(identifier['usn'], "delete")
+					self._task_add(timeout, "delete", identifier = identifier)
 				#
-				else: self.delete(identifier)
+				else: self._delete(identifier)
 			#
 			else:
 			#
 				self.usns[identifier['usn']] = usn_data
-				self.task_add(timeout, "delete", identifier = identifier)
+				self._task_add(timeout, "delete", identifier = identifier)
 			#
 
 			if (read_config):
@@ -1580,7 +1569,7 @@ Three possibilities:
 				if (url not in self.upnp_desc_unread): self.upnp_desc_unread[url] = [ identifier['usn'] ]
 				elif (identifier['usn'] not in self.upnp_desc_unread[url]): self.upnp_desc_unread[url].append(identifier['usn'])
 
-				self.task_add(0, "read_upnp_descs")
+				self._task_add(0, "read_upnp_descs")
 			#
 		#
 	#
@@ -1615,7 +1604,7 @@ Update the list with the given USN.
 					if (identifier['uuid'] not in self.managed_devices):
 					#
 						if (identifier['class'] == "rootdevice"): self.rootdevice_add(identifier['usn'], timeout)
-						else: self.update(servername, identifier, bootid, bootid_old, configid, timeout, unicast_port, http_version, url, additional_data)
+						else: self._update(servername, identifier, bootid, bootid_old, configid, timeout, unicast_port, http_version, url, additional_data)
 					#
 				#
 			#
@@ -1632,22 +1621,22 @@ Get the control_point singleton.
 :since:  v0.1.00
 		"""
 
-		var_return = None
+		_return = None
 
 		with ControlPoint.synchronized:
 		#
-			if (ControlPoint.weakref_instance != None): var_return = ControlPoint.weakref_instance()
+			if (ControlPoint.weakref_instance != None): _return = ControlPoint.weakref_instance()
 
-			if (var_return == None):
+			if (_return == None):
 			#
 				Settings.read_file("{0}/settings/pas_upnp.json".format(Settings.get("path_data")))
-				var_return = ControlPoint()
+				_return = ControlPoint()
 
-				ControlPoint.weakref_instance = ref(var_return)
+				ControlPoint.weakref_instance = ref(_return)
 			#
 		#
 
-		return var_return
+		return _return
 	#
 #
 

@@ -36,7 +36,7 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from dNG.pas.data.http.links import Links
+from dNG.pas.data.text.url import Url
 from dNG.pas.data.upnp.client import Client
 from dNG.pas.data.upnp.upnp_exception import UpnpException
 from dNG.pas.data.upnp.service import Service
@@ -237,22 +237,22 @@ Returns the UPnP SCPD.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpService.get_xml(flush)- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Service.get_xml(flush)- (#echo(__LINE__)#)")
 
-		var_return = self.init_xml_parser()
+		_return = self._init_xml_parser()
 
 		client = Client.load_user_agent(self.client_user_agent)
-		if (client != None and (not client.get("upnp_xml_cdata_encoded", True))): var_return.define_cdata_encoding(False)
+		if (client != None and (not client.get("upnp_xml_cdata_encoded", True))): _return.define_cdata_encoding(False)
 
 		attributes = { "xmlns": "urn:schemas-upnp-org:service-1-0" }
 		if (self.configid != None): attributes['configId'] = self.configid
 
-		var_return.node_add("scpd", attributes = attributes)
-		var_return.node_set_cache_path("scpd")
+		_return.node_add("scpd", attributes = attributes)
+		_return.node_set_cache_path("scpd")
 
 		spec_version = self.get_spec_version()
-		var_return.node_add("scpd specVersion major", str(spec_version[0]))
-		var_return.node_add("scpd specVersion minor", str(spec_version[1]))
+		_return.node_add("scpd specVersion major", str(spec_version[0]))
+		_return.node_add("scpd specVersion minor", str(spec_version[1]))
 
 		if (len(self.actions) > 0):
 		#
@@ -261,11 +261,11 @@ Returns the UPnP SCPD.
 			for action_name in self.actions:
 			#
 				xml_base_path = "scpd actionList action#{0:d}".format(position)
-				var_return.node_add(xml_base_path)
-				var_return.node_set_cache_path(xml_base_path)
+				_return.node_add(xml_base_path)
+				_return.node_set_cache_path(xml_base_path)
 
 				action = self.actions[action_name]
-				var_return.node_add("{0} name".format(xml_base_path), action_name)
+				_return.node_add("{0} name".format(xml_base_path), action_name)
 
 				variables = [ ]
 
@@ -295,19 +295,19 @@ Returns the UPnP SCPD.
 
 				for position_variable in range(0, variables_count):
 				#
-					var_return.node_add("{0} argumentList argument#{1:d}".format(xml_base_path, position_variable))
-					var_return.node_add("{0} argumentList argument#{1:d} name".format(xml_base_path, position_variable), variables[position_variable]['name'])
-					var_return.node_add("{0} argumentList argument#{1:d} direction".format(xml_base_path, position_variable), variables[position_variable]['direction'])
-					if ("retval" in variables[position_variable]): var_return.node_add("{0} argumentList argument#{1:d} retval".format(xml_base_path, position_variable))
-					var_return.node_add("{0} argumentList argument#{1:d} relatedStateVariable".format(xml_base_path, position_variable), variables[position_variable]['variable'])
+					_return.node_add("{0} argumentList argument#{1:d}".format(xml_base_path, position_variable))
+					_return.node_add("{0} argumentList argument#{1:d} name".format(xml_base_path, position_variable), variables[position_variable]['name'])
+					_return.node_add("{0} argumentList argument#{1:d} direction".format(xml_base_path, position_variable), variables[position_variable]['direction'])
+					if ("retval" in variables[position_variable]): _return.node_add("{0} argumentList argument#{1:d} retval".format(xml_base_path, position_variable))
+					_return.node_add("{0} argumentList argument#{1:d} relatedStateVariable".format(xml_base_path, position_variable), variables[position_variable]['variable'])
 				#
 
 				position += 1
 			#
 
 			position_variable = 0
-			var_return.node_add("scpd serviceStateTable".format(xml_base_path))
-			var_return.node_set_cache_path("scpd serviceStateTable".format(xml_base_path))
+			_return.node_add("scpd serviceStateTable".format(xml_base_path))
+			_return.node_set_cache_path("scpd serviceStateTable".format(xml_base_path))
 
 			for variable_name in self.variables:
 			#
@@ -318,24 +318,24 @@ Returns the UPnP SCPD.
 				if (not variable['is_sending_events']): attributes['sendEvents'] = "no"
 				if (variable['is_multicasting_events']): attributes['multicast'] = "yes"
 
-				var_return.node_add(xml_base_path, attributes = attributes)
+				_return.node_add(xml_base_path, attributes = attributes)
 
-				var_return.node_add("{0} name".format(xml_base_path), variable_name)
-				var_return.node_add("{0} dataType".format(xml_base_path), variable['type'])
-				if ("value" in variable): var_return.node_add("{0} defaultValue".format(xml_base_path), variable['value'])
+				_return.node_add("{0} name".format(xml_base_path), variable_name)
+				_return.node_add("{0} dataType".format(xml_base_path), variable['type'])
+				if ("value" in variable): _return.node_add("{0} defaultValue".format(xml_base_path), variable['value'])
 
 				values_allowed_count = (len(variable['values_allowed']) if ("values_allowed" in variable) else 0)
-				for position_values_allowed in range(0, values_allowed_count): var_return.node_add("{0} allowedValueList allowedValue#{1:d}".format(xml_base_path, position_values_allowed), variable['values_allowed'][position_values_allowed])
+				for position_values_allowed in range(0, values_allowed_count): _return.node_add("{0} allowedValueList allowedValue#{1:d}".format(xml_base_path, position_values_allowed), variable['values_allowed'][position_values_allowed])
 
-				if ("values_min" in variable): var_return.node_add("{0} allowedValueRange minimum".format(xml_base_path), variable['values_min'])
-				if ("values_max" in variable): var_return.node_add("{0} allowedValueRange maximum".format(xml_base_path), variable['values_max'])
-				if ("values_stepping" in variable): var_return.node_add("{0} allowedValueRange step".format(xml_base_path), variable['values_stepping'])
+				if ("values_min" in variable): _return.node_add("{0} allowedValueRange minimum".format(xml_base_path), variable['values_min'])
+				if ("values_max" in variable): _return.node_add("{0} allowedValueRange maximum".format(xml_base_path), variable['values_max'])
+				if ("values_stepping" in variable): _return.node_add("{0} allowedValueRange step".format(xml_base_path), variable['values_stepping'])
 
 				position_variable += 1
 			#
 		#
 
-		return (var_return.cache_export(True) if (flush) else var_return)
+		return (_return.cache_export(True) if (flush) else _return)
 	#
 
 	def handle_soap_call(self, action, arguments_given = [ ]):
@@ -347,8 +347,8 @@ Executes the given SOAP action.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpService.handle_soap_call({0}, arguments_given)- (#echo(__LINE__)#)".format(action))
-		var_return = UpnpException("pas_http_error_500")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Service.handle_soap_call({0}, arguments_given)- (#echo(__LINE__)#)".format(action))
+		_return = UpnpException("pas_http_error_500")
 
 		action_method = AbstractService.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", action).lower()
 		arguments = { }
@@ -363,7 +363,7 @@ Executes the given SOAP action.
 				if (argument['variable'] not in self.variables):
 				#
 					is_valid = False
-					var_return = UpnpException("pas_http_error_500")
+					_return = UpnpException("pas_http_error_500")
 
 					break
 				#
@@ -372,7 +372,7 @@ Executes the given SOAP action.
 				else:
 				#
 					is_valid = False
-					var_return = UpnpException("pas_http_error_400", 402)
+					_return = UpnpException("pas_http_error_400", 402)
 
 					break
 				#
@@ -384,7 +384,7 @@ Executes the given SOAP action.
 				#
 			#
 		#
-		else: var_return = UpnpException("pas_http_error_400", 401)
+		else: _return = UpnpException("pas_http_error_400", 401)
 
 		result = None
 
@@ -395,38 +395,38 @@ Executes the given SOAP action.
 		except Exception as handled_exception:
 		#
 			if (self.log_handler != None): self.log_handler.error(handled_exception)
-			var_return = UpnpException("pas_http_error_500")
+			_return = UpnpException("pas_http_error_500")
 		#
 
-		if (isinstance(result, Exception)): var_return = result
+		if (isinstance(result, Exception)): _return = result
 		elif (result != None):
 		#
 			return_values = ([ ] if (action['return_variable'] == None) else [ action['return_variable'] ])
 			return_values += action['result_variables']
-			var_return = [ ]
-			var_type = type(result)
+			_return = [ ]
+			_type = type(result)
 
-			if (var_type != dict and len(return_values) != 1): var_return = UpnpException("pas_http_error_500")
+			if (_type != dict and len(return_values) != 1): _return = UpnpException("pas_http_error_500")
 			else:
 			#
 				for return_value in return_values:
 				#
 					return_value_name = AbstractService.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", return_value['name']).lower()
 
-					if (var_type == dict): result_value = (result[return_value_name] if (return_value_name in result) else None)
+					if (_type == dict): result_value = (result[return_value_name] if (return_value_name in result) else None)
 					else: result_value = result
 
 					if (return_value['variable'] not in self.variables or result_value == None):
 					#
-						var_return = UpnpException("pas_http_error_500")
+						_return = UpnpException("pas_http_error_500")
 						break
 					#
-					else: var_return.append({ "name": return_value['name'], "value": Variable.get_upnp_value(self.variables[return_value['variable']], result_value) })
+					else: _return.append({ "name": return_value['name'], "value": Variable.get_upnp_value(self.variables[return_value['variable']], result_value) })
 				#
 			#
 		#
 
-		return var_return
+		return _return
 	#
 
 	def init_service(self, device, service_id, configid = None):
@@ -444,7 +444,7 @@ Initialize a host service.
 		self.variables = { }
 		self.udn = device.get_udn()
 
-		self.url_base = "{0}{1}/".format(device.get_url_base(), Links.escape(service_id))
+		self.url_base = "{0}{1}/".format(device.get_url_base(), Url.escape(service_id))
 		self.url_control = "{0}control".format(self.url_base)
 		self.url_event_control = "{0}eventsub".format(self.url_base)
 		self.url_scpd = "{0}xml".format(self.url_base)

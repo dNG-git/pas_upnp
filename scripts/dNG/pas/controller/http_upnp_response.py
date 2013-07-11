@@ -103,7 +103,7 @@ compression setting and information about P3P.
 :since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -response.init(cache, compress)- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Response.init(cache, compress)- (#echo(__LINE__)#)")
 
 		os_uname = uname()
 

@@ -114,7 +114,7 @@ Destructor __del__(AbstractSsdp)
 		if (self.socket != None): self.socket.close()
 	#
 
-	def configure(self, url):
+	def _configure(self, url):
 	#
 		"""
 Returns a connection to the HTTP server.
@@ -125,7 +125,7 @@ Returns a connection to the HTTP server.
 :since:  v0.1.00
 		"""
 
-		Http.configure(self, url)
+		Http._configure(self, url)
 
 		self.ssdp_host = (self.host[1:-1] if (":" in self.host) else self.host)
 		address_paths = socket.getaddrinfo(self.ssdp_host, self.port, socket.AF_UNSPEC, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -168,7 +168,7 @@ Invoke a given SSDP method on the unicast or multicast recipient.
 		ssdp_header = Binary.utf8_bytes("{0}\r\n".format(ssdp_header))
 
 		data = (ssdp_header if (data == None) else ssdp_header + data)
-		return self.write_data(data)
+		return self._write_data(data)
 	#
 
 	def request_get(self, params = None, separator = ";"):
@@ -217,19 +217,18 @@ Invoke the POST method on the unicast or multicast recipient.
 		return self.request("POST", data)
 	#
 
-	def write_data(self, data):
+	def _write_data(self, data):
 	#
 		"""
 Send the given data to the defined recipient.
 
 :param data: SSDP message
 
-:access: protected
 :return: (bool) Request result
 :since:  v0.1.00
 		"""
 
-		var_return = True
+		_return = True
 
 		try:
 		#
@@ -253,10 +252,10 @@ Send the given data to the defined recipient.
 		except Exception as handled_exception:
 		#
 			if (self.log_handler != None): self.log_handler.error(handled_exception)
-			var_return = False
+			_return = False
 		#
 
-		return var_return
+		return _return
 	#
 #
 

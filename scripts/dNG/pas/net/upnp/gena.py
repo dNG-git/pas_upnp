@@ -2,7 +2,7 @@
 ##j## BOF
 
 """
-dNG.pas.net.upnp.gena
+dNG.pas.net.upnp.Gena
 """
 """n// NOTE
 ----------------------------------------------------------------------------
@@ -42,17 +42,15 @@ from uuid import uuid3 as uuid
 from weakref import ref
 import socket
 
-try: import hashlib
-except ImportError: import md5 as hashlib
-
 try: from urllib.parse import urlsplit
 except ImportError: from urlparse import urlsplit
 
-from dNG.pas.data.abstract_timed_tasks import AbstractTimedTasks
 from dNG.pas.data.binary import Binary
+from dNG.pas.data.tasks.abstract_timed import AbstractTimed
+from dNG.pas.data.text.md5 import Md5
 from dNG.pas.module.named_loader import NamedLoader
 
-class Gena(AbstractTimedTasks):
+class Gena(AbstractTimed):
 #
 	"""
 The UPnP GENA manager.
@@ -79,7 +77,7 @@ Constructor __init__(Gena)
 :since: v0.1.00
 		"""
 
-		AbstractTimedTasks.__init__(self)
+		AbstractTimed.__init__(self)
 
 		self.subscriptions = None
 		"""
@@ -106,7 +104,7 @@ Destructor __del__(Gena)
 		"""
 
 		if (self.subscriptions != None): Gena.stop(self)
-		AbstractTimedTasks.__del__(self)
+		AbstractTimed.__del__(self)
 	#
 
 	def cancel(self, service_name, ip):
@@ -122,8 +120,8 @@ preferred if possible.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpGena.cancel(service_name, {0})- (#echo(__LINE__)#)".format(ip))
-		var_return = False
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Gena.cancel(service_name, {0})- (#echo(__LINE__)#)".format(ip))
+		_return = False
 
 		with Gena.synchronized:
 		#
@@ -140,7 +138,7 @@ preferred if possible.
 						if (ip in subscriptions[service_name][callback_url]['ips']):
 						#
 							del(self.subscriptions[service_name][callback_url])
-							var_return = True
+							_return = True
 
 							for position in range(len(self.timeouts) - 1, -1, -1):
 							#
@@ -155,7 +153,7 @@ preferred if possible.
 			#
 		#
 
-		return var_return
+		return _return
 	#
 
 	def deregister(self, service_name, sid):
@@ -170,8 +168,8 @@ Removes the subscription identified by the given SID.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpGena.deregister({0}, {1})- (#echo(__LINE__)#)".format(service_name, sid))
-		var_return = False
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Gena.deregister({0}, {1})- (#echo(__LINE__)#)".format(service_name, sid))
+		_return = False
 
 		with Gena.synchronized:
 		#
@@ -184,7 +182,7 @@ Removes the subscription identified by the given SID.
 					if (subscriptions[callback_url]['sid'] == sid):
 					#
 						del(self.subscriptions[service_name][callback_url])
-						var_return = True
+						_return = True
 						break
 					#
 				#
@@ -192,7 +190,7 @@ Removes the subscription identified by the given SID.
 				if (len(self.subscriptions[service_name]) < 1): del(self.subscriptions[service_name])
 			#
 
-			if (var_return):
+			if (_return):
 			#
 				for position in range(len(self.timeouts) - 1, -1, -1):
 				#
@@ -202,15 +200,14 @@ Removes the subscription identified by the given SID.
 			#
 		#
 
-		return var_return
+		return _return
 	#
 
-	def get_next_update_timestamp(self):
+	def _get_next_update_timestamp(self):
 	#
 		"""
 Get the implementation specific next "run()" UNIX timestamp.
 
-:access: protected
 :return: (int) UNIX timestamp; -1 if no further "run()" is required at the
          moment
 :since:  v0.1.00
@@ -218,11 +215,11 @@ Get the implementation specific next "run()" UNIX timestamp.
 
 		with Gena.synchronized:
 		#
-			if (len(self.timeouts) > 0): var_return = self.timeouts[0]['timestamp']
-			else: var_return = -1
+			if (len(self.timeouts) > 0): _return = self.timeouts[0]['timestamp']
+			else: _return = -1
 		#
 
-		return var_return
+		return _return
 	#
 
 	def register(self, service_name, callback_url, timeout):
@@ -239,8 +236,7 @@ name.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpGena.register({0}, {1}, {2:d})- (#echo(__LINE__)#)".format(service_name, callback_url, timeout))
-		var_return = None
+		_return = None
 
 		index = 1
 
@@ -248,10 +244,10 @@ name.
 		#
 			if (service_name not in self.subscriptions or callback_url not in self.subscriptions[service_name]):
 			#
-				var_return = "uuid:{0}".format(uuid(NAMESPACE_URL, "upnp-gena://{0}/{1}".format(socket.getfqdn(), hashlib.md5(Binary.utf8_bytes(callback_url)).hexdigest())))
+				_return = "uuid:{0}".format(uuid(NAMESPACE_URL, "upnp-gena://{0}/{1}".format(socket.getfqdn(), Md5.hash(callback_url))))
 				if (service_name not in self.subscriptions): self.subscriptions[service_name] = { }
 
-				self.subscriptions[service_name][callback_url] = { "seq": 0, "sid": var_return }
+				self.subscriptions[service_name][callback_url] = { "seq": 0, "sid": _return }
 				url_elements = urlsplit(callback_url)
 				ip_address_paths = socket.getaddrinfo(url_elements.hostname, url_elements.port, socket.AF_UNSPEC, 0, socket.IPPROTO_TCP)
 
@@ -283,11 +279,12 @@ name.
 				#
 
 				self.timeouts.insert(index, { "timestamp": timestamp, "service_name": service_name, "callback_url": callback_url })
+				if (self.log_handler != None): self.log_handler.debug("pas.upnp.GENA adds subscription '{0}' with URL '{1}' and timeout '{2:d}'".format(service_name, callback_url, timeout))
 			#
 		#
 
 		if (index < 1): self.update_timestamp()
-		return var_return
+		return _return
 	#
 
 	def reregister(self, service_name, sid, timeout):
@@ -303,8 +300,8 @@ Renews an subscription identified by the given SID.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpGena.reregister({0}, {1}, {2:d})- (#echo(__LINE__)#)".format(service_name, sid, timeout))
-		var_return = False
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Gena.reregister({0}, {1}, {2:d})- (#echo(__LINE__)#)".format(service_name, sid, timeout))
+		_return = False
 
 		index = 1
 
@@ -319,13 +316,13 @@ Renews an subscription identified by the given SID.
 					if (self.subscriptions[service_name][callback_url]['sid'] == sid):
 					#
 						sid_callback_url = callback_url
-						var_return = True
+						_return = True
 						break
 					#
 				#
 			#
 
-			if (var_return):
+			if (_return):
 			#
 				index = None
 				timestamp = time() + timeout
@@ -344,7 +341,7 @@ Renews an subscription identified by the given SID.
 		#
 
 		if (index < 1): self.update_timestamp()
-		return var_return
+		return _return
 	#
 
 	def run(self):
@@ -352,8 +349,7 @@ Renews an subscription identified by the given SID.
 		"""
 Worker loop
 
-:access: protected
-:since:  v0.1.00
+:since: v0.1.00
 		"""
 
 		Gena.synchronized.acquire()
@@ -370,11 +366,11 @@ Worker loop
 
 			Gena.synchronized.release()
 
-			if (self.log_handler != None): self.log_handler.debug("pas.upnp GENA removes subscription '{0}'".format(timeout_entry['service_name']))
+			if (self.log_handler != None): self.log_handler.debug("pas.upnp.GENA removes subscription '{0}'".format(timeout_entry['service_name']))
 		#
 		else: Gena.synchronized.release()
 
-		AbstractTimedTasks.run(self)
+		AbstractTimed.run(self)
 	#
 
 	def start(self, params = None, last_return = None):
@@ -388,9 +384,9 @@ Starts the GENA manager.
 :since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpGena.start()- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Gena.start()- (#echo(__LINE__)#)")
 
-		AbstractTimedTasks.start(self)
+		AbstractTimed.start(self)
 		self.subscriptions = { }
 
 		return last_return
@@ -407,9 +403,9 @@ Stops the GENA manager.
 :since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpGena.stop()- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Gena.stop()- (#echo(__LINE__)#)")
 
-		AbstractTimedTasks.stop(self)
+		AbstractTimed.stop(self)
 		self.subscriptions = None
 
 		return last_return
@@ -425,20 +421,20 @@ Get the GENA singleton.
 :since:  v0.1.00
 		"""
 
-		var_return = None
+		_return = None
 
 		with Gena.synchronized:
 		#
-			if (Gena.weakref_instance != None): var_return = Gena.weakref_instance()
+			if (Gena.weakref_instance != None): _return = Gena.weakref_instance()
 
-			if (var_return == None):
+			if (_return == None):
 			#
-				var_return = Gena()
-				Gena.weakref_instance = ref(var_return)
+				_return = Gena()
+				Gena.weakref_instance = ref(_return)
 			#
 		#
 
-		return var_return
+		return _return
 	#
 #
 

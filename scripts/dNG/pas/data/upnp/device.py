@@ -160,8 +160,7 @@ Add the given device to the list of embedded devices.
 
 :param device: UPnP device
 
-:access: protected
-:since:  v0.1.00
+:since: v0.1.00
 		"""
 
 		if (isinstance(device, Device)): self.embedded_devices[device.get_udn().lower()] = device
@@ -177,23 +176,23 @@ Returns an embedded device.
 :since:  v0.1.00
 		"""
 
-		var_return = None
+		_return = None
 
 		uuid = uuid.lower()
 
-		if (uuid in self.embedded_devices): var_return = self.embedded_devices[uuid]
+		if (uuid in self.embedded_devices): _return = self.embedded_devices[uuid]
 		else:
 		#
 			for device in self.embedded_devices:
 			#
-				var_return = self.embedded_devices[device].embedded_device_get(uuid)
-				if (var_return != None): break
+				_return = self.embedded_devices[device].embedded_device_get(uuid)
+				if (_return != None): break
 			#
 		#
 
-		if (var_return != None and var_return.is_managed()): var_return.set_configid(self.configid)
+		if (_return != None and _return.is_managed()): _return.set_configid(self.configid)
 
-		return var_return
+		return _return
 	#
 
 	def embedded_device_get_uuids(self):
@@ -215,8 +214,7 @@ Remove the given device from the list of embedded devices.
 
 :param device: UPnP device
 
-:access: protected
-:since:  v0.1.00
+:since: v0.1.00
 		"""
 
 		if (isinstance(device, Device)):
@@ -366,38 +364,37 @@ Add the given service to the list of services.
 
 :param service: UPnP service
 
-:access: protected
-:since:  v0.1.00
+:since: v0.1.00
 		"""
 
 		if (isinstance(service, Service)): self.services[service.get_service_id().lower()] = service
 		else: raise TypeError("Given object is not a supported UPnP service")
 	#
 
-	def service_get(self, id):
+	def service_get(self, _id):
 	#
 		"""
 Return a UPnP service for the given UPnP service ID.
 
-:param id: UPnP serviceId value
+:param _id: UPnP serviceId value
 
 :return: (object) UPnP service; None if unknown
 :since:  v0.1.00
 		"""
 
-		var_return = None
+		_return = None
 
-		id = id.lower()
+		_id = _id.lower()
 
-		if (id in self.services):
+		if (_id in self.services):
 		#
-			var_return = self.services[id]
+			_return = self.services[_id]
 
-			if (not var_return.is_initialized()):
+			if (not _return.is_initialized()):
 			#
 				with self.synchronized:
 				#
-					scpd_url = var_return.get_url_scpd()
+					scpd_url = _return.get_url_scpd()
 
 					if (scpd_url not in self.scpds):
 					#
@@ -413,14 +410,14 @@ Return a UPnP service for the given UPnP service ID.
 
 					if (scpd_url in self.scpds):
 					#
-						var_return.init_xml_scpd(self.scpds[scpd_url])
-						if (var_return.is_managed()): var_return.set_configid(self.configid)
+						_return.init_xml_scpd(self.scpds[scpd_url])
+						if (_return.is_managed()): _return.set_configid(self.configid)
 					#
 				#
 			#
 		#
 
-		return var_return
+		return _return
 	#
 
 	def service_get_ids(self):
@@ -444,12 +441,12 @@ Returns a list of unique (serviceType differs) UPnP service USNs.
 :since:  v0.1.00
 		"""
 
-		var_return = { }
+		_return = { }
 
 		for service_id in self.services:
 		#
 			urn = self.services[service_id].get_service_id_urn()
-			if (self.get_type() == self.services[service_id].get_service_id() or urn not in var_return): var_return[urn] = service_id
+			if (self.get_type() == self.services[service_id].get_service_id() or urn not in _return): _return[urn] = service_id
 		#
 
 		return self.services.keys()
@@ -462,8 +459,7 @@ Remove the given service from the list of services.
 
 :param service: UPnP service
 
-:access: protected
-:since:  v0.1.00
+:since: v0.1.00
 		"""
 
 		if (isinstance(service, Service)):
@@ -558,26 +554,25 @@ Returns the UPnP device type version.
 		return (self.identifier['version'] if ("urn" in self.identifier) else None)
 	#
 
-	def init_device_xml_tree(self, xml_tree):
+	def _init_device_xml_tree(self, xml_tree):
 	#
 		"""
 Initialize the device from a UPnP description.
 
 :param xml_tree: Input tree dict
 
-:access: protected
 :return: (bool) True if parsed successfully
 :since:  v0.1.00
 		"""
 
-		var_return = True
+		_return = True
 
-		xml_parser = self.init_xml_parser()
+		xml_parser = self._init_xml_parser()
 
 		if (xml_parser.set(xml_tree, True) != False and xml_parser.node_count("upnp:device") > 0): xml_parser.node_set_cache_path("upnp:device")
-		else: var_return = False
+		else: _return = False
 
-		if (var_return):
+		if (_return):
 		#
 			xml_node = xml_parser.node_get("upnp:device upnp:friendlyName")
 			self.name = xml_node['value']
@@ -610,10 +605,10 @@ Initialize the device from a UPnP description.
 			if (xml_node != False): self.presentation_url = xml_node['value']
 		#
 
-		return var_return
+		return _return
 	#
 
-	def init_embedded_device_list_xml_tree(self, identifier, url_base, xml_tree):
+	def _init_embedded_device_list_xml_tree(self, identifier, url_base, xml_tree):
 	#
 		"""
 Initialize the device from a UPnP description.
@@ -626,12 +621,12 @@ Initialize the device from a UPnP description.
 :since:  v0.1.00
 		"""
 
-		var_return = True
+		_return = True
 
-		xml_parser = self.init_xml_parser()
+		xml_parser = self._init_xml_parser()
 
 		if (xml_parser.set(xml_tree, True) != False and xml_parser.node_count("upnp:deviceList") > 0): xml_parser.node_set_cache_path("upnp:deviceList")
-		else: var_return = False
+		else: _return = False
 
 		devices_count = xml_parser.node_count("upnp:deviceList upnp:device")
 
@@ -661,7 +656,7 @@ Initialize the device from a UPnP description.
 			#
 		#
 
-		return var_return
+		return _return
 	#
 
 	def init_embedded_device_xml_tree(self, identifier, url_base, xml_tree):
@@ -677,65 +672,64 @@ Initialize the device from a UPnP description.
 :since:  v0.1.00
 		"""
 
-		var_return = True
+		_return = True
 
-		xml_parser = self.init_xml_parser()
+		xml_parser = self._init_xml_parser()
 
 		if (xml_parser.set(xml_tree, True) != False and xml_parser.node_count("upnp:device") > 0): xml_parser.node_set_cache_path("upnp:device")
-		else: var_return = False
+		else: _return = False
 
-		if (var_return):
+		if (_return):
 		#
 			xml_node = xml_parser.node_get("upnp:device upnp:deviceType")
-			if (xml_node == False or identifier['urn'] != xml_node['value'][4:]): var_return = False
+			if (xml_node == False or identifier['urn'] != xml_node['value'][4:]): _return = False
 		#
 
-		if (var_return):
+		if (_return):
 		#
 			xml_node = xml_parser.node_get("upnp:device upnp:UDN")
-			if (xml_node == False or identifier['uuid'] != xml_node['value'][5:]): var_return = False
+			if (xml_node == False or identifier['uuid'] != xml_node['value'][5:]): _return = False
 		#
 
-		if (var_return): var_return = self.init_device_xml_tree(xml_tree)
+		if (_return): _return = self._init_device_xml_tree(xml_tree)
 
-		if (var_return and xml_parser.node_count("upnp:device upnp:deviceList upnp:device") > 0):
+		if (_return and xml_parser.node_count("upnp:device upnp:deviceList upnp:device") > 0):
 		#
 			xml_data = { "deviceList": xml_parser.node_get("upnp:device upnp:deviceList", False) }
-			var_return = self.init_embedded_device_list_xml_tree(identifier, self.url_base, xml_data)
+			_return = self._init_embedded_device_list_xml_tree(identifier, self.url_base, xml_data)
 		#
 
-		if (var_return):
+		if (_return):
 		#
 			self.identifier = identifier
 			self.url_base = url_base
 
 			xml_node = xml_parser.node_get("upnp:device upnp:serviceList", False)
-			if (xml_node != False and "xml.item" in xml_node): var_return = self.init_services_xml_tree({ xml_node['xml.item']['tag']: xml_node })
+			if (xml_node != False and "xml.item" in xml_node): _return = self._init_services_xml_tree({ xml_node['xml.item']['tag']: xml_node })
 		#
 
-		return var_return
+		return _return
 	#
 
-	def init_services_xml_tree(self, xml_tree):
+	def _init_services_xml_tree(self, xml_tree):
 	#
 		"""
 Initialize the device from a UPnP description.
 
 :param xml_tree: Input tree dict
 
-:access: protected
 :return: (bool) True if parsed successfully
 :since:  v0.1.00
 		"""
 
-		var_return = True
+		_return = True
 
-		xml_parser = self.init_xml_parser()
+		xml_parser = self._init_xml_parser()
 
 		if (xml_parser.set(xml_tree, True) != False and xml_parser.node_count("upnp:serviceList") > 0): xml_parser.node_set_cache_path("upnp:serviceList")
-		else: var_return = False
+		else: _return = False
 
-		services_count = (xml_parser.node_count("upnp:serviceList upnp:service") if (var_return) else 0)
+		services_count = (xml_parser.node_count("upnp:serviceList upnp:service") if (_return) else 0)
 
 		if (services_count > 0):
 		#
@@ -749,7 +743,7 @@ Initialize the device from a UPnP description.
 			#
 		#
 
-		return var_return
+		return _return
 	#
 
 	def init_xml_desc(self, usn_data, xml_data):
@@ -764,43 +758,43 @@ Initialize the device from a UPnP description.
 :since:  v0.1.00
 		"""
 
-		var_return = True
+		_return = True
 
 		try:
 		#
-			xml_parser = self.init_xml_parser()
+			xml_parser = self._init_xml_parser()
 
 			if (xml_parser.xml2dict(xml_data) != False and xml_parser.node_count("upnp:root") > 0): xml_parser.node_set_cache_path("upnp:root")
-			else: var_return = False
+			else: _return = False
 
-			if (var_return):
+			if (_return):
 			#
 				root_xml_item = xml_parser.node_get("upnp:root", False)['xml.item']
 
 				if ("attributes" in root_xml_item and "configid" in root_xml_item['attributes']):
 				#
 					if (usn_data['configid'] == root_xml_item['attributes']['configid']): self.configid = usn_data['configid']
-					else: var_return = False
+					else: _return = False
 				#
 			#
 
-			if (var_return and usn_data['class'] == "rootdevice"):
+			if (_return and usn_data['class'] == "rootdevice"):
 			#
-				if (xml_parser.node_count("upnp:root upnp:device") < 1): var_return = False
+				if (xml_parser.node_count("upnp:root upnp:device") < 1): _return = False
 				elif ("urn" in usn_data):
 				#
 					xml_node = xml_parser.node_get("upnp:root upnp:device upnp:deviceType")
-					if (xml_node == False or usn_data['urn'] != xml_node['value'][4:]): var_return = False
+					if (xml_node == False or usn_data['urn'] != xml_node['value'][4:]): _return = False
 				#
 			#
 
-			if (var_return and usn_data['class'] == "rootdevice"):
+			if (_return and usn_data['class'] == "rootdevice"):
 			#
 				xml_node = xml_parser.node_get("upnp:root upnp:device upnp:UDN")
-				if (xml_node == False or usn_data['uuid'] != xml_node['value'][5:]): var_return = False
+				if (xml_node == False or usn_data['uuid'] != xml_node['value'][5:]): _return = False
 			#
 
-			if (var_return):
+			if (_return):
 			#
 				xml_node = xml_parser.node_get("upnp:root upnp:specVersion upnp:major")
 				self.spec_major = int(xml_node['value'])
@@ -814,46 +808,45 @@ Initialize the device from a UPnP description.
 				else: self.url_base = xml_node['value']
 
 				xml_data = { "device": xml_parser.node_get("upnp:root upnp:device", False) }
-				var_return = self.init_device_xml_tree(xml_data)
+				_return = self._init_device_xml_tree(xml_data)
 			#
 
-			if (var_return and xml_parser.node_count("upnp:root upnp:device upnp:deviceList upnp:device") > 0):
+			if (_return and xml_parser.node_count("upnp:root upnp:device upnp:deviceList upnp:device") > 0):
 			#
 				xml_data = { "deviceList": xml_parser.node_get("upnp:root upnp:device upnp:deviceList", False) }
-				var_return = self.init_embedded_device_list_xml_tree(usn_data, self.url_base, xml_data)
+				_return = self._init_embedded_device_list_xml_tree(usn_data, self.url_base, xml_data)
 			#
 		#
 		except Exception as handled_exception:
 		#
 			LogLine.error(handled_exception)
-			var_return = False
+			_return = False
 		#
 
-		if (var_return):
+		if (_return):
 		#
 			self.identifier = Device.get_identifier(usn_data['usn'], usn_data['bootid'], usn_data['configid'])
 
 			xml_node = xml_parser.node_get("upnp:root upnp:device upnp:serviceList", False)
-			if (xml_node != False and "xml.item" in xml_node): var_return = self.init_services_xml_tree({ xml_node['xml.item']['tag']: xml_node })
+			if (xml_node != False and "xml.item" in xml_node): _return = self._init_services_xml_tree({ xml_node['xml.item']['tag']: xml_node })
 		#
 
-		return var_return
+		return _return
 	#
 
-	def init_xml_parser(self):
+	def _init_xml_parser(self):
 	#
 		"""
 Returns a XML parser with predefined XML namespaces.
 
-:access: protected
 :return: (object) XML parser
 :since:  v0.1.00
 		"""
 
-		var_return = XmlWriter()
-		var_return.ns_register("dlna", "urn:schemas-dlna-org:device-1-0")
-		var_return.ns_register("upnp", "urn:schemas-upnp-org:device-1-0")
-		return var_return
+		_return = XmlWriter()
+		_return.ns_register("dlna", "urn:schemas-dlna-org:device-1-0")
+		_return.ns_register("upnp", "urn:schemas-upnp-org:device-1-0")
+		return _return
 	#
 
 	def is_managed(self):
@@ -895,30 +888,30 @@ Parses the given USN string.
 		if (device_id.startswith("uuid:")):
 		#
 			device_id = device_id[5:]
-			var_return = { "device": device_id, "bootid": None, "configid": None, "uuid": usn_data[0][5:], "class": "unknown", "managed": False, "usn": usn }
+			_return = { "device": device_id, "bootid": None, "configid": None, "uuid": usn_data[0][5:], "class": "unknown", "managed": False, "usn": usn }
 
 			if (bootid != None and configid != None):
 			#
-				var_return['bootid'] = bootid
-				var_return['configid'] = configid
+				_return['bootid'] = bootid
+				_return['configid'] = configid
 			#
 
 			re_result = (Device.RE_USN_URN.match(usn_data[1]) if (len(usn_data) > 1) else None)
 
 			if (re_result != None):
 			#
-				var_return['urn'] = usn_data[1][4:]
+				_return['urn'] = usn_data[1][4:]
 
-				var_return['domain'] = re_result.group(1)
-				var_return['class'] = re_result.group(2)
-				var_return['type'] = re_result.group(3)
-				var_return['version'] = re_result.group(4)
+				_return['domain'] = re_result.group(1)
+				_return['class'] = re_result.group(2)
+				_return['type'] = re_result.group(3)
+				_return['version'] = re_result.group(4)
 			#
-			elif (usn[-17:].lower() == "::upnp:rootdevice"): var_return['class'] = "rootdevice"
+			elif (usn[-17:].lower() == "::upnp:rootdevice"): _return['class'] = "rootdevice"
 		#
-		else: var_return = None
+		else: _return = None
 
-		return var_return
+		return _return
 	#
 #
 

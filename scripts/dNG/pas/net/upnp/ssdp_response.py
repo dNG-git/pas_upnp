@@ -165,7 +165,7 @@ Invoke an SSDP M-SEARCH method on the unicast or multicast recipient.
 		ssdp_header = Binary.utf8_bytes("{0}\r\n".format(ssdp_header))
 
 		data = (ssdp_header if (data == None) else ssdp_header + data)
-		return self.write_data(data)
+		return self._write_data(data)
 	#
 #
 

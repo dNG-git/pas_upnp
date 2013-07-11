@@ -176,7 +176,7 @@ Return a callable proxy object for UPnP actions and variables.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpService.get_proxy()- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Service.get_proxy()- (#echo(__LINE__)#)")
 
 		if (self.actions == None and self.variables == None): self.init_scpd()
 		return ServiceProxy(self, self.actions, self.variables)
@@ -327,19 +327,19 @@ Initialize the device from a UPnP description.
 :since:  v0.1.00
 		"""
 
-		var_return = True
+		_return = True
 
-		xml_parser = self.init_xml_parser()
+		xml_parser = self._init_xml_parser()
 
 		if (xml_parser.set(xml_tree, True) != False and xml_parser.node_count("upnp:service") > 0): xml_parser.node_set_cache_path("upnp:service")
-		else: var_return = False
+		else: _return = False
 
-		if (var_return):
+		if (_return):
 		#
 			xml_node = xml_parser.node_get("upnp:service upnp:serviceType")
 			re_result = (None if (xml_node == False) else Service.RE_USN_URN.match(xml_node['value']))
 
-			if (re_result == None or re_result.group(2) != "service"): var_return = False
+			if (re_result == None or re_result.group(2) != "service"): _return = False
 			else:
 			#
 				self.name = "{0}:service:{1}".format(re_result.group(1), re_result.group(3))
@@ -360,16 +360,16 @@ Initialize the device from a UPnP description.
 			#
 		#
 
-		if (var_return):
+		if (_return):
 		#
 			xml_node = xml_parser.node_get("upnp:service upnp:serviceId")
 			re_result = (None if (xml_node == False) else Service.RE_SERVICE_ID_URN.match(xml_node['value']))
 
-			if (re_result == None or re_result.group(2) != "serviceId"): var_return = False
+			if (re_result == None or re_result.group(2) != "serviceId"): _return = False
 			else: self.service_id = { "urn": xml_node['value'][4:], "domain": re_result.group(1), "id": re_result.group(3) }
 		#
 
-		if (var_return):
+		if (_return):
 		#
 			xml_node = xml_parser.node_get("upnp:service upnp:SCPDURL")
 			self.url_scpd = Binary.str(urljoin(url_base, xml_node['value']))
@@ -381,7 +381,7 @@ Initialize the device from a UPnP description.
 			self.url_event_control = (None if (xml_node['value'].strip == "") else Binary.str(urljoin(url_base, xml_node['value'])))
 		#
 
-		return var_return
+		return _return
 	#
 
 	def init_scpd(self):
@@ -393,7 +393,7 @@ Initialize actions from the SCPD URL.
 :since:  v0.1.00
 		"""
 
-		var_return = False
+		_return = False
 
 		os_uname = uname()
 
@@ -401,25 +401,24 @@ Initialize actions from the SCPD URL.
 		http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
 		http_response = http_client.request_get()
 
-		if (not isinstance(http_response['body'], Exception)): var_return = self.init_xml_scpd(Binary.str(http_response['body']))
+		if (not isinstance(http_response['body'], Exception)): _return = self.init_xml_scpd(Binary.str(http_response['body']))
 		elif (self.log_handler != None): self.log_handler.error(http_response['body'])
 
-		return var_return
+		return _return
 	#
 
-	def init_xml_parser(self):
+	def _init_xml_parser(self):
 	#
 		"""
 Returns a XML parser with predefined XML namespaces.
 
-:access: protected
 :return: (object) XML parser
 :since:  v0.1.00
 		"""
 
-		var_return = XmlWriter(node_type = OrderedDict)
-		var_return.ns_register("scpd", "urn:schemas-upnp-org:service-1-0")
-		return var_return
+		_return = XmlWriter(node_type = OrderedDict)
+		_return.ns_register("scpd", "urn:schemas-upnp-org:service-1-0")
+		return _return
 	#
 
 	def init_xml_scpd(self, xml_data):
@@ -433,18 +432,18 @@ Initialize actions from a SCPD.
 :since:  v0.1.00
 		"""
 
-		var_return = True
+		_return = True
 
 		try:
 		#
 			self.actions = None
 			self.variables = None
-			xml_parser = self.init_xml_parser()
+			xml_parser = self._init_xml_parser()
 
 			if (xml_parser.xml2dict(xml_data) != False and xml_parser.node_count("scpd:scpd") > 0): xml_parser.node_set_cache_path("scpd:scpd")
-			else: var_return = False
+			else: _return = False
 
-			if (var_return):
+			if (_return):
 			#
 				xml_node = xml_parser.node_get("scpd:scpd scpd:specVersion scpd:major")
 				self.spec_major = int(xml_node['value'])
@@ -453,7 +452,7 @@ Initialize actions from a SCPD.
 				self.spec_minor = int(xml_node['value'])
 			#
 
-			variables_count = (xml_parser.node_count("scpd:scpd scpd:serviceStateTable scpd:stateVariable") if (var_return) else 0)
+			variables_count = (xml_parser.node_count("scpd:scpd scpd:serviceStateTable scpd:stateVariable") if (_return) else 0)
 
 			if (variables_count > 0):
 			#
@@ -478,10 +477,10 @@ Initialize actions from a SCPD.
 					name = xml_node['value']
 
 					xml_node = xml_parser.node_get("{0} scpd:dataType".format(xml_base_path))
-					var_type = Variable.get_native_type_from_xml(xml_parser, xml_node)
+					_type = Variable.get_native_type_from_xml(xml_parser, xml_node)
 
-					if (var_type == False): raise ValueError("Invalid dataType definition found")
-					else: self.variables[name] = { "is_sending_events": send_events, "is_multicasting_events": multicast_events, "type": var_type }
+					if (_type == False): raise ValueError("Invalid dataType definition found")
+					else: self.variables[name] = { "is_sending_events": send_events, "is_multicasting_events": multicast_events, "type": _type }
 
 					xml_node = xml_parser.node_get("{0} scpd:defaultValue".format(xml_base_path))
 					if (xml_node != False): self.variables[name]['value'] = xml_node['value']
@@ -491,7 +490,7 @@ Initialize actions from a SCPD.
 					if (allowed_values_count > 0):
 					#
 						self.variables[name]['values_allowed'] = [ ]
-						if (var_type != str): raise ValueError("SCPD can only contain allowedValue elements if the dataType is set to 'string'")
+						if (_type != str): raise ValueError("SCPD can only contain allowedValue elements if the dataType is set to 'string'")
 
 						for position_allowed in range(0, allowed_values_count):
 						#
@@ -517,9 +516,9 @@ Initialize actions from a SCPD.
 					#
 				#
 			#
-			else: var_return = False
+			else: _return = False
 
-			actions_count = (xml_parser.node_count("scpd:scpd scpd:actionList scpd:action") if (var_return) else 0)
+			actions_count = (xml_parser.node_count("scpd:scpd scpd:actionList scpd:action") if (_return) else 0)
 
 			if (actions_count > 0):
 			#
@@ -567,19 +566,18 @@ Initialize actions from a SCPD.
 			if (self.log_handler != None): self.log_handler.error(handled_exception)
 			import traceback
 			traceback.print_exc()
-			var_return = False
+			_return = False
 		#
 
-		return var_return
+		return _return
 	#
 
 	def is_initialized(self):
 	#
 		"""
-"is_initialized()" returns .
+"is_initialized()" returns true if it is initialized.
 
-:access: protected
-:return: (object) XML parser
+:return: (bool) True if already initialized
 :since:  v0.1.00
 		"""
 
@@ -607,14 +605,14 @@ Initialize actions from the SCPD URL.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -upnpService.request_soap_action({0}, arguments)- (#echo(__LINE__)#)".format(action))
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Service.request_soap_action({0}, arguments)- (#echo(__LINE__)#)".format(action))
 
-		var_return = False
+		_return = False
 
 		os_uname = uname()
 		urn = "urn:{0}".format(self.identifier['urn'])
 
-		xml_parser = self.init_xml_parser()
+		xml_parser = self._init_xml_parser()
 
 		xml_parser.node_add("Envelope", attributes = { "xmlns": "http://schemas.xmlsoap.org/soap/envelope/", "encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
 		xml_parser.node_add("Envelope Header")
@@ -634,15 +632,15 @@ Initialize actions from the SCPD URL.
 
 		http_response = http_client.request_post(xml_parser.cache_export(True))
 
-		if (not isinstance(http_response['body'], Exception)): var_return = xml_parser.xml2data(Binary.str(http_response['body']))
+		if (not isinstance(http_response['body'], Exception)): _return = xml_parser.xml2data(Binary.str(http_response['body']))
 		elif (self.log_handler != None): self.log_handler.error(http_response['body'])
 
-		if (var_return == True):
+		if (_return == True):
 		#
 			pass
 		#
 
-		return var_return
+		return _return
 	#
 #
 

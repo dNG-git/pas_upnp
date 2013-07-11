@@ -53,7 +53,7 @@ output.
              GNU General Public License 2
 	"""
 
-	def __init__(self, l10n_id, upnp_code = 501, value = None, py_exception = None):
+	def __init__(self, l10n_id, upnp_code = 501, value = None, _exception = None):
 	#
 		"""
 Constructor __init__(UpnpException)
@@ -61,7 +61,7 @@ Constructor __init__(UpnpException)
 :param l10n_id: L10n translatable key (prefixed with "errors_")
 :param upnp_code: UPnP error code
 :param value: Exception message value
-:param py_exception: Inner exception
+:param _exception: Inner exception
 
 :since: v0.1.01
 		"""
@@ -71,7 +71,7 @@ Constructor __init__(UpnpException)
 UPnP error code
 		"""
 
-		TranslatableException.__init__(self, l10n_id, value, py_exception)
+		TranslatableException.__init__(self, l10n_id, value, _exception)
 	#
 
 	def get_upnp_code(self):

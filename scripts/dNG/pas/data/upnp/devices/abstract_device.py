@@ -42,8 +42,8 @@ from socket import gethostname
 from uuid import NAMESPACE_URL
 from uuid import uuid3 as uuid
 
-from dNG.pas.data.http.links import Links
 from dNG.pas.data.logging.log_line import LogLine
+from dNG.pas.data.text.url import Url
 from dNG.pas.data.upnp.client import Client
 from dNG.pas.data.upnp.device import Device
 from dNG.pas.data.upnp.services.abstract_service import AbstractService
@@ -201,23 +201,23 @@ Returns the UPnP device description.
 
 		LogLine.debug("#echo(__FILEPATH__)# -upnpDevice.get_xml()- (#echo(__LINE__)#)")
 
-		var_return = self.init_xml_parser()
+		_return = self._init_xml_parser()
 
 		client = Client.load_user_agent(self.client_user_agent)
-		if (client != None and (not client.get("upnp_xml_cdata_encoded", True))): var_return.define_cdata_encoding(False)
+		if (client != None and (not client.get("upnp_xml_cdata_encoded", True))): _return.define_cdata_encoding(False)
 
 		attributes = { "xmlns": "urn:schemas-upnp-org:device-1-0" }
 		if (self.configid != None): attributes['configId'] = self.configid
 
-		var_return.node_add("root", attributes = attributes)
-		var_return.node_set_cache_path("root")
+		_return.node_add("root", attributes = attributes)
+		_return.node_set_cache_path("root")
 
 		spec_version = self.get_spec_version()
-		var_return.node_add("root specVersion major", str(spec_version[0]))
-		var_return.node_add("root specVersion minor", str(spec_version[1]))
+		_return.node_add("root specVersion major", str(spec_version[0]))
+		_return.node_add("root specVersion minor", str(spec_version[1]))
 
-		self.get_xml_walker(var_return, "root device")
-		return (var_return.cache_export(True) if (flush) else var_return)
+		self.get_xml_walker(_return, "root device")
+		return (_return.cache_export(True) if (flush) else _return)
 	#
 
 	def get_xml_walker(self, xml_writer, xml_base_path):
@@ -323,7 +323,7 @@ Initialize a host device.
 		if (self.name == None): self.name = "{0} {1}".format(gethostname(), self.type)
 		self.udn = (str(uuid(NAMESPACE_URL, "upnp://{0}:{1:d}/{2}".format(control_point.get_http_host(), control_point.get_http_port(), hexlify(urandom(10))))) if (udn == None) else udn)
 
-		url = "http://{0}:{1:d}/upnp/{2}".format(control_point.get_http_host(), control_point.get_http_port(), Links.escape(self.udn))
+		url = "http://{0}:{1:d}/upnp/{2}".format(control_point.get_http_host(), control_point.get_http_port(), Url.escape(self.udn))
 		self.desc_url = "{0}/desc".format(url)
 		self.url_base = "{0}/".format(url)
 

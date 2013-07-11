@@ -133,7 +133,7 @@ Sets the requested action.
 :since:  v0.1.00
 		"""
 
-		var_return = None
+		_return = None
 
 		request_body = RequestBody()
 		request_body = self.wsgi_request.configure_request_body(request_body, "text/xml")
@@ -166,11 +166,11 @@ Sets the requested action.
 					#
 				#
 
-				var_return = { "urn": urn, "action": soap_action, "arguments": soap_arguments }
+				_return = { "urn": urn, "action": soap_action, "arguments": soap_arguments }
 			#
 		#
 
-		return var_return
+		return _return
 	#
 
 	def set_request(self, http_wsgi_request, control_point, device, request_data):

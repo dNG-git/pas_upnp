@@ -62,19 +62,18 @@ The UPnP client identified.
 	"""
 
 	@staticmethod
-	def get_json_file(file_pathname):
+	def _get_json_file(file_pathname):
 	#
 		"""
 Return the json content from the given file.
 
 :param file_pathname: Settings file path
 
-:access: protected
 :return: (mixed) JSON content; None on error
 :since:  v0.1.00
 		"""
 
-		var_return = None
+		_return = None
 
 		cache_instance = NamedLoader.get_singleton("dNG.pas.data.Cache", False)
 		json = (None if (cache_instance == None) else cache_instance.get_file(file_pathname))
@@ -96,10 +95,10 @@ Return the json content from the given file.
 		if (json != None):
 		#
 			json_parser = JsonParser()
-			var_return = json_parser.json2data(json)
+			_return = json_parser.json2data(json)
 		#
 
-		return var_return
+		return _return
 	#
 
 	@staticmethod
@@ -115,9 +114,9 @@ it.
 :since:  v0.1.00
 		"""
 
-		var_return = Client.get_json_file(path.normpath(file_pathname))
-		if (type(var_return) == dict and "client_file" in var_return): var_return = Client.get_json_file(path.normpath("{0}/upnp/{1}".format(Settings.get("path_data"), InputFilter.filter_file_path(var_return['client_file']))))
-		return var_return
+		_return = Client._get_json_file(path.normpath(file_pathname))
+		if (type(_return) == dict and "client_file" in _return): _return = Client._get_json_file(path.normpath("{0}/upnp/{1}".format(Settings.get("path_data"), InputFilter.filter_file_path(_return['client_file']))))
+		return _return
 	#
 
 	@staticmethod
@@ -132,7 +131,7 @@ Return a UPnP client based on the given HTTP or SSDP user agent value.
 :since:  v0.1.00
 		"""
 
-		var_return = ""
+		_return = ""
 
 		replacement_list = Settings.get("pas_upnp_client_replacement_list", None)
 
@@ -143,14 +142,14 @@ Return a UPnP client based on the given HTTP or SSDP user agent value.
 
 		for re_result in re.finditer("([\\d\\w\\.]+\\W[0-9\\.]+)", user_agent):
 		#
-			if (var_return != ""): var_return += "_"
-			var_return += re.sub("\\W+", "_", re_result.group(1))
+			if (_return != ""): _return += "_"
+			_return += re.sub("\\W+", "_", re_result.group(1))
 		#
 
-		if (var_return == ""): var_return = re.sub("\\W+", "_", var_return).lower()
-		else: var_return = var_return.lower()
+		if (_return == ""): _return = re.sub("\\W+", "_", _return).lower()
+		else: _return = _return.lower()
 
-		return var_return
+		return _return
 	#
 
 	@staticmethod
@@ -167,9 +166,9 @@ Return a UPnP client based on the given HTTP or SSDP user agent value.
 
 		if (type(user_agent) == str):
 		#
-			var_return = Hooks.call("dNG.pas.upnp.client.user_agent_get", user_agent = user_agent)
+			_return = Hooks.call("dNG.pas.upnp.client.user_agent_get", user_agent = user_agent)
 
-			if (var_return == None):
+			if (_return == None):
 			#
 				identifier = Client.get_user_agent_identifiers(user_agent)
 				LogLine.debug("pas.upnp client requested user agent with identifier '{0}'".format(identifier))
@@ -178,14 +177,14 @@ Return a UPnP client based on the given HTTP or SSDP user agent value.
 
 				if (type(settings) == dict):
 				#
-					var_return = Client()
-					var_return.update(settings)
+					_return = Client()
+					_return.update(settings)
 				#
 			#
 		#
-		else: var_return = None
+		else: _return = None
 
-		return var_return
+		return _return
 	#
 #
 

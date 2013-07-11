@@ -208,7 +208,7 @@ Add the given resource to the content list.
 
 :param resource: UPnP resource
 
-:since:  v0.1.01
+:since: v0.1.01
 		"""
 
 		if (self.content == None): self.content_init()
@@ -262,7 +262,7 @@ Returns an embedded device.
 		return content_containers + content_items + content_resources
 	#
 
-	def content_get(self, position):
+	def content_get(self, position = None):
 	#
 		"""
 Returns an embedded device.
@@ -271,10 +271,17 @@ Returns an embedded device.
 :since:  v0.1.01
 		"""
 
+		_return = None
+
 		if (self.content == None): self.content_init()
 
-		if (self.content != None and position >= 0 and len(self.content) > position): return self.content[position]
-		else: return None
+		if (self.content != None):
+		#
+			if (position == None): _return = self.content
+			elif (position >= 0 and len(self.content) > position): _return = self.content[position]
+		#
+
+		return _return
 	#
 
 	def content_get_didl_xml(self):
@@ -286,16 +293,16 @@ Returns an embedded device.
 :since:  v0.1.01
 		"""
 
-		var_return = None
+		_return = None
 
 		if (self.type != None and self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
 		#
-			xml_writer = self.init_xml_parser()
+			xml_writer = self._init_xml_parser()
 			xml_writer.node_add("DIDL-Lite", attributes = { "xmlns": "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/", "xmlns:dc": "http://purl.org/dc/elements/1.1/", "xmlns:upnp": "urn:schemas-upnp-org:metadata-1-0/upnp/" })
 
 			content_count = self.content_append_didl_xml_nodes(xml_writer, "DIDL-Lite")
 
-			var_return = {
+			_return = {
 				"result": xml_writer.cache_export(True),
 				"number_returned": content_count,
 				"total_matches": self.get_total(),
@@ -303,7 +310,7 @@ Returns an embedded device.
 			}
 		#
 
-		return var_return
+		return _return
 	#
 
 	def content_init(self):
@@ -459,15 +466,15 @@ Returns the UPnP resource type class.
 :since:  v0.1.01
 		"""
 
-		var_return = None
+		_return = None
 
 		if (self.type != None):
 		#
-			if (self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER): var_return = "object.container"
-			elif (self.type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): var_return = "object.item"
+			if (self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER): _return = "object.container"
+			elif (self.type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): _return = "object.item"
 		#
 
-		return var_return
+		return _return
 	#
 
 	def get_updatable(self):
@@ -493,7 +500,7 @@ Add the given device to the list of embedded devices.
 :since:  v0.1.01
 		"""
 
-		var_return = False
+		_return = False
 
 		if ("id" in data and "name" in data and "type" in data):
 		#
@@ -510,18 +517,18 @@ Add the given device to the list of embedded devices.
 			if ("update_id" in data): self.update_id = data['update_id']
 			if ("updatable" in data): self.parent_id = data['updatable']
 
-			var_return = True
+			_return = True
 		#
 
-		return var_return
+		return _return
 	#
 
-	def init_cds_id(self, var_id, client_user_agent = None, update_id = None):
+	def init_cds_id(self, _id, client_user_agent = None, update_id = None):
 	#
 		"""
 Initialize a UPnP resource by CDS ID.
 
-:param var_id: UPnP CDS ID
+:param _id: UPnP CDS ID
 :param client_user_agent: Client user agent
 :param update_id: Initial UPnP resource update ID
 
@@ -529,30 +536,29 @@ Initialize a UPnP resource by CDS ID.
 :since:  v0.1.01
 		"""
 
-		var_return = False
+		_return = False
 
-		self.id = var_id
+		self.id = _id
 		if (client_user_agent != None): self.client_user_agent = client_user_agent
 		if (update_id != None): self.update_id = update_id
 
-		if (var_id == "0"):
+		if (_id == "0"):
 		#
 			self.name = L10n.get("pas_upnp_container_root")
 			self.parent_id = "-1"
 			self.type = Resource.TYPE_CDS_CONTAINER
 
-			var_return = True
+			_return = True
 		#
 
-		return var_return
+		return _return
 	#
 
-	def init_xml_parser(self):
+	def _init_xml_parser(self):
 	#
 		"""
 Returns a XML parser with predefined XML namespaces.
 
-:access: protected
 :return: (object) XML parser
 :since:  v0.1.01
 		"""
@@ -562,14 +568,26 @@ There are known broken clients defining XML namespaces without the trailing
 slash. We define both notations just in case.
 		"""
 
-		var_return = XmlWriter(node_type = OrderedDict)
-		var_return.ns_register("dc", "http://purl.org/dc/elements/1.1")
-		var_return.ns_register("dc", "http://purl.org/dc/elements/1.1/")
-		var_return.ns_register("didl", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite")
-		var_return.ns_register("didl", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/")
-		var_return.ns_register("upnp", "urn:schemas-upnp-org:metadata-1-0/upnp")
-		var_return.ns_register("upnp", "urn:schemas-upnp-org:metadata-1-0/upnp/")
-		return var_return
+		_return = XmlWriter(node_type = OrderedDict)
+		_return.ns_register("dc", "http://purl.org/dc/elements/1.1")
+		_return.ns_register("dc", "http://purl.org/dc/elements/1.1/")
+		_return.ns_register("didl", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite")
+		_return.ns_register("didl", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/")
+		_return.ns_register("upnp", "urn:schemas-upnp-org:metadata-1-0/upnp")
+		_return.ns_register("upnp", "urn:schemas-upnp-org:metadata-1-0/upnp/")
+		return _return
+	#
+
+	def is_filesystem_resource(self):
+	#
+		"""
+Returns true if the resource is a local filesystem one.
+
+:return: (bool) True if local filesystem resource
+:since:  v0.1.01
+		"""
+
+		return False
 	#
 
 	def metadata_add_didl_xml_node(self, xml_writer, xml_node_path, resource):
@@ -646,11 +664,11 @@ Returns an embedded device.
 :since:  v0.1.01
 		"""
 
-		var_return = None
+		_return = None
 
 		if (self.type != None):
 		#
-			xml_writer = self.init_xml_parser()
+			xml_writer = self._init_xml_parser()
 			xml_writer.node_add("DIDL-Lite", attributes = { "xmlns": "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/", "xmlns:dc": "http://purl.org/dc/elements/1.1/", "xmlns:upnp": "urn:schemas-upnp-org:metadata-1-0/upnp/" })
 
 			if (self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER): xml_node_path = "DIDL-Lite container"
@@ -659,7 +677,7 @@ Returns an embedded device.
 
 			if (xml_node_path != None): self.metadata_add_didl_xml_node(xml_writer, xml_node_path, self)
 
-			var_return = {
+			_return = {
 				"result": xml_writer.cache_export(True),
 				"number_returned": 1,
 				"total_matches": 1,
@@ -667,7 +685,7 @@ Returns an embedded device.
 			}
 		#
 
-		return var_return
+		return _return
 	#
 
 	def set_didl_fields(self, fields):
@@ -700,12 +718,12 @@ Sets the UPnP resource update ID or increments it.
 	#
 
 	@staticmethod
-	def load_cds_id(var_id, client_user_agent = None, cds = None):
+	def load_cds_id(_id, client_user_agent = None, cds = None):
 	#
 		"""
 Load a UPnP resource by CDS ID.
 
-:param var_id: UPnP CDS ID
+:param _id: UPnP CDS ID
 :param client_user_agent: Client user agent
 :param cds: UPnP CDS
 
@@ -713,25 +731,25 @@ Load a UPnP resource by CDS ID.
 :since:  v0.1.01
 		"""
 
-		var_return = None
+		_return = None
 
-		if (var_id == "0" and cds != None):
+		if (_id == "0" and cds != None):
 		#
-			var_return = Resource()
-			var_return.init_cds_id(var_id, client_user_agent, cds.get_system_update_id())
+			_return = Resource()
+			_return.init_cds_id(_id, client_user_agent, cds.get_system_update_id())
 		#
-		elif ("://" in var_id):
+		elif ("://" in _id):
 		#
-			url_elements = urlsplit(var_id)
+			url_elements = urlsplit(_id)
 
 			if (url_elements.scheme != ""):
 			#
 				resource = NamedLoader.get_instance("dNG.pas.data.upnp.resources.{0}".format("".join([word.capitalize() for word in url_elements.scheme.split("-")])), False)
-				if (isinstance(resource, Resource) and resource.init_cds_id(var_id)): var_return = resource
+				if (isinstance(resource, Resource) and resource.init_cds_id(_id)): _return = resource
 			#
 		#
 
-		return var_return
+		return _return
 	#
 #
 

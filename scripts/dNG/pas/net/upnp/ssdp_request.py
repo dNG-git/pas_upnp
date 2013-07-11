@@ -58,16 +58,15 @@ Class for handling a received SSDP message.
 
 	RE_HTTP_HEADER_MAX_AGE = re.compile("(^|[ ,]+)max\\-age=(\\d+)([, ]+|$)")
 
-	def thread_run(self):
+	def _thread_run(self):
 	#
 		"""
 Active conversation
 
-:access: protected
-:since:  v1.0.0
+:since: v1.0.0
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ssdpRequest.thread_run()- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -SsdpRequest._thread_run()- (#echo(__LINE__)#)")
 
 		http_data = self.get_data(512)
 		http_request = None
@@ -111,12 +110,12 @@ Active conversation
 					unicast_port = (int(http_headers['SEARCHPORT.UPNP.ORG']) if ("SEARCHPORT.UPNP.ORG" in http_headers) else None)
 
 					if (re_result != None): control_point.update_usn(http_headers['SERVER'], http_headers['USN'], bootid, bootid_old, configid, int(re_result.group(2)), unicast_port, http_request_version, http_headers['LOCATION'], http_headers)
-					elif (self.log_handler != None): self.log_handler.debug("pas.upnp ignored incomplete NOTIFY nts '{0}'".format(http_headers['NTS']))
+					elif (self.log_handler != None): self.log_handler.debug("pas.upnp.SsdpRequest ignored incomplete NOTIFY nts '{0}'".format(http_headers['NTS']))
 				#
-				elif (self.log_handler != None): self.log_handler.debug("pas.upnp ignored incomplete NOTIFY nts '{0}'".format(http_headers['NTS']))
+				elif (self.log_handler != None): self.log_handler.debug("pas.upnp.SsdpRequest ignored incomplete NOTIFY nts '{0}'".format(http_headers['NTS']))
 			#
 			elif (http_headers['NTS'] == "ssdp:byebye"): control_point.delete_usn(http_headers['USN'], bootid, configid, http_headers)
-			elif (self.log_handler != None): self.log_handler.debug("pas.upnp received unknown NOTIFY nts '{0}'".format(http_headers['NTS']))
+			elif (self.log_handler != None): self.log_handler.debug("pas.upnp.SsdpRequest received unknown NOTIFY nts '{0}'".format(http_headers['NTS']))
 		#
 		elif (http_request == "M-SEARCH" and http_request_path == "*" and "MAN" in http_headers and http_headers['MAN'].strip("\"") == "ssdp:discover" and "ST" in http_headers):
 		#
