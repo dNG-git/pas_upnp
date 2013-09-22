@@ -53,7 +53,6 @@ from dNG.data.rfc.basics import Basics as RfcBasics
 from dNG.data.rfc.http import Http
 from dNG.pas.controller.http_upnp_request import HttpUpnpRequest
 from dNG.pas.controller.predefined_http_request import PredefinedHttpRequest
-from dNG.pas.data.tasks.abstract_timed import AbstractTimed
 from dNG.pas.data.binary import Binary
 from dNG.pas.data.settings import Settings
 from dNG.pas.data.http.virtual_config import VirtualConfig
@@ -63,6 +62,7 @@ from dNG.pas.module.named_loader import NamedLoader
 from dNG.pas.net.upnp.ssdp_message import SsdpMessage
 from dNG.pas.net.upnp.ssdp_response import SsdpResponse
 from dNG.pas.plugins.hooks import Hooks
+from dNG.pas.tasks.abstract_timed import AbstractTimed
 from .gena import Gena
 from .ssdp_listener_ipv4_multicast import SsdpListenerIpv4Multicast
 from .ssdp_listener_ipv6_multicast import SsdpListenerIpv6Multicast
@@ -403,7 +403,7 @@ Delete the parsed UPnP identifier from the ControlPoint list.
 
 				if (usn_data['uuid'] in self.managed_devices):
 				#
-					Hooks.call("dNG.pas.upnp.control_point.host_device_remove", identifier = usn_data)
+					Hooks.call("dNG.pas.upnp.control_point.host_device_remove", identifier = identifier)
 					self._announce(ControlPoint.ANNOUNCE_DEVICE_SHUTDOWN, identifier['usn'])
 					del(self.managed_devices[usn_data['uuid']])
 				#
@@ -414,6 +414,7 @@ Delete the parsed UPnP identifier from the ControlPoint list.
 						for ip in usn_data['ips']: self.gena.cancel(("{0}:{1}:{2}".format(usn_data['domain'], usn_data['class'], usn_data['type']) if ("urn" in usn_data) else None), ip)
 					#
 
+					if (usn_data['class'] == "device"): Hooks.call("dNG.pas.upnp.control_point.device_remove", identifier = usn_data)
 					Hooks.call("dNG.pas.upnp.control_point.usn_delete", identifier = usn_data)
 				#
 
@@ -979,6 +980,7 @@ Parse unread UPnP descriptions.
 							self.upnp_desc[url]['usns'].append(usn)
 
 							Hooks.call("dNG.pas.upnp.control_point.usn_new", identifier = self.usns[usn])
+							if (self.usns[usn]['class'] == "device"): Hooks.call("dNG.pas.upnp.control_point.device_add", identifier = self.usns[usn])
 						#
 					#
 				#
@@ -1092,15 +1094,16 @@ Worker loop
 :since: v0.1.00
 		"""
 
-		ControlPoint.synchronized.acquire()
+		task = None
 
-		if (len(self.tasks) > 0 and self.tasks[0]['timestamp'] <= time()):
+		with ControlPoint.synchronized:
 		#
-			task = self.tasks.pop(0)
-			ControlPoint.synchronized.release()
-
+			if (len(self.tasks) > 0 and self.tasks[0]['timestamp'] <= time()): task = self.tasks.pop(0)
 			AbstractTimed.run(self)
+		#
 
+		if (task != None):
+		#
 			try:
 			#
 				if (self.log_handler != None): self.log_handler.debug("pas.upnp.ControlPoint runs task type '{0}'".format(task['type']))
@@ -1116,11 +1119,6 @@ Worker loop
 			#
 				if (self.log_handler != None): self.log_handler.error(handled_exception)
 			#
-		#
-		else:
-		#
-			ControlPoint.synchronized.release()
-			AbstractTimed.run(self)
 		#
 	#
 
@@ -1251,7 +1249,7 @@ Searches for hosted devices matching the given UPnP search target.
 
 			if (len(results) > 0):
 			#
-				wait_seconds = randfloat(0, source_wait_timeout / len(results))
+				wait_seconds = randfloat(0, (source_wait_timeout if (source_wait_timeout < 10) else 10) / len(results))
 				for result in results: self._task_add(wait_seconds, "announce_search_result", usn = result['usn'], location = result['location'], search_target = result['search_target'], target_host = ("[{0}]".format(source_data[0]) if (":" in source_data[0]) else source_data[0]), target_port = source_data[1])
 			#
 		#
@@ -1373,11 +1371,10 @@ Update the list with the given parsed UPnP identifier.
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint._task_add({0:.2f}, {1})- (#echo(__LINE__)#)".format(wait_seconds, _type))
 
 		index = 1
+		timestamp = int(time() + wait_seconds)
 
 		with ControlPoint.synchronized:
 		#
-			timestamp = time() + wait_seconds
-
 			if (wait_seconds > 600):
 			#
 				index = len(self.tasks)
@@ -1415,7 +1412,7 @@ Update the list with the given parsed UPnP identifier.
 			self.tasks.insert(index, task)
 		#
 
-		if (index < 1): self.update_timestamp()
+		if (index < 1): self.update_timestamp(timestamp)
 	#
 
 	def _tasks_remove(self, usn, _type = None):

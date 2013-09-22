@@ -36,7 +36,8 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from .action import Action
+from copy import copy
+
 from .variable import Variable
 
 class ServiceProxy(object):
@@ -88,7 +89,44 @@ class tree for self).
 :since:  v0.1.00
 		"""
 
-		if (self.actions != None and name in self.actions): return Action(self.service, name, self.actions[name])
+		if (self.actions != None and name in self.actions):
+		#
+			argument_variables = [ ]
+			result_variables = [ ]
+			return_variable = None
+			variables = self.actions[name]
+	
+			for argument_variable in self.actions[name]['argument_variables']: argument_variables.append({ "name": argument_variable['name'], "variable": self.service.get_definition_variable(argument_variable['variable']) })
+			for result_variable in self.actions[name]['result_variables']: result_variables.append({ "name": result_variable['name'], "variable": self.service.get_definition_variable(result_variable['variable']) })
+	
+			if (self.actions[name]['return_variable'] != None): return_variable = { "name": variables['return_variable']['name'], "variable": self.service.get_definition_variable(variables['return_variable']['variable']) }
+
+			def proxymethod(**kwargs):
+			#
+				arguments = (argument_variables.copy() if (hasattr(argument_variables, "copy")) else copy(argument_variables))
+
+				for name in kwargs:
+				#
+					for argument in arguments:
+					#
+						if (name == argument['name']): argument['value'] = Variable.get_upnp_value(argument['variable'], kwargs[name])
+					#
+				#
+
+				for argument in arguments:
+				#
+					if ("value" not in argument):
+					#
+						if ("value" in argument['variable']): argument['value'] = Variable.get_upnp_value(argument['variable'], argument['variable']['value'])
+						else: raise UnboundLocalError("'{0}' is not defined and has no default value".format(argument['name']))
+					#
+				#
+
+				result = self.service.request_soap_action(name, arguments)
+			#
+
+			return proxymethod
+		#
 		elif (self.variables != None and name in self.variables): return Variable(self.service, name, self.variables[name])
 		else: raise AttributeError("UPnP SCPD does not contain a definition for '{0}'".format(name))
 	#

@@ -45,10 +45,9 @@ import socket
 try: from urllib.parse import urlsplit
 except ImportError: from urlparse import urlsplit
 
-from dNG.pas.data.binary import Binary
-from dNG.pas.data.tasks.abstract_timed import AbstractTimed
 from dNG.pas.data.text.md5 import Md5
 from dNG.pas.module.named_loader import NamedLoader
+from dNG.pas.tasks.abstract_timed import AbstractTimed
 
 class Gena(AbstractTimed):
 #
@@ -239,6 +238,7 @@ name.
 		_return = None
 
 		index = 1
+		timestamp = -1
 
 		with Gena.synchronized:
 		#
@@ -264,7 +264,7 @@ name.
 				#
 
 				index = len(self.timeouts)
-				timestamp = time() + timeout
+				timestamp = int(time() + timeout)
 
 				if (index > 0):
 				#
@@ -283,7 +283,7 @@ name.
 			#
 		#
 
-		if (index < 1): self.update_timestamp()
+		if (index < 1): self.update_timestamp(timestamp)
 		return _return
 	#
 
@@ -304,6 +304,7 @@ Renews an subscription identified by the given SID.
 		_return = False
 
 		index = 1
+		timestamp = -1
 
 		with Gena.synchronized:
 		#
@@ -325,7 +326,7 @@ Renews an subscription identified by the given SID.
 			if (_return):
 			#
 				index = None
-				timestamp = time() + timeout
+				timestamp = int(time() + timeout)
 
 				for position in range(len(self.timeouts) - 1, -1, -1):
 				#
@@ -340,7 +341,7 @@ Renews an subscription identified by the given SID.
 			#
 		#
 
-		if (index < 1): self.update_timestamp()
+		if (index < 1): self.update_timestamp(timestamp)
 		return _return
 	#
 
@@ -352,25 +353,23 @@ Worker loop
 :since: v0.1.00
 		"""
 
-		Gena.synchronized.acquire()
-
-		if (len(self.timeouts) > 0 and self.timeouts[0]['timestamp'] <= time()):
+		with Gena.synchronized:
 		#
-			timeout_entry = self.timeouts.pop(0)
-
-			if (self.subscriptions != None and timeout_entry['service_name'] in self.subscriptions and timeout_entry['callback_url'] in self.subscriptions[timeout_entry['service_name']]):
+			if (len(self.timeouts) > 0 and int(self.timeouts[0]['timestamp']) <= time()):
 			#
-				del(self.subscriptions[timeout_entry['service_name']][timeout_entry['callback_url']])
-				if (len(self.subscriptions[timeout_entry['service_name']]) < 1): del(self.subscriptions[timeout_entry['service_name']])
+				timeout_entry = self.timeouts.pop(0)
+
+				if (self.subscriptions != None and timeout_entry['service_name'] in self.subscriptions and timeout_entry['callback_url'] in self.subscriptions[timeout_entry['service_name']]):
+				#
+					if (self.log_handler != None): self.log_handler.debug("pas.upnp.GENA removes subscription '{0}'".format(timeout_entry['service_name']))
+
+					del(self.subscriptions[timeout_entry['service_name']][timeout_entry['callback_url']])
+					if (len(self.subscriptions[timeout_entry['service_name']]) < 1): del(self.subscriptions[timeout_entry['service_name']])
+				#
 			#
 
-			Gena.synchronized.release()
-
-			if (self.log_handler != None): self.log_handler.debug("pas.upnp.GENA removes subscription '{0}'".format(timeout_entry['service_name']))
+			AbstractTimed.run(self)
 		#
-		else: Gena.synchronized.release()
-
-		AbstractTimed.run(self)
 	#
 
 	def start(self, params = None, last_return = None):

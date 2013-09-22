@@ -201,6 +201,25 @@ Returns the UPnP service specification domain.
 		return (self.upnp_domain if (self.host_service) else Service.get_upnp_domain(self))
 	#
 
+	def _get_unique_list(self, _list):
+	#
+		"""
+Returns a list where each entry is unique.
+
+:return: (list) Unique list of entries given
+:since:  v0.1.01
+		"""
+
+		_return = [ ]
+
+		for value in _list:
+		#
+			if (value not in _return): _return.append(value)
+		#
+
+		return _return
+	#
+
 	def get_urn(self):
 	#
 		"""
