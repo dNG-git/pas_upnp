@@ -64,9 +64,9 @@ Action for "get_device"
 :since: v0.1.00
 		"""
 
-		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_error_400")
+		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
 		upnp_device = self.request.get_upnp_device()
-		if (not isinstance(upnp_device, AbstractDevice)): raise UpnpException("pas_http_error_400", 401)
+		if (not isinstance(upnp_device, AbstractDevice)): raise UpnpException("pas_http_core_400", 401)
 
 		upnp_device.client_set_user_agent(self.request.get_header("User-Agent"))
 
@@ -83,9 +83,9 @@ Action for "get_service"
 :since: v0.1.00
 		"""
 
-		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_error_400")
+		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
 		upnp_service = self.request.get_upnp_service()
-		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_error_400", 401)
+		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_core_400", 401)
 
 		upnp_service.client_set_user_agent(self.request.get_header("User-Agent"))
 

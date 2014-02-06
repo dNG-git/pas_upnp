@@ -76,9 +76,9 @@ Action for "request"
 		self.response.set_header("Date", RfcBasics.get_rfc1123_datetime(time()))
 		self.response.set_header("Server", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2]))
 
-		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_error_400")
+		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
 		upnp_service = self.request.get_upnp_service()
-		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_error_400", 401)
+		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_core_400", 401)
 
 		Hooks.call("dNG.pas.http.l10n.upnp.Events.init")
 
@@ -86,7 +86,7 @@ Action for "request"
 		gena_sid = self.request.get_header("SID")
 		upnp_service.client_set_user_agent(self.request.get_header("User-Agent"))
 
-		if ((callback_url == None or self.request.get_header("NT") != "upnp:event") and gena_sid == None): raise UpnpException("pas_http_error_400", 400)
+		if ((callback_url == None or self.request.get_header("NT") != "upnp:event") and gena_sid == None): raise UpnpException("pas_http_core_400", 400)
 
 		gena = Gena.get_instance()
 		timeout = self.request.get_header("Timeout")
@@ -96,7 +96,7 @@ Action for "request"
 		if (re_result == None):
 		#
 			client = Client.load_user_agent(self.request.get_header("User-Agent"))
-			timeout = (1800 if (client == None) else client.get("upnp_subscription_timeout", 1800))
+			timeout = int(client.get("upnp_subscription_timeout", 1800))
 		#
 		else: timeout = int(re_result.group(1))
 
@@ -104,7 +104,7 @@ Action for "request"
 		#
 			gena_sid = gena.register(upnp_service.get_name(), callback_url.strip("<>"), timeout)
 
-			if (gena_sid == False): raise UpnpException("pas_http_error_404", 412)
+			if (gena_sid == False): raise UpnpException("pas_http_core_404", 412)
 
 			self.response.set_header("Date", RfcBasics.get_rfc1123_datetime(time()))
 			self.response.set_header("SID", gena_sid)
@@ -115,7 +115,7 @@ Action for "request"
 		#
 			result = gena.reregister(upnp_service.get_name(), gena_sid, timeout)
 
-			if (result == False): raise UpnpException("pas_http_error_404", 412)
+			if (result == False): raise UpnpException("pas_http_core_404", 412)
 
 			self.response.set_header("Date", RfcBasics.get_rfc1123_datetime(time()))
 			self.response.set_header("SID", gena_sid)
@@ -137,19 +137,19 @@ Action for "request"
 		self.response.set_header("Date", RfcBasics.get_rfc1123_datetime(time()))
 		self.response.set_header("Server", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2]))
 
-		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_error_400")
+		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
 		upnp_service = self.request.get_upnp_service()
-		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_error_400", 401)
+		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_core_400", 401)
 
 		Hooks.call("dNG.pas.http.l10n.upnp.Events.init")
 
 		gena_sid = self.request.get_header("SID")
 		upnp_service.client_set_user_agent(self.request.get_header("User-Agent"))
 
-		if (gena_sid == None): raise UpnpException("pas_http_error_400", 400)
+		if (gena_sid == None): raise UpnpException("pas_http_core_400", 400)
 
 		gena = Gena.get_instance()
-		if (not gena.deregister(upnp_service.get_name(), gena_sid)): raise UpnpException("pas_http_error_404", 412)
+		if (not gena.deregister(upnp_service.get_name(), gena_sid)): raise UpnpException("pas_http_core_404", 412)
 
 		self.response.set_header("Date", RfcBasics.get_rfc1123_datetime(time()))
 		self.response.set_raw_data("")

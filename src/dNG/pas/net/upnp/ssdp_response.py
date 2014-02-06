@@ -39,7 +39,7 @@ NOTE_END //n"""
 from os import uname
 
 from dNG.pas.data.binary import Binary
-from dNG.pas.data.traced_exception import TracedException
+from dNG.pas.runtime.not_implemented_exception import NotImplementedException
 from .abstract_ssdp import AbstractSsdp
 
 class SsdpResponse(AbstractSsdp):
@@ -87,7 +87,7 @@ Call a given request method on the connected HTTP server.
 :since:  v0.1.00
 		"""
 
-		raise TracedException("Not implemented")
+		raise NotImplementedException()
 	#
 
 	def request_get(self, params = None, separator = ";"):
@@ -102,7 +102,7 @@ Do a GET request on the connected HTTP server.
 :since:  v0.1.00
 		"""
 
-		raise TracedException("Not implemented")
+		raise NotImplementedException()
 	#
 
 	def request_head(self, params = None, separator = ";"):
@@ -117,7 +117,7 @@ Do a HEAD request on the connected HTTP server.
 :since:  v0.1.00
 		"""
 
-		raise TracedException("Not implemented")
+		raise NotImplementedException()
 	#
 
 	def request_post(self, data = None, params = None, separator = ";"):
@@ -133,7 +133,7 @@ Do a POST request on the connected HTTP server.
 :since:  v0.1.00
 		"""
 
-		raise TracedException("Not implemented")
+		raise NotImplementedException()
 	#
 
 	def send(self, data = None):

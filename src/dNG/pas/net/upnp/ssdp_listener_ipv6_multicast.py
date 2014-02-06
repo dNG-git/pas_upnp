@@ -36,10 +36,13 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
+from copy import copy
+from struct import pack
 import socket
 
 from dNG.pas.net.udp_ne_ipv6_socket import UdpNeIpv6Socket
 from dNG.pas.net.server.dispatcher import Dispatcher
+from dNG.pas.runtime.io_exception import IOException
 from .ssdp_request import SsdpRequest
 
 class SsdpListenerIpv6Multicast(Dispatcher):
@@ -70,18 +73,50 @@ Constructor __init__(SsdpListenerIpv6Multicast)
 		"""
 True if multicast listener is active
 		"""
-		self.listener_ip = ip
+		self.listener_if_index = 0
 		"""
-Listener IPv6 address
+Listener IPv6 interface index
 		"""
-		self.multicast_address = multicast_address
+		self.multicast_addresses = [ ]
 		"""
-multicast address to bind to
+Multicast addresses to listen for on this socket
 		"""
+
+		# Split listener interface from IPv6 address and find corresponding index
+		if ("%" in ip and hasattr(socket, "if_nameindex")):
+		#
+			if_list = { if_name: index for index, if_name in socket.if_nameindex() }
+
+			( ip, _if ) = ip.split("%", 1)
+			self.listener_if_index = (if_list[_if] if (_if in if_list) else int(_if))
+		#
 
 		listener_socket = UdpNeIpv6Socket(( "::", 1900 ))
-
 		Dispatcher.__init__(self, listener_socket, SsdpRequest, 1)
+
+		self.add_address(multicast_address)
+	#
+
+	def add_address(self, multicast_address):
+	#
+		"""
+Adds a new IPv6 multicast address to listen for SSDP messages.
+
+:since: v0.1.00
+		"""
+
+		if (multicast_address not in self.multicast_addresses and socket.has_ipv6):
+		#
+			try:
+			#
+				self.listener_socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, socket.inet_pton(socket.AF_INET6, multicast_address) + pack("I", self.listener_if_index))
+				self.multicast_addresses.append(multicast_address)
+			#
+			except Exception as handled_exception:
+			#
+				if (self.log_handler != None): self.log_handler.error(handled_exception)
+			#
+		#
 	#
 
 	def is_listening(self):
@@ -96,6 +131,21 @@ Returns true if the listener is active.
 		return self.listener_active
 	#
 
+	def remove_address(self, multicast_address):
+	#
+		"""
+Removes an IPv6 multicast address currently listening for SSDP messages.
+
+:since: v0.1.00
+		"""
+
+		if (multicast_address in self.multicast_addresses):
+		#
+			self.listener_socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_LEAVE_GROUP, socket.inet_pton(socket.AF_INET6, multicast_address) + pack("I", self.listener_if_index))
+			self.multicast_addresses.remove(multicast_address)
+		#
+	#
+
 	def run(self):
 	#
 		"""
@@ -104,20 +154,13 @@ Run the main loop for this server instance.
 :since: v0.1.00
 		"""
 
-		if (socket.has_ipv6 and (not self.listener_active)):
+		if (not self.listener_active):
 		#
-			try:
-			#
-				self.listener_socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, socket.inet_pton(socket.AF_INET6, self.multicast_address) + socket.inet_pton(socket.AF_INET6, self.listener_ip))
-				self.listener_active = True
-			#
-			except Exception as handled_exception:
-			#
-				if (self.log_handler != None): self.log_handler.error(handled_exception)
-			#
-		#
+			if (len(self.multicast_addresses) < 1): raise IOException("No valid multicast addresses available to listen on")
 
-		Dispatcher.run(self)
+			self.listener_active = True
+			Dispatcher.run(self)
+		#
 	#
 
 	def stop(self):
@@ -130,12 +173,17 @@ Stops the listener and unqueues all running sockets.
 
 		if (self.listener_active):
 		#
-			try: self.listener_socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_LEAVE_GROUP, socket.inet_pton(socket.AF_INET6, self.multicast_address) + socket.inet_pton(socket.AF_INET6, self.listener_ip))
-			except Exception as handled_exception:
+			multicast_addresses = (self.multicast_addresses.copy() if (hasattr(self.multicast_addresses, "copy")) else copy(self.multicast_addresses))
+
+			for multicast_address in multicast_addresses:
 			#
-				if (self.log_handler != None): self.log_handler.error(handled_exception)
+				try: self.remove_address(multicast_address)
+				except Exception as handled_exception:
+				#
+					if (self.log_handler != None): self.log_handler.error(handled_exception)
+				#
 			#
-	
+
 			self.listener_active = False
 		#
 

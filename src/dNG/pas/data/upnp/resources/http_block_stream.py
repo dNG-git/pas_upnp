@@ -49,7 +49,7 @@ except ImportError:
 from dNG.pas.controller.predefined_http_request import PredefinedHttpRequest
 from dNG.pas.data.binary import Binary
 from dNG.pas.data.mime_type import MimeType
-from dNG.pas.data.text.url import Url
+from dNG.pas.data.text.link import Link
 from dNG.pas.data.upnp.resource import Resource
 from dNG.pas.module.named_loader import NamedLoader
 from .abstract_stream import AbstractStream
@@ -83,7 +83,7 @@ Initializes the content of a container.
 
 		if (self.type != None):
 		#
-			self.content.append(Url(path = "/upnp/stream/{0}".format(quote(Binary.str(b64encode(Binary.utf8_bytes(self.id)))))).build_url(Url.TYPE_FULL, { }))
+			self.content.append(Link(path = "/upnp/stream/{0}".format(quote(Binary.str(b64encode(Binary.utf8_bytes(self.id)))))).build_url(Link.TYPE_FULL, { }))
 			_return = True
 		#
 

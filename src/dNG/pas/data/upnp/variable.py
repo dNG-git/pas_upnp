@@ -47,6 +47,7 @@ except ImportError: from urlparse import urlsplit
 
 from dNG.data.rfc.basics import Basics as RfcBasics
 from dNG.pas.data.binary import Binary
+from dNG.pas.runtime.value_exception import ValueException
 
 class Variable(object):
 #
@@ -90,8 +91,8 @@ value.
 			elif (native_type[1] == "hex"): _return = Binary.raw_str(unhexlify(Binary.utf8_bytes(value)))
 			elif (native_type[1] == "time"): _return = RfcBasics.get_iso8601_timestamp(value, False, timezone = False)
 			elif (native_type[1] == "time.tz"): _return = RfcBasics.get_iso8601_timestamp(value, False)
-			elif (native_type[1] == "uri" and re.match("^\\w+\\:\\w", value) == None): raise TypeError("Given value mismatches defined format for URIs")
-			elif (native_type[1] == "uuid" and (not value.startswith("uuid:"))): raise TypeError("Given value mismatches defined format for UUIDs")
+			elif (native_type[1] == "uri" and re.match("^\\w+\\:\\w", value) == None): raise ValueException("Given value mismatches defined format for URIs")
+			elif (native_type[1] == "uuid" and (not value.startswith("uuid:"))): raise ValueException("Given value mismatches defined format for UUIDs")
 			elif (native_type[0] != str): _return = native_type[0](value)
 		#
 		elif (native_type != str): _return = native_type(value)
@@ -226,10 +227,10 @@ value.
 			value_normalized = (Binary.str(value) if (native_type[0] == str) else value)
 			_type = type(value_normalized)
 
-			if (_type != native_type[0]): raise TypeError("Given value mismatches defined format")
+			if (_type != native_type[0]): raise ValueException("Given value mismatches defined format")
 			elif (len(native_type) > 2):
 			#
-				if (native_type[1] != "xmlns"): raise TypeError("Invalid native type definition")
+				if (native_type[1] != "xmlns"): raise ValueException("Invalid native type definition")
 				_return = value_normalized
 			#
 			elif (len(native_type[1]) > 1):
@@ -242,8 +243,8 @@ value.
 				elif (native_type[1] == "hex"): _return = Binary.str(hexlify(Binary.bytes(value) if (value == value_normalized) else value))
 				elif (native_type[1] == "time"): _return = strftime("%H:%M:%S", localtime(value))
 				elif (native_type[1] == "time.tz"): _return = strftime("%H:%M:%S%Z", localtime(value))
-				elif (native_type[1] == "uri" and len(urlsplit(value).scheme.strip()) < 1): raise TypeError("Given value is not a valid URI")
-				elif (native_type[1] == "uuid" and Variable.RE_UUID.match(value_normalized) == None): raise TypeError("Given value is not a valid UUID")
+				elif (native_type[1] == "uri" and len(urlsplit(value).scheme.strip()) < 1): raise ValueException("Given value is not a valid URI")
+				elif (native_type[1] == "uuid" and Variable.RE_UUID.match(value_normalized) == None): raise ValueException("Given value is not a valid UUID")
 				else: _return = value_normalized
 			#
 			else:
@@ -257,7 +258,7 @@ value.
 			if (native_type == str): value = Binary.str(value)
 			_type = type(value)
 
-			if (_type != native_type): raise TypeError("Given value mismatches defined format")
+			if (_type != native_type): raise ValueException("Given value mismatches defined format")
 
 			if (native_type == bool): _return = "{0:b}".format(value)
 			elif (native_type == int): _return = str(value)

@@ -237,13 +237,13 @@ name.
 
 				self.subscriptions[service_name][callback_url] = { "seq": 0, "sid": _return }
 				url_elements = urlsplit(callback_url)
-				ip_address_paths = socket.getaddrinfo(url_elements.hostname, url_elements.port, socket.AF_UNSPEC, 0, socket.IPPROTO_TCP)
+				ip_address_list = socket.getaddrinfo(url_elements.hostname, url_elements.port, socket.AF_UNSPEC, 0, socket.IPPROTO_TCP)
 
-				if (len(ip_address_paths) > 0):
+				if (len(ip_address_list) > 0):
 				#
 					ips = [ ]
 
-					for ip_address_data in ip_address_paths:
+					for ip_address_data in ip_address_list:
 					#
 						if (ip_address_data[0] == socket.AF_INET or ip_address_data[0] == socket.AF_INET6): ips.append(ip_address_data[4][0])
 					#

@@ -154,8 +154,8 @@ Returns a connection to the HTTP server.
 		Http._configure(self, url)
 
 		self.ssdp_host = (self.host[1:-1] if (":" in self.host) else self.host)
-		address_paths = socket.getaddrinfo(self.ssdp_host, self.port, socket.AF_UNSPEC, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-		if (len(address_paths) == 1): self.ssdp_family = address_paths[0][0]
+		address_list = socket.getaddrinfo(self.ssdp_host, self.port, socket.AF_UNSPEC, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+		if (len(address_list) == 1): self.ssdp_family = address_list[0][0]
 	#
 
 	def _get_connection(self):

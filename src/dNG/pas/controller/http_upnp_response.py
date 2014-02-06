@@ -134,7 +134,7 @@ Returns a UPNP response for the given URN and SOAP action.
 			xml_parser = XmlWriter(node_type = OrderedDict)
 
 			client = Client.load_user_agent(self.client_user_agent)
-			if (client == None or (not client.get("upnp_xml_cdata_encoded", False))): xml_parser.define_cdata_encoding(False)
+			if (not client.get("upnp_xml_cdata_encoded", False)): xml_parser.define_cdata_encoding(False)
 
 			xml_parser.node_add("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "s:encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
 			xml_parser.node_add("s:Envelope s:Header")

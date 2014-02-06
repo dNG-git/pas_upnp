@@ -42,11 +42,11 @@ import re
 from dNG.data.xml_writer import XmlWriter
 from dNG.data.rfc.http import Http
 from dNG.pas.data.binary import Binary
-from dNG.pas.data.traced_exception import TracedException
 from dNG.pas.data.settings import Settings
 from dNG.pas.data.logging.log_line import LogLine
 from dNG.pas.module.named_loader import NamedLoader
 from dNG.pas.runtime.thread_lock import ThreadLock
+from dNG.pas.runtime.value_exception import ValueException
 from .service import Service
 
 class Device(object):
@@ -164,7 +164,7 @@ Add the given device to the list of embedded devices.
 :since: v0.1.00
 		"""
 
-		if (not isinstance(device, Device)): raise TracedException("Given object is not a supported UPnP device")
+		if (not isinstance(device, Device)): raise ValueException("Given object is not a supported UPnP device")
 		self.embedded_devices[device.get_udn().lower()] = device
 	#
 
@@ -218,7 +218,7 @@ Remove the given device from the list of embedded devices.
 :since: v0.1.00
 		"""
 
-		if (not isinstance(device, Device)): raise TracedException("Given object is not a supported UPnP device")
+		if (not isinstance(device, Device)): raise ValueException("Given object is not a supported UPnP device")
 
 		device = device.get_udn().lower()
 		if (device in self.embedded_devices): del(self.embedded_devices[device])
@@ -366,7 +366,7 @@ Add the given service to the list of services.
 :since: v0.1.00
 		"""
 
-		if (not isinstance(service, Service)): raise TracedException("Given object is not a supported UPnP service")
+		if (not isinstance(service, Service)): raise ValueException("Given object is not a supported UPnP service")
 		self.services[service.get_service_id().lower()] = service
 	#
 
@@ -461,7 +461,7 @@ Remove the given service from the list of services.
 :since: v0.1.00
 		"""
 
-		if (not isinstance(service, Service)): raise TracedException("Given object is not a supported UPnP service")
+		if (not isinstance(service, Service)): raise ValueException("Given object is not a supported UPnP service")
 
 		service = service.get_service_id().lower()
 		if (service in self.services): del(self.services[service])

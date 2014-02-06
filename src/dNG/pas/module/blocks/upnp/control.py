@@ -64,16 +64,16 @@ Action for "request"
 :since: v0.1.00
 		"""
 
-		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_error_400")
+		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
 		upnp_service = self.request.get_upnp_service()
-		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_error_400", 401)
+		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_core_400", 401)
 
 		Hooks.call("dNG.pas.http.l10n.upnp.Control.init")
 
 		soap_request = self.request.get_soap_request()
 		upnp_service.client_set_user_agent(self.request.get_header("User-Agent"))
 
-		if (soap_request == None): raise UpnpException("pas_http_error_500")
+		if (soap_request == None): raise UpnpException("pas_http_core_500")
 		self.response.handle_result(soap_request['urn'], soap_request['action'], upnp_service.handle_soap_call(soap_request['action'], soap_request['arguments']))
 	#
 #

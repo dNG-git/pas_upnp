@@ -83,7 +83,7 @@ XML parser containing replacements
 		"""
 	#
 
-	def _parser_change(self, tag_definition, data, tag_position, data_position, tag_end_position):
+	def _match_change(self, tag_definition, data, tag_position, data_position, tag_end_position):
 	#
 		"""
 Change data according to the matched tag.
@@ -100,7 +100,7 @@ Change data according to the matched tag.
 
 		_return = data[:tag_position]
 
-		data_closed = data[self._parser_tag_find_end_position(data, tag_end_position):]
+		data_closed = data[self._find_tag_end_position(data, tag_end_position):]
 
 		if (tag_definition['tag'] == "if"):
 		#
@@ -127,7 +127,7 @@ Change data according to the matched tag.
 		return _return
 	#
 
-	def _parser_check(self, data):
+	def _match_check(self, data):
 	#
 		"""
 Check if a possible tag match is a false positive.
@@ -175,7 +175,8 @@ Renders content with the given template.
 :param xml_parser: XML parser instance
 :param xml_node_path: XML base path
 
-:since: v0.1.00
+:return: (str) Rendered content
+:since:  v0.1.00
 		"""
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.render(template_data, xml_parser, {1})- (#echo(__LINE__)#)".format(self, xml_node_path))
@@ -183,7 +184,7 @@ Renders content with the given template.
 		self.xml_node_path = xml_node_path
 		self.xml_parser = xml_parser
 
-		return self._parser(template_data)
+		return self._parse(template_data)
 	#
 #
 

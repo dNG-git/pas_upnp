@@ -46,8 +46,8 @@ except ImportError: from urlparse import urljoin
 from dNG.data.xml_writer import XmlWriter
 from dNG.data.rfc.http import Http
 from dNG.pas.data.binary import Binary
-from dNG.pas.data.traced_exception import TracedException
 from dNG.pas.module.named_loader import NamedLoader
+from dNG.pas.runtime.value_exception import ValueException
 from .service_proxy import ServiceProxy
 from .variable import Variable
 
@@ -152,7 +152,7 @@ Returns the UPnP variable definition.
 :since:  v0.1.00
 		"""
 
-		if (self.variables == None or name not in self.variables): raise ValueError("'{0}' is not a defined SCPD variable".format(name))
+		if (self.variables == None or name not in self.variables): raise ValueException("'{0}' is not a defined SCPD variable".format(name))
 		return self.variables[name]
 	#
 
@@ -177,7 +177,7 @@ Return a callable proxy object for UPnP actions and variables.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Service.get_proxy()- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_proxy()- (#echo(__LINE__)#)".format(self))
 
 		if (self.actions == None and self.variables == None): self.init_scpd()
 		return ServiceProxy(self, self.actions, self.variables)
@@ -467,7 +467,7 @@ Initialize the list of service actions from a UPnP SCPD description.
 					name = xml_parser.node_get_value("{0} scpd:name".format(xml_base_path))
 					_type = Variable.get_native_type_from_xml(xml_parser, xml_parser.node_get("{0} scpd:dataType".format(xml_base_path)))
 
-					if (_type == False): raise TracedException("Invalid dataType definition found")
+					if (_type == False): raise ValueException("Invalid dataType definition found")
 					self.variables[name] = { "is_sending_events": send_events, "is_multicasting_events": multicast_events, "type": _type }
 
 					value = xml_parser.node_get_value("{0} scpd:defaultValue".format(xml_base_path))
@@ -478,7 +478,7 @@ Initialize the list of service actions from a UPnP SCPD description.
 					if (allowed_values_count > 0):
 					#
 						self.variables[name]['values_allowed'] = [ ]
-						if (_type != str): raise TracedException("SCPD can only contain allowedValue elements if the dataType is set to 'string'")
+						if (_type != str): raise ValueException("SCPD can only contain allowedValue elements if the dataType is set to 'string'")
 
 						for position_allowed in range(0, allowed_values_count):
 						#
@@ -491,7 +491,7 @@ Initialize the list of service actions from a UPnP SCPD description.
 
 					if (xml_node != None):
 					#
-						if (allowed_values_count > 0): raise TracedException("SCPD can only contain one of allowedValueList and allowedValueRange")
+						if (allowed_values_count > 0): raise ValueException("SCPD can only contain one of allowedValueList and allowedValueRange")
 
 						self.variables[name]['values_min'] = xml_parser.node_get_value("{0} scpd:allowedValueRange scpd:minimum".format(xml_base_path))
 						self.variables[name]['values_max'] = xml_parser.node_get_value("{0} scpd:allowedValueRange scpd:maximum".format(xml_base_path))
@@ -533,7 +533,7 @@ Initialize the list of service actions from a UPnP SCPD description.
 
 							value = xml_parser.node_get_value("{0} scpd:relatedStateVariable".format(xml_base_path))
 
-							if (value not in self.variables): raise TracedException("SCPD can only contain arguments defined as an stateVariable")
+							if (value not in self.variables): raise ValueException("SCPD can only contain arguments defined as an stateVariable")
 
 							if (argument_type == "return_variable"): self.actions[name]['return_variable'] = { "name": argument_name, "variable": value }
 							else: self.actions[name][argument_type].append({ "name": argument_name, "variable": value })
@@ -588,7 +588,7 @@ device.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Service.request_soap_action({0}, arguments)- (#echo(__LINE__)#)".format(action))
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.request_soap_action({1}, arguments)- (#echo(__LINE__)#)".format(self, action))
 
 		_return = False
 

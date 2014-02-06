@@ -38,6 +38,7 @@ NOTE_END //n"""
 
 from copy import copy
 
+from dNG.pas.runtime.value_exception import ValueException
 from .variable import Variable
 
 class ServiceProxy(object):
@@ -117,7 +118,7 @@ class tree for self).
 				#
 					if ("value" not in argument):
 					#
-						if ("value" not in argument['variable']): raise UnboundLocalError("'{0}' is not defined and has no default value".format(argument['name']))
+						if ("value" not in argument['variable']): raise ValueException("'{0}' is not defined and has no default value".format(argument['name']))
 						argument['value'] = Variable.get_upnp_value(argument['variable'], argument['variable']['value'])
 					#
 				#
@@ -128,7 +129,7 @@ class tree for self).
 			return proxymethod
 		#
 		elif (self.variables != None and name in self.variables): return Variable(self.service, name, self.variables[name])
-		else: raise AttributeError("UPnP SCPD does not contain a definition for '{0}'".format(name))
+		else: raise ValueException("UPnP SCPD does not contain a definition for '{0}'".format(name))
 	#
 #
 

@@ -59,6 +59,27 @@ This class holds static methods to handle UPnP client settings.
              GNU General Public License 2
 	"""
 
+	def _load_user_agent_file(self, user_agent):
+	#
+		"""
+Updates the client with the data loaded from the settings file for the given
+user agent.
+
+:param user_agent: HTTP or SSDP user agent value
+
+:since: v0.1.00
+		"""
+
+		if (type(user_agent) == str):
+		#
+			identifier = Client.get_user_agent_identifiers(user_agent)
+			LogLine.debug("pas.upnp client requested user agent with identifier '{0}'".format(identifier))
+
+			settings = Client.get_settings_file("{0}/upnp/user_agents/{1}.json".format(Settings.get("path_data"), identifier))
+			if (type(settings) == dict): self.update(settings)
+		#
+	#
+
 	@staticmethod
 	def get_settings_file(file_pathname):
 	#
@@ -118,29 +139,19 @@ Return a UPnP client based on the given HTTP or SSDP user agent value.
 
 :param user_agent: HTTP or SSDP user agent value
 
-:return: (Client) UPnP client; None on error
+:return: (Client) UPnP client; Empty one if unknown
 :since:  v0.1.00
 		"""
 
+		_return = Client()
+
 		if (type(user_agent) == str):
 		#
-			_return = Hooks.call("dNG.pas.upnp.Client.userAgentGet", user_agent = user_agent)
+			external_client = Hooks.call("dNG.pas.upnp.Client.userAgentGet", user_agent = user_agent)
 
-			if (_return == None):
-			#
-				identifier = Client.get_user_agent_identifiers(user_agent)
-				LogLine.debug("pas.upnp client requested user agent with identifier '{0}'".format(identifier))
-
-				settings = Client.get_settings_file("{0}/upnp/user_agents/{1}.json".format(Settings.get("path_data"), identifier))
-
-				if (type(settings) == dict):
-				#
-					_return = Client()
-					_return.update(settings)
-				#
-			#
+			if (external_client == None): _return._load_user_agent_file(user_agent)
+			else: _return = external_client
 		#
-		else: _return = None
 
 		return _return
 	#

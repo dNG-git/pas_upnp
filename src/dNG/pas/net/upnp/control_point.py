@@ -42,6 +42,7 @@ from os import uname
 from random import randint
 from random import uniform as randfloat
 from time import time
+from threading import Thread
 from weakref import ref
 import re
 import socket
@@ -55,7 +56,6 @@ from dNG.pas.controller.http_upnp_request import HttpUpnpRequest
 from dNG.pas.controller.predefined_http_request import PredefinedHttpRequest
 from dNG.pas.data.binary import Binary
 from dNG.pas.data.settings import Settings
-from dNG.pas.data.traced_exception import TracedException
 from dNG.pas.data.http.virtual_config import VirtualConfig
 from dNG.pas.data.text.l10n import L10n
 from dNG.pas.data.upnp.device import Device
@@ -63,6 +63,7 @@ from dNG.pas.module.named_loader import NamedLoader
 from dNG.pas.net.upnp.ssdp_message import SsdpMessage
 from dNG.pas.net.upnp.ssdp_response import SsdpResponse
 from dNG.pas.plugins.hooks import Hooks
+from dNG.pas.runtime.value_exception import ValueException
 from dNG.pas.tasks.abstract_timed import AbstractTimed
 from .gena import Gena
 from .ssdp_listener_ipv4_multicast import SsdpListenerIpv4Multicast
@@ -150,7 +151,7 @@ UPnP GENA manager
 		"""
 HTTP Accept-Language value
 		"""
-		self.http_language = (L10n.get("lang_iso") if (L10n.is_defined("lang_iso")) else None)
+		self.http_language = (L10n.get("lang_rfc_region") if (L10n.is_defined("lang_rfc_region")) else None)
 		"""
 HTTP Accept-Language value
 		"""
@@ -762,8 +763,8 @@ Return the raw XML UPnP description for the given identifier.
 		if (client_host == None): is_allowed = True
 		else:
 		#
-			ip_address_paths = socket.getaddrinfo(client_host, http_wsgi_request.get_client_port(), socket.AF_UNSPEC, 0, socket.IPPROTO_TCP)
-			is_allowed = (False if (len(ip_address_paths) < 1) else self.is_ip_allowed(ip_address_paths[0][4][0]))
+			ip_address_list = socket.getaddrinfo(client_host, http_wsgi_request.get_client_port(), socket.AF_UNSPEC, 0, socket.IPPROTO_TCP)
+			is_allowed = (False if (len(ip_address_list) < 1) else self.is_ip_allowed(ip_address_list[0][4][0]))
 		#
 
 		if (is_allowed):
@@ -842,7 +843,7 @@ Returns true if the given IP is a allowed to send UPnP control requests.
 				#
 					if ("ips" in self.usns[usn] and ip in self.usns[usn]['ips']):
 					#
-						_return= True
+						_return = True
 						break
 					#
 				#
@@ -852,7 +853,10 @@ Returns true if the given IP is a allowed to send UPnP control requests.
 		#
 			for network_prefix in allowed_networks:
 			#
-				if (":" in network_prefix and network_prefix[-2:] != "::"): network_prefix += "::"
+				if (":" in network_prefix):
+				#
+					if (network_prefix[-2:] != "::"): network_prefix += "::"
+				#
 				elif (network_prefix[-1:] != "."): network_prefix += "."
 
 				if (ip.startswith(network_prefix)):
@@ -884,23 +888,22 @@ Starts all multicast listeners based on the IP address given.
 			#
 				if (":" in ip):
 				#
-					self.listeners_multicast[ip] = [
-						SsdpListenerIpv6Multicast(ip),
-						SsdpListenerIpv6Multicast(ip, "ff04::c"),
-						SsdpListenerIpv6Multicast(ip, "ff05::c"),
-						SsdpListenerIpv6Multicast(ip, "ff08::c"),
-						SsdpListenerIpv6Multicast(ip, "ff0e::c")
-					]
+					listener = SsdpListenerIpv6Multicast(ip)
+					listener.add_address("ff04::c")
+					listener.add_address("ff05::c")
+					listener.add_address("ff08::c")
+					listener.add_address("ff0e::c")
 
+					self.listeners_multicast[ip] = listener
 					self.listeners_multicast_ipv6 += 1
 				#
 				else:
 				#
-					self.listeners_multicast[ip] = [ SsdpListenerIpv4Multicast(ip) ]
+					self.listeners_multicast[ip] = SsdpListenerIpv4Multicast(ip)
 					self.listeners_multicast_ipv4 += 1
 				#
 
-				for listener in self.listeners_multicast[ip]: listener.start()
+				self.listeners_multicast[ip].start()
 			#
 		#
 	#
@@ -921,7 +924,7 @@ Stops all multicast listeners based on the IP address given.
 		#
 			if (ip in self.listeners_multicast):
 			#
-				for listener in self.listeners_multicast[ip]: listener.stop()
+				self.listeners_multicast[ip].stop()
 				del(self.listeners_multicast[ip])
 
 				if (":" in ip): self.listeners_multicast_ipv6 -= 1
@@ -1081,6 +1084,46 @@ Return a UPnP rootdevice for the given identifier.
 		return _return
 	#
 
+	def rootdevice_get_for_host(self, host):
+	#
+		"""
+Return a UPnP rootdevice for the given identifier.
+
+:param identifier: Parsed UPnP identifier
+
+:return: (dict) Parsed UPnP identifier; False on error
+:since:  v0.1.00
+		"""
+
+		_return = None
+
+		ip_address_list = socket.getaddrinfo(host, None, socket.AF_UNSPEC, 0, socket.IPPROTO_TCP)
+
+		for ip_address_data in ip_address_list:
+		#
+			ip = ip_address_data[4][0]
+
+			if (self.is_ip_allowed(ip)):
+			#
+				with ControlPoint.lock:
+				#
+					for usn in self.usns:
+					#
+						if ("ips" in self.usns[usn] and ip in self.usns[usn]['ips']):
+						#
+							_return = self.rootdevice_get(self, self.usns[usn])
+							break
+						#
+					#
+				#
+			#
+
+			if (_return != None): break
+		#
+
+		return _return
+	#
+
 	def rootdevice_remove(self, usn):
 	#
 		"""
@@ -1123,12 +1166,16 @@ Worker loop
 			#
 				if (self.log_handler != None): self.log_handler.debug("pas.upnp.ControlPoint runs task type '{0}'".format(task['type']))
 
-				if (task['type'] == "announce_device"): self._announce(ControlPoint.ANNOUNCE_DEVICE, task['usn'], task['location'])
-				elif (task['type'] == "announce_search_result"): self._announce(ControlPoint.ANNOUNCE_SEARCH_RESULT, task['usn'], task['location'], task)
+				thread = None
+
+				if (task['type'] == "announce_device"): thread = Thread(target = self._announce, args = ( ControlPoint.ANNOUNCE_DEVICE, task['usn'], task['location'] ))
+				elif (task['type'] == "announce_search_result"): thread = Thread(target = self._announce, args = ( ControlPoint.ANNOUNCE_SEARCH_RESULT, task['usn'], task['location'], task))
 				elif (task['type'] == "delete"): self._delete(task['identifier'])
-				elif (task['type'] == "read_upnp_descs"): self._read_upnp_descs()
-				elif (task['type'] == "reannounce_device"): self._announce(ControlPoint.REANNOUNCE_DEVICE, task['usn'], task['location'])
+				elif (task['type'] == "read_upnp_descs"): thread = Thread(target = self._read_upnp_descs)
+				elif (task['type'] == "reannounce_device"): thread = Thread(target = self._announce, args = ( ControlPoint.REANNOUNCE_DEVICE, task['usn'], task['location'] ))
 				elif (task['type'] == "rootdevice_remove"): self.rootdevice_remove(task['usn'])
+
+				if (thread != None): thread.start()
 			#
 			except Exception as handled_exception:
 			#
@@ -1266,7 +1313,9 @@ Searches for hosted devices matching the given UPnP search target.
 
 			if (len(results) > 0):
 			#
-				wait_seconds = randfloat(0, (source_wait_timeout if (source_wait_timeout < 10) else 10) / len(results))
+				wait_seconds = 0
+				if (source_wait_timeout > 2): wait_seconds = randfloat(0, (source_wait_timeout if (source_wait_timeout < 10) else 10) / len(results))
+
 				for result in results: self._task_add(wait_seconds, "announce_search_result", usn = result['usn'], location = result['location'], search_target = result['search_target'], target_host = ("[{0}]".format(source_data[0]) if (":" in source_data[0]) else source_data[0]), target_port = source_data[1])
 			#
 		#
@@ -1291,7 +1340,7 @@ Starts all UPnP listeners and announces itself.
 		self.http_host = (Hooks.call("dNG.pas.http.Server.getHost") if (preferred_host == None) else preferred_host)
 		self.http_port = (Hooks.call("dNG.pas.http.Server.getPort") if (preferred_port == None) else preferred_port)
 
-		if (self.http_host == None or self.http_port == None): raise TracedException("HTTP server must provide the hostname and port for the UPnP ControlPoint")
+		if (self.http_host == None or self.http_port == None): raise ValueException("HTTP server must provide the hostname and port for the UPnP ControlPoint")
 
 		Hooks.load("upnp")
 
@@ -1308,11 +1357,14 @@ Starts all UPnP listeners and announces itself.
 
 				if (Settings.get("pas_upnp_bind_network_detect_addresses", True)):
 				#
-					ip_address_paths = socket.getaddrinfo(self.http_host, None, socket.AF_UNSPEC, 0, socket.IPPROTO_UDP)
+					ip_address_list = socket.getaddrinfo(None, self.http_port, socket.AF_UNSPEC, 0, socket.IPPROTO_UDP)
 
-					for ip_address_data in ip_address_paths:
+					for ip_address_data in ip_address_list:
 					#
-						if (ip_address_data[0] == socket.AF_INET or (socket.has_ipv6 and ip_address_data[0])): ip_addresses.append(ip_address_data[4][0])
+						if (
+							ip_address_data[0] == socket.AF_INET or
+							(socket.has_ipv6 and ip_address_data[0] == socket.AF_INET6)
+						): ip_addresses.append(ip_address_data[4][0])
 					#
 
 					if (self.log_handler != None and len(ip_addresses) < 1): self.log_handler.warning("pas.upnp.ControlPoint was unable to find available networks")
@@ -1322,9 +1374,13 @@ Starts all UPnP listeners and announces itself.
 			for ip_address in ip_addresses:
 			#
 				if (ip_address[:4] != "127." and ip_address != "::1"):
-				#
-					self._listeners_multicast_add(ip_address)
-					listener_addresses += 1
+				# Accept user defined or discovered list of IP addresses to listen on to fail on startup
+					try:
+					#
+						self._listeners_multicast_add(ip_address)
+						listener_addresses += 1
+					#
+					except Exception: pass
 				#
 			#
 
@@ -1494,13 +1550,13 @@ Update the list with the given parsed UPnP identifier.
 		usn_data.update({ "http_version": http_version, "ssdpname": servername, "unicast_port": unicast_port, "url_base": url_base, "url_desc": url })
 		url_elements = urlsplit(url_base)
 
-		ip_address_paths = socket.getaddrinfo(url_elements.hostname, url_elements.port, socket.AF_UNSPEC, 0, socket.IPPROTO_TCP)
+		ip_address_list = socket.getaddrinfo(url_elements.hostname, url_elements.port, socket.AF_UNSPEC, 0, socket.IPPROTO_TCP)
 
-		if (len(ip_address_paths) > 0):
+		if (len(ip_address_list) > 0):
 		#
 			ips = [ ]
 
-			for ip_address_data in ip_address_paths:
+			for ip_address_data in ip_address_list:
 			#
 				if (ip_address_data[0] == socket.AF_INET or ip_address_data[0] == socket.AF_INET6): ips.append(ip_address_data[4][0])
 			#

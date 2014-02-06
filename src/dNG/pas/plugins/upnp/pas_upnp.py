@@ -54,18 +54,15 @@ Called for "dNG.pas.upnp.ControlPoint.deviceAdd"
 	_return = last_return
 
 	user_agent = (params['identifier']['ssdpname'] if ("ssdpname" in params['identifier']) else None)
-	client = Client.load_user_agent(user_agent)
+	ssdp_quirks = Client.load_user_agent(user_agent).get("upnp_quirks_ssdp")
 
-	if (client != None):
+	if (type(ssdp_quirks) == list):
 	#
-		ssdp_quirks = client.get("upnp_quirks_ssdp")
-
-		if (type(ssdp_quirks) == list):
+		for mode in ssdp_quirks:
 		#
-			for mode in ssdp_quirks: AbstractSsdp.quirks_mode_add(mode)
+			AbstractSsdp.quirks_mode_add(mode)
+			_return = True
 		#
-
-		_return = True
 	#
 
 	return _return

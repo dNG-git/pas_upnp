@@ -36,7 +36,7 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from dNG.pas.data.text.url import Url
+from dNG.pas.data.text.link import Link
 from dNG.pas.data.upnp.client import Client
 from dNG.pas.data.upnp.upnp_exception import UpnpException
 from dNG.pas.data.upnp.service import Service
@@ -234,7 +234,7 @@ Returns the UPnP SCPD.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Service.get_xml()- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_xml()- (#echo(__LINE__)#)".format(self))
 
 		xml_parser = self._get_xml(self._init_xml_parser())
 		return xml_parser.cache_export(True)
@@ -251,10 +251,10 @@ Returns the UPnP SCPD.
 :since:  v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Service.get_xml()- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_xml()- (#echo(__LINE__)#)".format(self))
 
 		client = Client.load_user_agent(self.client_user_agent)
-		if (client != None and (not client.get("upnp_xml_cdata_encoded", False))): xml_writer.define_cdata_encoding(False)
+		if (not client.get("upnp_xml_cdata_encoded", False)): xml_writer.define_cdata_encoding(False)
 
 		attributes = { "xmlns": "urn:schemas-upnp-org:service-1-0" }
 		if (self.configid != None): attributes['configId'] = self.configid
@@ -362,8 +362,8 @@ Executes the given SOAP action.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Service.handle_soap_call({0}, arguments_given)- (#echo(__LINE__)#)".format(action))
-		_return = UpnpException("pas_http_error_500")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.handle_soap_call({1}, arguments_given)- (#echo(__LINE__)#)".format(self, action))
+		_return = UpnpException("pas_http_core_500")
 
 		action_method = AbstractService.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", action).lower()
 		arguments = { }
@@ -378,7 +378,7 @@ Executes the given SOAP action.
 				if (argument['variable'] not in self.variables):
 				#
 					is_valid = False
-					_return = UpnpException("pas_http_error_500")
+					_return = UpnpException("pas_http_core_500")
 
 					break
 				#
@@ -387,7 +387,7 @@ Executes the given SOAP action.
 				else:
 				#
 					is_valid = False
-					_return = UpnpException("pas_http_error_400", 402)
+					_return = UpnpException("pas_http_core_400", 402)
 
 					break
 				#
@@ -399,7 +399,7 @@ Executes the given SOAP action.
 				#
 			#
 		#
-		else: _return = UpnpException("pas_http_error_400", 401)
+		else: _return = UpnpException("pas_http_core_400", 401)
 
 		result = None
 
@@ -410,7 +410,7 @@ Executes the given SOAP action.
 		except Exception as handled_exception:
 		#
 			if (self.log_handler != None): self.log_handler.error(handled_exception)
-			_return = UpnpException("pas_http_error_500")
+			_return = UpnpException("pas_http_core_500")
 		#
 
 		if (isinstance(result, Exception)): _return = result
@@ -421,7 +421,7 @@ Executes the given SOAP action.
 			_return = [ ]
 			_type = type(result)
 
-			if (_type != dict and len(return_values) != 1): _return = UpnpException("pas_http_error_500")
+			if (_type != dict and len(return_values) != 1): _return = UpnpException("pas_http_core_500")
 			else:
 			#
 				for return_value in return_values:
@@ -433,7 +433,7 @@ Executes the given SOAP action.
 
 					if (return_value['variable'] not in self.variables or result_value == None):
 					#
-						_return = UpnpException("pas_http_error_500")
+						_return = UpnpException("pas_http_core_500")
 						break
 					#
 					else: _return.append({ "name": return_value['name'], "value": Variable.get_upnp_value(self.variables[return_value['variable']], result_value) })
@@ -459,7 +459,7 @@ Initialize a host service.
 		self.variables = { }
 		self.udn = device.get_udn()
 
-		self.url_base = "{0}{1}/".format(device.get_url_base(), Url.escape(service_id))
+		self.url_base = "{0}{1}/".format(device.get_url_base(), Link.query_param_encode(service_id))
 		self.url_control = "{0}control".format(self.url_base)
 		self.url_event_control = "{0}eventsub".format(self.url_base)
 		self.url_scpd = "{0}xml".format(self.url_base)
@@ -490,26 +490,6 @@ Sets the UPnP configId value.
 		"""
 
 		self.configid = configid
-	#
-
-	@staticmethod
-	def _get_unique_list(_list):
-	#
-		"""
-Returns a list where each entry is unique.
-
-:return: (list) Unique list of entries given
-:since:  v0.1.01
-		"""
-
-		_return = [ ]
-
-		for value in _list:
-		#
-			if (value not in _return): _return.append(value)
-		#
-
-		return _return
 	#
 #
 

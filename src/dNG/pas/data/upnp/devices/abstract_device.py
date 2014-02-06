@@ -43,7 +43,7 @@ from uuid import NAMESPACE_URL
 from uuid import uuid3 as uuid
 
 from dNG.pas.data.logging.log_line import LogLine
-from dNG.pas.data.text.url import Url
+from dNG.pas.data.text.link import Link
 from dNG.pas.data.upnp.client import Client
 from dNG.pas.data.upnp.device import Device
 from dNG.pas.data.upnp.services.abstract_service import AbstractService
@@ -214,7 +214,7 @@ Returns the UPnP device description for encoding.
 		"""
 
 		client = Client.load_user_agent(self.client_user_agent)
-		if (client != None and (not client.get("upnp_xml_cdata_encoded", False))): xml_writer.define_cdata_encoding(False)
+		if (not client.get("upnp_xml_cdata_encoded", False)): xml_writer.define_cdata_encoding(False)
 
 		attributes = { "xmlns": "urn:schemas-upnp-org:device-1-0" }
 		if (self.configid != None): attributes['configId'] = self.configid
@@ -333,7 +333,7 @@ Initialize a host device.
 		if (self.name == None): self.name = "{0} {1}".format(gethostname(), self.type)
 		self.udn = (str(uuid(NAMESPACE_URL, "upnp://{0}:{1:d}/{2}".format(control_point.get_http_host(), control_point.get_http_port(), hexlify(urandom(10))))) if (udn == None) else udn)
 
-		url = "http://{0}:{1:d}/upnp/{2}".format(control_point.get_http_host(), control_point.get_http_port(), Url.escape(self.udn))
+		url = "http://{0}:{1:d}/upnp/{2}".format(control_point.get_http_host(), control_point.get_http_port(), Link.query_param_encode(self.udn))
 		self.desc_url = "{0}/desc".format(url)
 		self.url_base = "{0}/".format(url)
 
