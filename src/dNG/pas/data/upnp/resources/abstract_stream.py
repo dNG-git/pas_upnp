@@ -57,7 +57,7 @@ metadata from the corresponding parent.
 	def __init__(self):
 	#
 		"""
-Constructor __init__(BlockStream)
+Constructor __init__(AbstractStream)
 
 :since: v0.1.00
 		"""
@@ -68,15 +68,16 @@ Constructor __init__(BlockStream)
 		"""
 Dict of UPnP resource metadata
 		"""
+
+		self.supported_features['metadata'] = True
 	#
 
-	def metadata_add_didl_xml_node(self, xml_writer, xml_node_path, parent_id = None):
+	def metadata_add_didl_xml_node(self, xml_resource, xml_node_path, parent_id = None):
 	#
 		"""
-Uses the given XML writer instance to add the DIDL metadata of this UPnP
-resource.
+Uses the given XML resource to add the DIDL metadata of this UPnP resource.
 
-:param xml_writer: XML writer instance
+:param xml_resource: XML resource
 :param xml_base_path: UPnP resource XML base path (e.g. "DIDL-Lite
                       item")
 
@@ -105,7 +106,7 @@ resource.
 				url = Binary.str(self.content_get(0))
 				value = (url if (type(url) == str) else "")
 
-				xml_writer.node_add(xml_node_path, value, attributes)
+				xml_resource.node_add(xml_node_path, value, attributes)
 			#
 		#
 	#
@@ -119,18 +120,6 @@ Set metadata used for "metadata_add_didl_xml_node()".
 		"""
 
 		self.metadata.update(kwargs)
-	#
-
-	def supports_metadata(self):
-	#
-		"""
-Returns false if metadata are not supported.
-
-:return: (bool) True if setting metadata is supported
-:since:  v0.1.00
-		"""
-
-		return True
 	#
 #
 

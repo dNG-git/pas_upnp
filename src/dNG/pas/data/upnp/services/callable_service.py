@@ -36,7 +36,7 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
-from dNG.data.json_parser import JsonParser
+from dNG.data.json_resource import JsonResource
 from dNG.pas.plugins.hooks import Hooks
 from .abstract_service import AbstractService
 
@@ -63,11 +63,13 @@ Calls the given hook and returns the result.
 :since:  v0.1.01
 		"""
 
-		json_parser = JsonParser()
-		arguments = ({ } if (json_arguments.strip() == "") else json_parser.json2data(json_arguments))
+		# pylint: disable=star-args
+
+		json_resource = JsonResource()
+		arguments = ({ } if (json_arguments.strip() == "") else json_resource.json_to_data(json_arguments))
 
 		result = Hooks.call(hook, **arguments)
-		return json_parser.data2json(result)
+		return json_resource.data_to_json(result)
 	#
 
 	def init_service(self, device, service_id = None, configid = None):

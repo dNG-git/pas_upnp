@@ -62,6 +62,8 @@ for UDP.
              GNU General Public License 2
 	"""
 
+	# pylint: disable=arguments-differ
+
 	QUIRK_OS_LINUX = 1
 	"""
 Quirk mode replaces the OS string from the SERVER header with "Linux".
@@ -295,6 +297,8 @@ Send the given data to the defined recipient.
 :return: (bool) Request result
 :since:  v0.1.00
 		"""
+
+		# pylint: disable=broad-except
 
 		_return = True
 

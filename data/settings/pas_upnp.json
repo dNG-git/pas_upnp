@@ -2,6 +2,12 @@
  "pas_upnp_client_replacement_list": {
   "AVM UPnP": "AVM_UPnP",
   "Reciva UPnP": "Reciva_UPnP",
+  "SEC_HHP_[BD]D": "SEC_HHP_BD_D",
+  "SEC_HHP_[BD]E": "SEC_HHP_BD_E",
+  "SEC_HHP_[HT]D": "SEC_HHP_HT_D",
+  "SEC_HHP_[TV]P": "SEC_HHP_TV_P",
+  "SEC_HHP_[TV]U": "SEC_HHP_TV_U",
+  "SEC_HHP_ Family TV": "SEC_HHP_Family_TV",
   "Teleal-Cling": "Teleal_Cling",
   "TwonkyMedia-NMC": "TwonkyMedia_NMC/0"
  }

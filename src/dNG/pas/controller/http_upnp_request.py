@@ -38,10 +38,11 @@ NOTE_END //n"""
 
 from base64 import b64decode
 
-from dNG.data.xml_writer import XmlWriter
+from dNG.data.xml_resource import XmlResource
 from dNG.pas.data.binary import Binary
 from dNG.pas.data.http.request_body import RequestBody
-from dNG.pas.data.http.request_headers_mixin import RequestHeadersMixin
+from dNG.pas.data.upnp.client import Client
+from dNG.pas.plugins.hooks import Hooks
 from .abstract_inner_http_request import AbstractInnerHttpRequest
 
 class HttpUpnpRequest(AbstractInnerHttpRequest):
@@ -68,7 +69,6 @@ Constructor __init__(HttpUpnpRequest)
 		"""
 
 		AbstractInnerHttpRequest.__init__(self)
-		RequestHeadersMixin.__init__(self)
 
 		self.http_request = None
 		"""
@@ -151,14 +151,14 @@ Parses the SOAP request to identify the contained request.
 			post_data = request_body.get(timeout)
 
 			xml_data = Binary.str(post_data.read())
-			xml_parser = XmlWriter()
-			xml_parser.ns_register("soap", "http://schemas.xmlsoap.org/soap/envelope/")
-			xml_parser.ns_register("upnpsns", urn)
+			xml_resource = XmlResource()
+			xml_resource.ns_register("soap", "http://schemas.xmlsoap.org/soap/envelope/")
+			xml_resource.ns_register("upnpsns", urn)
 
-			if (xml_parser.xml2dict(xml_data) != None):
+			if (xml_resource.xml_to_dict(xml_data) != None):
 			#
 				soap_arguments = { }
-				xml_node = xml_parser.node_get("soap:Envelope soap:Body upnpsns:{0}".format(soap_action))
+				xml_node = xml_resource.node_get("soap:Envelope soap:Body upnpsns:{0}".format(soap_action))
 
 				if (xml_node != None):
 				#
@@ -207,7 +207,19 @@ Sets the requested action.
 				self.service = "stream"
 				self.action = "source"
 
-				self.set_dsd("src", Binary.str(b64decode(Binary.utf8_bytes(request_data[1]))))
+				stream_url = None
+				user_agent = self.http_request.get_header("User-Agent")
+
+				client = Client.load_user_agent(user_agent)
+
+				if (client.get("upnp_stream_url_use_filter", False)):
+				#
+					stream_url_filtered = Hooks.call("dNG.pas.controller.HttpUpnpRequest.filter_stream_url", encoded_url = request_data[1], user_agent = user_agent)
+					if (stream_url_filtered != None): stream_url = stream_url_filtered
+				#
+
+				if (stream_url == None): stream_url = Binary.str(b64decode(Binary.utf8_bytes(request_data[1])))
+				self.set_dsd("src", stream_url)
 			#
 			elif (request_data[1] == "desc"):
 			#
@@ -230,13 +242,13 @@ Sets the requested action.
 			#
 				self.service = "control"
 				self.action = "request"
-				self.output_format = "http_upnp"
+				self.output_handler = "http_upnp"
 			#
 			elif (request_data[2] == "eventsub"):
 			#
 				self.service = "events"
 				self.action = http_request.get_type().lower()
-				self.output_format = "http_upnp"
+				self.output_handler = "http_upnp"
 			#
 			else:
 			#

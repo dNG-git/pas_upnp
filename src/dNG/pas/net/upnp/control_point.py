@@ -36,6 +36,8 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
+# pylint: disable=import-error,no-name-in-module
+
 from copy import copy
 from locale import getlocale
 from os import uname
@@ -58,6 +60,7 @@ from dNG.pas.data.binary import Binary
 from dNG.pas.data.settings import Settings
 from dNG.pas.data.http.virtual_config import VirtualConfig
 from dNG.pas.data.text.l10n import L10n
+from dNG.pas.data.upnp.client import Client
 from dNG.pas.data.upnp.device import Device
 from dNG.pas.module.named_loader import NamedLoader
 from dNG.pas.net.upnp.ssdp_message import SsdpMessage
@@ -82,6 +85,8 @@ The UPnP ControlPoint.
 :license:    http://www.direct-netware.de/redirect.py?licenses;gpl
              GNU General Public License 2
 	"""
+
+	# pylint: disable=unused-argument
 
 	ANNOUNCE_DEVICE = 1
 	"""
@@ -608,6 +613,8 @@ Return a UPnP device for the given identifier.
 :since:  v0.1.00
 		"""
 
+		# pylint: disable=maybe-no-member
+
 		_return = None
 
 		device = self.rootdevice_get(identifier)
@@ -797,7 +804,7 @@ Return the raw XML UPnP description for the given identifier.
 			if (self.log_handler != None): self.log_handler.warning("pas.upnp.ControlPoint refused client '{0}'".format(client_host))
 
 			_return = PredefinedHttpRequest()
-			_return.set_output_format("http_upnp")
+			_return.set_output_handler("http_upnp")
 			_return.set_module("output")
 			_return.set_service("http")
 			_return.set_action("error")
@@ -806,7 +813,7 @@ Return the raw XML UPnP description for the given identifier.
 		elif (not is_valid):
 		#
 			_return = PredefinedHttpRequest()
-			_return.set_output_format("http_upnp")
+			_return.set_output_handler("http_upnp")
 			_return.set_module("output")
 			_return.set_service("http")
 			_return.set_action("error")
@@ -941,6 +948,8 @@ Parse unread UPnP descriptions.
 :since: v0.1.00
 		"""
 
+		# pylint: disable=broad-except
+
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint._read_upnp_descs()- (#echo(__LINE__)#)")
 
 		with ControlPoint.lock:
@@ -978,8 +987,8 @@ Parse unread UPnP descriptions.
 			#
 				with ControlPoint.lock:
 				#
-					if (url in self.upnp_desc): self.upnp_desc[url]['xml_data'] = Binary.str(http_response['body'])
-					else: self.upnp_desc[url] = { "xml_data": Binary.str(http_response['body']), "usns": [ ] }
+					if (url in self.upnp_desc): self.upnp_desc[url]['xml_data'] = Binary.raw_str(http_response['body'])
+					else: self.upnp_desc[url] = { "xml_data": Binary.raw_str(http_response['body']), "usns": [ ] }
 
 					for usn in usns:
 					#
@@ -1154,6 +1163,8 @@ Worker loop
 :since: v0.1.00
 		"""
 
+		# pylint: disable=broad-except
+
 		with ControlPoint.lock:
 		#
 			task = (self.tasks.pop(0) if (len(self.tasks) > 0 and self.tasks[0]['timestamp'] <= time()) else None)
@@ -1270,7 +1281,7 @@ Searches for hosted devices matching the given UPnP search target.
 								if (condition_identifier != None and condition_identifier['class'] == "service"):
 								#
 									services = embedded_device.service_get_ids()
-		
+
 									for service_id in services:
 									#
 										service = embedded_device.service_get(service_id)
@@ -1313,8 +1324,21 @@ Searches for hosted devices matching the given UPnP search target.
 
 			if (len(results) > 0):
 			#
-				wait_seconds = 0
-				if (source_wait_timeout > 2): wait_seconds = randfloat(0, (source_wait_timeout if (source_wait_timeout < 10) else 10) / len(results))
+				if (additional_data != None):
+				#
+					if ('USER-AGENT' in additional_data):
+					#
+						client = Client.load_user_agent(additional_data['USER-AGENT'])
+						source_wait_timeout = client.get("ssdp_upnp_search_wait_timeout", source_wait_timeout)
+					#
+					elif (source_wait_timeout < 4):
+					# Expect broken clients if no user-agent is given and MX is too small
+						source_wait_timeout = 0
+					#
+				#
+
+				if (source_wait_timeout > 0): wait_seconds = randfloat(0, (source_wait_timeout if (source_wait_timeout < 10) else 10) / len(results))
+				else: wait_seconds = 0
 
 				for result in results: self._task_add(wait_seconds, "announce_search_result", usn = result['usn'], location = result['location'], search_target = result['search_target'], target_host = ("[{0}]".format(source_data[0]) if (":" in source_data[0]) else source_data[0]), target_port = source_data[1])
 			#
@@ -1331,6 +1355,8 @@ Starts all UPnP listeners and announces itself.
 
 :since: v0.1.00
 		"""
+
+		# pylint: disable=broad-except
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint.start()- (#echo(__LINE__)#)")
 
@@ -1498,6 +1524,8 @@ Delete the USN from the list of UPnP descriptions.
 
 :since: v0.1.00
 		"""
+
+		# pylint: disable=no-member
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -ControlPoint._tasks_remove({0}, _type)- (#echo(__LINE__)#)".format(usn))
 

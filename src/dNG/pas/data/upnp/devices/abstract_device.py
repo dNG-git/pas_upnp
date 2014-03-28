@@ -40,7 +40,7 @@ from binascii import hexlify
 from os import urandom
 from socket import gethostname
 from uuid import NAMESPACE_URL
-from uuid import uuid3 as uuid
+from uuid import uuid3 as uuid_of_namespace
 
 from dNG.pas.data.logging.log_line import LogLine
 from dNG.pas.data.text.link import Link
@@ -198,81 +198,83 @@ Returns the UPnP device description.
 
 		LogLine.debug("#echo(__FILEPATH__)# -upnpDevice.get_xml()- (#echo(__LINE__)#)")
 
-		xml_parser = self._get_xml(self._init_xml_parser())
-		return xml_parser.cache_export(True)
+		xml_resource = self._get_xml(self._init_xml_resource())
+		return xml_resource.cache_export(True)
 	#
 
-	def _get_xml(self, xml_writer):
+	def _get_xml(self, xml_resource):
 	#
 		"""
 Returns the UPnP device description for encoding.
 
-:param xml_writer: XML writer instance
+:param xml_resource: XML resource
 
-:return: (object) Device description XML writer instance
+:return: (object) Device description XML resource
 :since:  v0.1.01
 		"""
 
 		client = Client.load_user_agent(self.client_user_agent)
-		if (not client.get("upnp_xml_cdata_encoded", False)): xml_writer.define_cdata_encoding(False)
+		if (not client.get("upnp_xml_cdata_encoded", False)): xml_resource.define_cdata_encoding(False)
 
 		attributes = { "xmlns": "urn:schemas-upnp-org:device-1-0" }
 		if (self.configid != None): attributes['configId'] = self.configid
 
-		xml_writer.node_add("root", attributes = attributes)
-		xml_writer.node_set_cache_path("root")
+		xml_resource.node_add("root", attributes = attributes)
+		xml_resource.node_set_cache_path("root")
 
 		spec_version = self.get_spec_version()
-		xml_writer.node_add("root specVersion major", str(spec_version[0]))
-		xml_writer.node_add("root specVersion minor", str(spec_version[1]))
+		xml_resource.node_add("root specVersion major", str(spec_version[0]))
+		xml_resource.node_add("root specVersion minor", str(spec_version[1]))
 
-		self._get_xml_walker(xml_writer, "root device")
-		return xml_writer
+		self._get_xml_walker(xml_resource, "root device")
+		return xml_resource
 	#
 
-	def _get_xml_walker(self, xml_writer, xml_base_path):
+	def _get_xml_walker(self, xml_resource, xml_base_path):
 	#
 		"""
-Uses the given XML writer instance to add the UPnP device description at the
-given XML node path.
+Uses the given XML resource to add the UPnP device description at the given
+XML node path.
 
-:param xml_writer: XML writer instance
+:param xml_resource: XML resource
 :param xml_base_path: Device description XML base path (e.g. "root device")
 
 :since: v0.1.00
 		"""
 
-		udn = "uuid:{0}".format(self.get_udn())
-		xml_writer.node_add("{0} UDN".format(xml_base_path), udn)
-		xml_writer.node_set_cache_path(xml_base_path)
+		# pylint: disable=protected-access
 
-		xml_writer.node_add("{0} deviceType".format(xml_base_path), "urn:{0}".format(self.get_urn()))
-		xml_writer.node_add("{0} friendlyName".format(xml_base_path), self.get_name())
-		xml_writer.node_add("{0} manufacturer".format(xml_base_path), self.get_manufacturer())
+		udn = "uuid:{0}".format(self.get_udn())
+		xml_resource.node_add("{0} UDN".format(xml_base_path), udn)
+		xml_resource.node_set_cache_path(xml_base_path)
+
+		xml_resource.node_add("{0} deviceType".format(xml_base_path), "urn:{0}".format(self.get_urn()))
+		xml_resource.node_add("{0} friendlyName".format(xml_base_path), self.get_name())
+		xml_resource.node_add("{0} manufacturer".format(xml_base_path), self.get_manufacturer())
 
 		value = self.get_manufacturer_url()
-		if (value != None): xml_writer.node_add("{0} manufacturerURL".format(xml_base_path), value)
+		if (value != None): xml_resource.node_add("{0} manufacturerURL".format(xml_base_path), value)
 
 		value = self.get_device_model()
-		if (value != None): xml_writer.node_add("{0} modelName".format(xml_base_path), value)
+		if (value != None): xml_resource.node_add("{0} modelName".format(xml_base_path), value)
 
 		value = self.get_device_model_desc()
-		if (value != None): xml_writer.node_add("{0} modelDescription".format(xml_base_path), value)
+		if (value != None): xml_resource.node_add("{0} modelDescription".format(xml_base_path), value)
 
 		value = self.get_device_model_version()
-		if (value != None): xml_writer.node_add("{0} modelNumber".format(xml_base_path), value)
+		if (value != None): xml_resource.node_add("{0} modelNumber".format(xml_base_path), value)
 
 		value = self.get_device_model_url()
-		if (value != None): xml_writer.node_add("{0} modelURL".format(xml_base_path), value)
+		if (value != None): xml_resource.node_add("{0} modelURL".format(xml_base_path), value)
 
 		value = self.get_device_model_upc()
-		if (value != None): xml_writer.node_add("{0} UPC".format(xml_base_path), value)
+		if (value != None): xml_resource.node_add("{0} UPC".format(xml_base_path), value)
 
 		value = self.get_device_serial_number()
-		if (value != None): xml_writer.node_add("{0} serialNumber".format(xml_base_path), value)
+		if (value != None): xml_resource.node_add("{0} serialNumber".format(xml_base_path), value)
 
 		value = self.get_presentation_url()
-		if (value != None): xml_writer.node_add("{0} presentationURL".format(xml_base_path), value)
+		if (value != None): xml_resource.node_add("{0} presentationURL".format(xml_base_path), value)
 
 		if (len(self.services) > 0):
 		#
@@ -286,14 +288,14 @@ given XML node path.
 				#
 					xml_service_base_path = "{0} serviceList service#{1:d}".format(xml_base_path, position)
 
-					xml_writer.node_add(xml_service_base_path)
-					xml_writer.node_set_cache_path(xml_service_base_path)
+					xml_resource.node_add(xml_service_base_path)
+					xml_resource.node_set_cache_path(xml_service_base_path)
 
-					xml_writer.node_add("{0} serviceId".format(xml_service_base_path), "urn:{0}".format(service.get_service_id_urn()))
-					xml_writer.node_add("{0} serviceType".format(xml_service_base_path), "urn:{0}".format(service.get_urn()))
-					xml_writer.node_add("{0} SCPDURL".format(xml_service_base_path), service.get_url_scpd())
-					xml_writer.node_add("{0} controlURL".format(xml_service_base_path), service.get_url_control())
-					xml_writer.node_add("{0} eventSubURL".format(xml_service_base_path), service.get_url_event_control())
+					xml_resource.node_add("{0} serviceId".format(xml_service_base_path), "urn:{0}".format(service.get_service_id_urn()))
+					xml_resource.node_add("{0} serviceType".format(xml_service_base_path), "urn:{0}".format(service.get_urn()))
+					xml_resource.node_add("{0} SCPDURL".format(xml_service_base_path), service.get_url_scpd())
+					xml_resource.node_add("{0} controlURL".format(xml_service_base_path), service.get_url_control())
+					xml_resource.node_add("{0} eventSubURL".format(xml_service_base_path), service.get_url_event_control())
 
 					position += 1
 				#
@@ -310,9 +312,9 @@ given XML node path.
 
 				if (isinstance(device, AbstractDevice)):
 				#
-					xml_writer.node_add("{0} deviceList device#{1:d}".format(xml_base_path, position))
+					xml_resource.node_add("{0} deviceList device#{1:d}".format(xml_base_path, position))
 
-					device._get_xml_walker(xml_writer, "{0} deviceList device#{1:d}".format(xml_base_path, position))
+					device._get_xml_walker(xml_resource, "{0} deviceList device#{1:d}".format(xml_base_path, position))
 					position += 1
 				#
 			#
@@ -331,7 +333,7 @@ Initialize a host device.
 		self.configid = configid
 		self.host_device = True
 		if (self.name == None): self.name = "{0} {1}".format(gethostname(), self.type)
-		self.udn = (str(uuid(NAMESPACE_URL, "upnp://{0}:{1:d}/{2}".format(control_point.get_http_host(), control_point.get_http_port(), hexlify(urandom(10))))) if (udn == None) else udn)
+		self.udn = (str(uuid_of_namespace(NAMESPACE_URL, "upnp://{0}:{1:d}/{2}".format(control_point.get_http_host(), control_point.get_http_port(), hexlify(urandom(10))))) if (udn == None) else udn)
 
 		url = "http://{0}:{1:d}/upnp/{2}".format(control_point.get_http_host(), control_point.get_http_port(), Link.query_param_encode(self.udn))
 		self.desc_url = "{0}/desc".format(url)

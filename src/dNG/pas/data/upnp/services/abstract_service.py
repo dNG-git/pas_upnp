@@ -236,35 +236,35 @@ Returns the UPnP SCPD.
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_xml()- (#echo(__LINE__)#)".format(self))
 
-		xml_parser = self._get_xml(self._init_xml_parser())
-		return xml_parser.cache_export(True)
+		xml_resource = self._get_xml(self._init_xml_resource())
+		return xml_resource.cache_export(True)
 	#
 
-	def _get_xml(self, xml_writer):
+	def _get_xml(self, xml_resource):
 	#
 		"""
 Returns the UPnP SCPD.
 
-:param xml_writer: XML writer instance
+:param xml_resource: XML resource
 
-:return: (object) UPnP SCPD XML writer instance
+:return: (object) UPnP SCPD XML resource
 :since:  v0.1.01
 		"""
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_xml()- (#echo(__LINE__)#)".format(self))
 
 		client = Client.load_user_agent(self.client_user_agent)
-		if (not client.get("upnp_xml_cdata_encoded", False)): xml_writer.define_cdata_encoding(False)
+		if (not client.get("upnp_xml_cdata_encoded", False)): xml_resource.define_cdata_encoding(False)
 
 		attributes = { "xmlns": "urn:schemas-upnp-org:service-1-0" }
 		if (self.configid != None): attributes['configId'] = self.configid
 
-		xml_writer.node_add("scpd", attributes = attributes)
-		xml_writer.node_set_cache_path("scpd")
+		xml_resource.node_add("scpd", attributes = attributes)
+		xml_resource.node_set_cache_path("scpd")
 
 		spec_version = self.get_spec_version()
-		xml_writer.node_add("scpd specVersion major", str(spec_version[0]))
-		xml_writer.node_add("scpd specVersion minor", str(spec_version[1]))
+		xml_resource.node_add("scpd specVersion major", str(spec_version[0]))
+		xml_resource.node_add("scpd specVersion minor", str(spec_version[1]))
 
 		if (len(self.actions) > 0):
 		#
@@ -273,11 +273,11 @@ Returns the UPnP SCPD.
 			for action_name in self.actions:
 			#
 				xml_base_path = "scpd actionList action#{0:d}".format(position)
-				xml_writer.node_add(xml_base_path)
-				xml_writer.node_set_cache_path(xml_base_path)
+				xml_resource.node_add(xml_base_path)
+				xml_resource.node_set_cache_path(xml_base_path)
 
 				action = self.actions[action_name]
-				xml_writer.node_add("{0} name".format(xml_base_path), action_name)
+				xml_resource.node_add("{0} name".format(xml_base_path), action_name)
 
 				variables = [ ]
 
@@ -307,19 +307,19 @@ Returns the UPnP SCPD.
 
 				for position_variable in range(0, variables_count):
 				#
-					xml_writer.node_add("{0} argumentList argument#{1:d}".format(xml_base_path, position_variable))
-					xml_writer.node_add("{0} argumentList argument#{1:d} name".format(xml_base_path, position_variable), variables[position_variable]['name'])
-					xml_writer.node_add("{0} argumentList argument#{1:d} direction".format(xml_base_path, position_variable), variables[position_variable]['direction'])
-					if ("retval" in variables[position_variable]): xml_writer.node_add("{0} argumentList argument#{1:d} retval".format(xml_base_path, position_variable))
-					xml_writer.node_add("{0} argumentList argument#{1:d} relatedStateVariable".format(xml_base_path, position_variable), variables[position_variable]['variable'])
+					xml_resource.node_add("{0} argumentList argument#{1:d}".format(xml_base_path, position_variable))
+					xml_resource.node_add("{0} argumentList argument#{1:d} name".format(xml_base_path, position_variable), variables[position_variable]['name'])
+					xml_resource.node_add("{0} argumentList argument#{1:d} direction".format(xml_base_path, position_variable), variables[position_variable]['direction'])
+					if ("retval" in variables[position_variable]): xml_resource.node_add("{0} argumentList argument#{1:d} retval".format(xml_base_path, position_variable))
+					xml_resource.node_add("{0} argumentList argument#{1:d} relatedStateVariable".format(xml_base_path, position_variable), variables[position_variable]['variable'])
 				#
 
 				position += 1
 			#
 
 			position_variable = 0
-			xml_writer.node_add("scpd serviceStateTable".format(xml_base_path))
-			xml_writer.node_set_cache_path("scpd serviceStateTable".format(xml_base_path))
+			xml_resource.node_add("scpd serviceStateTable".format(xml_base_path))
+			xml_resource.node_set_cache_path("scpd serviceStateTable".format(xml_base_path))
 
 			for variable_name in self.variables:
 			#
@@ -330,27 +330,27 @@ Returns the UPnP SCPD.
 				if (not variable['is_sending_events']): attributes['sendEvents'] = "no"
 				if (variable['is_multicasting_events']): attributes['multicast'] = "yes"
 
-				xml_writer.node_add(xml_base_path, attributes = attributes)
+				xml_resource.node_add(xml_base_path, attributes = attributes)
 
-				xml_writer.node_add("{0} name".format(xml_base_path), variable_name)
-				xml_writer.node_add("{0} dataType".format(xml_base_path), variable['type'])
-				if ("value" in variable): xml_writer.node_add("{0} defaultValue".format(xml_base_path), variable['value'])
+				xml_resource.node_add("{0} name".format(xml_base_path), variable_name)
+				xml_resource.node_add("{0} dataType".format(xml_base_path), variable['type'])
+				if ("value" in variable): xml_resource.node_add("{0} defaultValue".format(xml_base_path), variable['value'])
 
 				values_allowed_count = (len(variable['values_allowed']) if ("values_allowed" in variable) else 0)
-				for position_values_allowed in range(0, values_allowed_count): xml_writer.node_add("{0} allowedValueList allowedValue#{1:d}".format(xml_base_path, position_values_allowed), variable['values_allowed'][position_values_allowed])
+				for position_values_allowed in range(0, values_allowed_count): xml_resource.node_add("{0} allowedValueList allowedValue#{1:d}".format(xml_base_path, position_values_allowed), variable['values_allowed'][position_values_allowed])
 
-				if ("values_min" in variable): xml_writer.node_add("{0} allowedValueRange minimum".format(xml_base_path), variable['values_min'])
-				if ("values_max" in variable): xml_writer.node_add("{0} allowedValueRange maximum".format(xml_base_path), variable['values_max'])
-				if ("values_stepping" in variable): xml_writer.node_add("{0} allowedValueRange step".format(xml_base_path), variable['values_stepping'])
+				if ("values_min" in variable): xml_resource.node_add("{0} allowedValueRange minimum".format(xml_base_path), variable['values_min'])
+				if ("values_max" in variable): xml_resource.node_add("{0} allowedValueRange maximum".format(xml_base_path), variable['values_max'])
+				if ("values_stepping" in variable): xml_resource.node_add("{0} allowedValueRange step".format(xml_base_path), variable['values_stepping'])
 
 				position_variable += 1
 			#
 		#
 
-		return xml_writer
+		return xml_resource
 	#
 
-	def handle_soap_call(self, action, arguments_given = [ ]):
+	def handle_soap_call(self, action, arguments_given = None):
 	#
 		"""
 Executes the given SOAP action.
@@ -362,11 +362,14 @@ Executes the given SOAP action.
 :since:  v0.1.00
 		"""
 
+		# pylint: disable=broad-except,star-args
+
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.handle_soap_call({1}, arguments_given)- (#echo(__LINE__)#)".format(self, action))
 		_return = UpnpException("pas_http_core_500")
 
 		action_method = AbstractService.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", action).lower()
 		arguments = { }
+		if (arguments_given == None): arguments_given = [ ]
 		is_valid = (action in self.actions and hasattr(self, action_method))
 
 		if (is_valid):

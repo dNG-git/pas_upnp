@@ -36,6 +36,8 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
+# pylint: disable=import-error,no-name-in-module
+
 from time import time
 from uuid import NAMESPACE_URL
 from uuid import uuid3 as uuid
@@ -160,6 +162,8 @@ Removes the subscription identified by the given SID.
 
 		with Gena.lock:
 		#
+			sid_callback_url = None
+
 			if (service_name in self.subscriptions):
 			#
 				subscriptions = self.subscriptions[service_name].copy()
@@ -168,8 +172,10 @@ Removes the subscription identified by the given SID.
 				#
 					if (subscriptions[callback_url]['sid'] == sid):
 					#
-						del(self.subscriptions[service_name][callback_url])
+						sid_callback_url = callback_url
 						_return = True
+
+						del(self.subscriptions[service_name][callback_url])
 						break
 					#
 				#
@@ -177,12 +183,12 @@ Removes the subscription identified by the given SID.
 				if (len(self.subscriptions[service_name]) < 1): del(self.subscriptions[service_name])
 			#
 
-			if (_return):
+			if (sid_callback_url != None):
 			#
 				for position in range(len(self.timeouts) - 1, -1, -1):
 				#
 					timeout_entry = self.timeouts[position]
-					if (timeout_entry['callback_url'] == callback_url and timeout_entry['service_name'] == service_name): self.timeouts.pop(position)
+					if (timeout_entry['callback_url'] == sid_callback_url and timeout_entry['service_name'] == service_name): self.timeouts.pop(position)
 				#
 			#
 		#
@@ -306,12 +312,13 @@ Renews an subscription identified by the given SID.
 					#
 						sid_callback_url = callback_url
 						_return = True
+
 						break
 					#
 				#
 			#
 
-			if (_return):
+			if (sid_callback_url != None):
 			#
 				index = None
 				timestamp = int(time() + timeout + 1)
@@ -325,7 +332,7 @@ Renews an subscription identified by the given SID.
 				#
 
 				if (index == None): index = len(self.timeouts)
-				self.timeouts.insert(index, { "timestamp": timestamp, "service_name": service_name, "callback_url": callback_url })
+				self.timeouts.insert(index, { "timestamp": timestamp, "service_name": service_name, "callback_url": sid_callback_url })
 			#
 		#
 

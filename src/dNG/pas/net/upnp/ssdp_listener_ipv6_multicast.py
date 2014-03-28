@@ -82,6 +82,8 @@ Listener IPv6 interface index
 Multicast addresses to listen for on this socket
 		"""
 
+		# pylint: disable=no-member
+
 		# Split listener interface from IPv6 address and find corresponding index
 		if ("%" in ip and hasattr(socket, "if_nameindex")):
 		#
@@ -104,6 +106,8 @@ Adds a new IPv6 multicast address to listen for SSDP messages.
 
 :since: v0.1.00
 		"""
+
+		# pylint: disable=broad-except
 
 		if (multicast_address not in self.multicast_addresses and socket.has_ipv6):
 		#
@@ -170,6 +174,8 @@ Stops the listener and unqueues all running sockets.
 
 :since: v0.1.00
 		"""
+
+		# pylint: disable=broad-except,no-member
 
 		if (self.listener_active):
 		#

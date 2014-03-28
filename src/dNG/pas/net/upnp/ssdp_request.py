@@ -69,22 +69,19 @@ Active conversation
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -SsdpRequest._thread_run()- (#echo(__LINE__)#)")
 
 		http_data = self.get_data(512)
+
+		http_headers = (None if (http_data == "") else Http.header_get(http_data))
 		http_request = None
 
-		if (http_data != None):
+		if (http_headers != None and "@http" in http_headers):
 		#
-			http_headers = Http.header_get(http_data)
+			http_request_data = http_headers['@http'].split(" ", 2)
 
-			if ("@http" in http_headers):
+			if (len(http_request_data) > 2 and http_request_data[2].startswith("HTTP/")):
 			#
-				http_request_data = http_headers['@http'].split(" ", 2)
-
-				if (len(http_request_data) > 2 and http_request_data[2].startswith("HTTP/")):
-				#	
-					http_request = http_request_data[0].upper()
-					http_request_path = http_request_data[1]
-					http_request_version = (1.1 if (http_request_data[2] == "HTTP/1.1") else 1)
-				#
+				http_request = http_request_data[0].upper()
+				http_request_path = http_request_data[1]
+				http_request_version = (1.1 if (http_request_data[2] == "HTTP/1.1") else 1)
 			#
 		#
 

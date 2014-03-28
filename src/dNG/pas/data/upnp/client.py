@@ -143,6 +143,8 @@ Return a UPnP client based on the given HTTP or SSDP user agent value.
 :since:  v0.1.00
 		"""
 
+		# pylint: disable=protected-access
+
 		_return = Client()
 
 		if (type(user_agent) == str):

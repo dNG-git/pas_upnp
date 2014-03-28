@@ -100,6 +100,8 @@ Run the main loop for this server instance.
 :since: v0.1.00
 		"""
 
+		# pylint: disable=broad-except
+
 		if (not self.listener_active):
 		#
 			try:
@@ -124,6 +126,8 @@ Stops the listener and unqueues all running sockets.
 :since: v0.1.00
 		"""
 
+		# pylint: disable=broad-except
+
 		if (self.listener_active):
 		#
 			try: self.listener_socket.setsockopt(socket.IPPROTO_IP, socket.IP_DROP_MEMBERSHIP, socket.inet_pton(socket.AF_INET, "239.255.255.250") + socket.inet_pton(socket.AF_INET, self.listener_ip))
@@ -131,7 +135,7 @@ Stops the listener and unqueues all running sockets.
 			#
 				if (self.log_handler != None): self.log_handler.error(handled_exception)
 			#
-	
+
 			self.listener_active = False
 		#
 

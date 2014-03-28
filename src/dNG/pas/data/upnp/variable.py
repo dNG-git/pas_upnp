@@ -36,6 +36,8 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
+# pylint: disable=import-error,no-name-in-module
+
 from base64 import b64decode, b64encode
 from binascii import hexlify, unhexlify
 from struct import pack
@@ -85,11 +87,11 @@ value.
 		#
 			if (native_type[1] == "xmlns"): _return = value
 			elif (native_type[1] == "base64"): _return = Binary.raw_str(b64decode(Binary.utf8_bytes(value)))
-			elif (native_type[1] == "date"): _return = RfcBasics.get_iso8601_timestamp(value, time = False)
-			elif (native_type[1] == "dateTime"): _return = RfcBasics.get_iso8601_timestamp(value, timezone = False)
+			elif (native_type[1] == "date"): _return = RfcBasics.get_iso8601_timestamp(value, has_time = False)
+			elif (native_type[1] == "dateTime"): _return = RfcBasics.get_iso8601_timestamp(value, has_timezone = False)
 			elif (native_type[1] == "dateTime.tz"): _return = RfcBasics.get_iso8601_timestamp(value)
 			elif (native_type[1] == "hex"): _return = Binary.raw_str(unhexlify(Binary.utf8_bytes(value)))
-			elif (native_type[1] == "time"): _return = RfcBasics.get_iso8601_timestamp(value, False, timezone = False)
+			elif (native_type[1] == "time"): _return = RfcBasics.get_iso8601_timestamp(value, False, has_timezone = False)
 			elif (native_type[1] == "time.tz"): _return = RfcBasics.get_iso8601_timestamp(value, False)
 			elif (native_type[1] == "uri" and re.match("^\\w+\\:\\w", value) == None): raise ValueException("Given value mismatches defined format for URIs")
 			elif (native_type[1] == "uuid" and (not value.startswith("uuid:"))): raise ValueException("Given value mismatches defined format for UUIDs")

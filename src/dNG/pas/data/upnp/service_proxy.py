@@ -77,30 +77,32 @@ Service variables defined in the SCPD
 		"""
 	#
 
-	def __getattr__(self, name):
+	def __getattr__(self, action_method):
 	#
 		"""
 python.org: Called when an attribute lookup has not found the attribute in
 the usual places (i.e. it is not an instance attribute nor is it found in the
 class tree for self).
 
-:param name: Attribute name
+:param action_method: Action method
 
 :return: (Action) UPnP action callable
 :since:  v0.1.00
 		"""
 
-		if (self.actions != None and name in self.actions):
+		# pylint: disable=no-member,undefined-loop-variable
+
+		if (self.actions != None and action_method in self.actions):
 		#
 			argument_variables = [ ]
 			result_variables = [ ]
 			return_variable = None
-			variables = self.actions[name]
-	
-			for argument_variable in self.actions[name]['argument_variables']: argument_variables.append({ "name": argument_variable['name'], "variable": self.service.get_definition_variable(argument_variable['variable']) })
-			for result_variable in self.actions[name]['result_variables']: result_variables.append({ "name": result_variable['name'], "variable": self.service.get_definition_variable(result_variable['variable']) })
-	
-			if (self.actions[name]['return_variable'] != None): return_variable = { "name": variables['return_variable']['name'], "variable": self.service.get_definition_variable(variables['return_variable']['variable']) }
+			variables = self.actions[action_method]
+
+			for argument_variable in self.actions[action_method]['argument_variables']: argument_variables.append({ "name": argument_variable['name'], "variable": self.service.get_definition_variable(argument_variable['variable']) })
+			for result_variable in self.actions[action_method]['result_variables']: result_variables.append({ "name": result_variable['name'], "variable": self.service.get_definition_variable(result_variable['variable']) })
+
+			if (self.actions[action_method]['return_variable'] != None): return_variable = { "name": variables['return_variable']['name'], "variable": self.service.get_definition_variable(variables['return_variable']['variable']) }
 
 			def proxymethod(**kwargs):
 			#
@@ -128,8 +130,8 @@ class tree for self).
 
 			return proxymethod
 		#
-		elif (self.variables != None and name in self.variables): return Variable(self.service, name, self.variables[name])
-		else: raise ValueException("UPnP SCPD does not contain a definition for '{0}'".format(name))
+		elif (self.variables != None and action_method in self.variables): return Variable(self.service, action_method, self.variables[action_method])
+		else: raise ValueException("UPnP SCPD does not contain a definition for '{0}'".format(action_method))
 	#
 #
 

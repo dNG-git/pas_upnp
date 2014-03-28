@@ -40,7 +40,7 @@ from collections import OrderedDict
 from os import uname
 from time import time
 
-from dNG.data.xml_writer import XmlWriter
+from dNG.data.xml_resource import XmlResource
 from dNG.data.rfc.basics import Basics as RfcBasics
 from dNG.pas.data.binary import Binary
 from dNG.pas.data.text.l10n import L10n
@@ -131,21 +131,20 @@ Returns a UPNP response for the given URN and SOAP action.
 		#
 		else:
 		#
-			xml_parser = XmlWriter(node_type = OrderedDict)
+			xml_resource = XmlResource(node_type = OrderedDict)
 
 			client = Client.load_user_agent(self.client_user_agent)
-			if (not client.get("upnp_xml_cdata_encoded", False)): xml_parser.define_cdata_encoding(False)
+			if (not client.get("upnp_xml_cdata_encoded", False)): xml_resource.define_cdata_encoding(False)
 
-			xml_parser.node_add("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "s:encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
-			xml_parser.node_add("s:Envelope s:Header")
+			xml_resource.node_add("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "s:encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
 
 			xml_base_path = "s:Envelope s:Body u:{0}Response".format(action)
-			xml_parser.node_add(xml_base_path, attributes = { "xmlns:u": urn })
-			xml_parser.node_set_cache_path(xml_base_path)
+			xml_resource.node_add(xml_base_path, attributes = { "xmlns:u": urn })
+			xml_resource.node_set_cache_path(xml_base_path)
 
-			for result_value in result: xml_parser.node_add("{0} {1}".format(xml_base_path, result_value['name']), result_value['value'])
+			for result_value in result: xml_resource.node_add("{0} {1}".format(xml_base_path, result_value['name']), result_value['value'])
 
-			self.data = Binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_parser.cache_export(True)))
+			self.data = Binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_resource.cache_export(True)))
 		#
 	#
 
@@ -185,22 +184,21 @@ Return a UPNP response for the requested SOAP action.
 :since: v0.1.00
 		"""
 
-		xml_parser = XmlWriter()
+		xml_resource = XmlResource()
 
-		xml_parser.node_add("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "s:encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
-		xml_parser.node_add("s:Envelope s:Header")
+		xml_resource.node_add("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "s:encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
 
-		xml_parser.node_add("s:Envelope s:Body s:Fault faultcode", "Client")
-		xml_parser.node_set_cache_path("s:Envelope s:Body")
+		xml_resource.node_add("s:Envelope s:Body s:Fault faultcode", "Client")
+		xml_resource.node_set_cache_path("s:Envelope s:Body")
 
-		xml_parser.node_add("s:Envelope s:Body s:Fault faultstring", "UPnPError")
-		xml_parser.node_add("s:Envelope s:Body s:Fault detail UPnPError", attributes = { "xmlns": "urn:schemas-upnp-org:control-1.0" })
-		xml_parser.node_set_cache_path("s:Envelope s:Body s:Fault detail UPnPError")
+		xml_resource.node_add("s:Envelope s:Body s:Fault faultstring", "UPnPError")
+		xml_resource.node_add("s:Envelope s:Body s:Fault detail UPnPError", attributes = { "xmlns": "urn:schemas-upnp-org:control-1.0" })
+		xml_resource.node_set_cache_path("s:Envelope s:Body s:Fault detail UPnPError")
 
-		xml_parser.node_add("s:Envelope s:Body s:Fault detail UPnPError errorCode", str(code))
-		xml_parser.node_add("s:Envelope s:Body s:Fault detail UPnPError errorDescription", description)
+		xml_resource.node_add("s:Envelope s:Body s:Fault detail UPnPError errorCode", str(code))
+		xml_resource.node_add("s:Envelope s:Body s:Fault detail UPnPError errorDescription", description)
 
-		self.data = Binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_parser.cache_export(True)))
+		self.data = Binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_resource.cache_export(True)))
 		self.send()
 	#
 #

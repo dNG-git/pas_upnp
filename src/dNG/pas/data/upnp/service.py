@@ -36,6 +36,8 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
+# pylint: disable=import-error,no-name-in-module
+
 from collections import OrderedDict
 from os import uname
 import re
@@ -43,7 +45,7 @@ import re
 try: from urllib.parse import urljoin
 except ImportError: from urlparse import urljoin
 
-from dNG.data.xml_writer import XmlWriter
+from dNG.data.xml_resource import XmlResource
 from dNG.data.rfc.http import Http
 from dNG.pas.data.binary import Binary
 from dNG.pas.module.named_loader import NamedLoader
@@ -107,6 +109,14 @@ UPnP service name
 		"""
 UPnP serviceId value
 		"""
+		self.spec_major = None
+		"""
+UPnP specVersion major number
+		"""
+		self.spec_minor = None
+		"""
+UPnP specVersion minor number
+		"""
 		self.url_base = None
 		"""
 HTTP base URL
@@ -127,18 +137,6 @@ UPnP SCPDURL value
 		"""
 Service variables defined in the SCPD
 		"""
-	#
-
-	def get_configid(self):
-	#
-		"""
-Returns the UPnP configId value.
-
-:return: (int) UPnP configId
-:since:  v0.1.00
-		"""
-
-		return self.configid
 	#
 
 	def get_definition_variable(self, name):
@@ -205,6 +203,18 @@ Returns the UPnP serviceId value.
 		"""
 
 		return self.service_id['urn']
+	#
+
+	def get_spec_version(self):
+	#
+		"""
+Returns the UPnP specVersion number.
+
+:return: (tuple) UPnP Device Architecture version: Major and minor number
+:since:  v0.1.00
+		"""
+
+		return ( self.spec_major, self.spec_minor )
 	#
 
 	def get_type(self):
@@ -330,14 +340,14 @@ Initialize the service metadata from a UPnP description.
 
 		_return = True
 
-		xml_parser = self._init_xml_parser()
+		xml_resource = self._init_xml_resource()
 
-		if (xml_parser.set(xml_tree, True) != False and xml_parser.node_count("upnp:service") > 0): xml_parser.node_set_cache_path("upnp:service")
+		if (xml_resource.set(xml_tree, True) != False and xml_resource.node_count("upnp:service") > 0): xml_resource.node_set_cache_path("upnp:service")
 		else: _return = False
 
 		if (_return):
 		#
-			value = xml_parser.node_get_value("upnp:service upnp:serviceType")
+			value = xml_resource.node_get_value("upnp:service upnp:serviceType")
 			re_result = (None if (value == None) else Service.RE_USN_URN.match(value))
 
 			if (re_result == None or re_result.group(2) != "service"): _return = False
@@ -363,7 +373,7 @@ Initialize the service metadata from a UPnP description.
 
 		if (_return):
 		#
-			value = xml_parser.node_get_value("upnp:service upnp:serviceId")
+			value = xml_resource.node_get_value("upnp:service upnp:serviceId")
 			re_result = (None if (value == None) else Service.RE_SERVICE_ID_URN.match(value))
 
 			if (re_result == None or re_result.group(2) != "serviceId"): _return = False
@@ -372,10 +382,10 @@ Initialize the service metadata from a UPnP description.
 
 		if (_return):
 		#
-			self.url_scpd = Binary.str(urljoin(url_base, xml_parser.node_get_value("upnp:service upnp:SCPDURL")))
-			self.url_control = Binary.str(urljoin(url_base, xml_parser.node_get_value("upnp:service upnp:controlURL")))
+			self.url_scpd = Binary.str(urljoin(url_base, xml_resource.node_get_value("upnp:service upnp:SCPDURL")))
+			self.url_control = Binary.str(urljoin(url_base, xml_resource.node_get_value("upnp:service upnp:controlURL")))
 
-			value = xml_parser.node_get_value("upnp:service upnp:eventSubURL")
+			value = xml_resource.node_get_value("upnp:service upnp:eventSubURL")
 			self.url_event_control = (None if (value.strip == "") else Binary.str(urljoin(url_base, value)))
 		#
 
@@ -405,7 +415,7 @@ Initialize actions from the SCPD URL.
 		return _return
 	#
 
-	def _init_xml_parser(self):
+	def _init_xml_resource(self):
 	#
 		"""
 Returns a XML parser with predefined XML namespaces.
@@ -414,7 +424,7 @@ Returns a XML parser with predefined XML namespaces.
 :since:  v0.1.00
 		"""
 
-		_return = XmlWriter(node_type = OrderedDict)
+		_return = XmlResource(node_type = OrderedDict)
 		_return.ns_register("scpd", "urn:schemas-upnp-org:service-1-0")
 		return _return
 	#
@@ -430,29 +440,31 @@ Initialize the list of service actions from a UPnP SCPD description.
 :since:  v0.1.00
 		"""
 
+		# pylint: disable=broad-except
+
 		_return = True
 
 		try:
 		#
 			self.actions = None
 			self.variables = None
-			xml_parser = self._init_xml_parser()
+			xml_resource = self._init_xml_resource()
 
-			if (xml_parser.xml2dict(xml_data) == None or xml_parser.node_count("scpd:scpd") < 1): _return = False
-			else: xml_parser.node_set_cache_path("scpd:scpd")
+			if (xml_resource.xml_to_dict(xml_data) == None or xml_resource.node_count("scpd:scpd") < 1): _return = False
+			else: xml_resource.node_set_cache_path("scpd:scpd")
 
 			if (_return):
 			#
-				self.spec_major = int(xml_parser.node_get_value("scpd:scpd scpd:specVersion scpd:major"))
-				self.spec_minor = int(xml_parser.node_get_value("scpd:scpd scpd:specVersion scpd:minor"))
+				self.spec_major = int(xml_resource.node_get_value("scpd:scpd scpd:specVersion scpd:major"))
+				self.spec_minor = int(xml_resource.node_get_value("scpd:scpd scpd:specVersion scpd:minor"))
 			#
 
-			variables_count = (xml_parser.node_count("scpd:scpd scpd:serviceStateTable scpd:stateVariable") if (_return) else 0)
+			variables_count = (xml_resource.node_count("scpd:scpd scpd:serviceStateTable scpd:stateVariable") if (_return) else 0)
 
 			if (variables_count > 0):
 			#
 				self.variables = { }
-				xml_parser.node_set_cache_path("scpd:scpd scpd:serviceStateTable")
+				xml_resource.node_set_cache_path("scpd:scpd scpd:serviceStateTable")
 
 				for position in range(0, variables_count):
 				#
@@ -460,20 +472,20 @@ Initialize the list of service actions from a UPnP SCPD description.
 					send_events = True
 					xml_base_path = "scpd:scpd scpd:serviceStateTable scpd:stateVariable#{0:d}".format(position)
 
-					xml_node_attributes = xml_parser.node_get_attributes(xml_base_path)
+					xml_node_attributes = xml_resource.node_get_attributes(xml_base_path)
 					if ("sendEvents" in xml_node_attributes and xml_node_attributes['sendEvents'].lower() == "no"): send_events = False
 					if ("multicast" in xml_node_attributes and xml_node_attributes['multicast'].lower() == "yes"): multicast_events = True
 
-					name = xml_parser.node_get_value("{0} scpd:name".format(xml_base_path))
-					_type = Variable.get_native_type_from_xml(xml_parser, xml_parser.node_get("{0} scpd:dataType".format(xml_base_path)))
+					name = xml_resource.node_get_value("{0} scpd:name".format(xml_base_path))
+					_type = Variable.get_native_type_from_xml(xml_resource, xml_resource.node_get("{0} scpd:dataType".format(xml_base_path)))
 
 					if (_type == False): raise ValueException("Invalid dataType definition found")
 					self.variables[name] = { "is_sending_events": send_events, "is_multicasting_events": multicast_events, "type": _type }
 
-					value = xml_parser.node_get_value("{0} scpd:defaultValue".format(xml_base_path))
+					value = xml_resource.node_get_value("{0} scpd:defaultValue".format(xml_base_path))
 					if (value != None): self.variables[name]['value'] = value
 
-					allowed_values_count = xml_parser.node_count("{0} scpd:allowedValueList scpd:allowedValue".format(xml_base_path))
+					allowed_values_count = xml_resource.node_count("{0} scpd:allowedValueList scpd:allowedValue".format(xml_base_path))
 
 					if (allowed_values_count > 0):
 					#
@@ -482,39 +494,39 @@ Initialize the list of service actions from a UPnP SCPD description.
 
 						for position_allowed in range(0, allowed_values_count):
 						#
-							value = xml_parser.node_get_value("{0} scpd:allowedValueList scpd:allowedValue#{1:d}".format(xml_base_path, position_allowed))
+							value = xml_resource.node_get_value("{0} scpd:allowedValueList scpd:allowedValue#{1:d}".format(xml_base_path, position_allowed))
 							if (value != None and value not in self.variables[name]['values_allowed']): self.variables[name]['values_allowed'].append(value)
 						#
 					#
 
-					xml_node = xml_parser.node_get("{0} scpd:allowedValueRange".format(xml_base_path))
+					xml_node = xml_resource.node_get("{0} scpd:allowedValueRange".format(xml_base_path))
 
 					if (xml_node != None):
 					#
 						if (allowed_values_count > 0): raise ValueException("SCPD can only contain one of allowedValueList and allowedValueRange")
 
-						self.variables[name]['values_min'] = xml_parser.node_get_value("{0} scpd:allowedValueRange scpd:minimum".format(xml_base_path))
-						self.variables[name]['values_max'] = xml_parser.node_get_value("{0} scpd:allowedValueRange scpd:maximum".format(xml_base_path))
+						self.variables[name]['values_min'] = xml_resource.node_get_value("{0} scpd:allowedValueRange scpd:minimum".format(xml_base_path))
+						self.variables[name]['values_max'] = xml_resource.node_get_value("{0} scpd:allowedValueRange scpd:maximum".format(xml_base_path))
 
-						value = xml_parser.node_get("{0} scpd:allowedValueRange scpd:step".format(xml_base_path))
+						value = xml_resource.node_get("{0} scpd:allowedValueRange scpd:step".format(xml_base_path))
 						if (value != None): self.variables[name]['values_stepping'] = value
 					#
 				#
 			#
 			else: _return = False
 
-			actions_count = (xml_parser.node_count("scpd:scpd scpd:actionList scpd:action") if (_return) else 0)
+			actions_count = (xml_resource.node_count("scpd:scpd scpd:actionList scpd:action") if (_return) else 0)
 
 			if (actions_count > 0):
 			#
 				self.actions = { }
-				xml_parser.node_set_cache_path("scpd:scpd scpd:actionList")
+				xml_resource.node_set_cache_path("scpd:scpd scpd:actionList")
 
 				for position in range(0, actions_count):
 				#
-					name = xml_parser.node_get_value("scpd:scpd scpd:actionList scpd:action#{0:d} scpd:name".format(position))
+					name = xml_resource.node_get_value("scpd:scpd scpd:actionList scpd:action#{0:d} scpd:name".format(position))
 
-					action_arguments_count = xml_parser.node_count("scpd:scpd scpd:actionList scpd:action#{0:d} scpd:argumentList scpd:argument".format(position))
+					action_arguments_count = xml_resource.node_count("scpd:scpd scpd:actionList scpd:action#{0:d} scpd:argumentList scpd:argument".format(position))
 					self.actions[name] = { "argument_variables": [ ], "return_variable": None, "result_variables": [ ] }
 
 					if (action_arguments_count > 0):
@@ -523,15 +535,15 @@ Initialize the list of service actions from a UPnP SCPD description.
 						#
 							xml_base_path = "scpd:scpd scpd:actionList scpd:action#{0:d} scpd:argumentList scpd:argument#{1:d}".format(position, position_argument)
 
-							argument_name = xml_parser.node_get_value("{0} scpd:name".format(xml_base_path))
+							argument_name = xml_resource.node_get_value("{0} scpd:name".format(xml_base_path))
 
-							value = xml_parser.node_get_value("{0} scpd:direction".format(xml_base_path))
+							value = xml_resource.node_get_value("{0} scpd:direction".format(xml_base_path))
 							argument_type = ("argument_variables" if (value.strip().lower() == "in") else "result_variables")
 
-							value = xml_parser.node_get_value("{0} scpd:retval".format(xml_base_path))
+							value = xml_resource.node_get_value("{0} scpd:retval".format(xml_base_path))
 							if (argument_type == "result_variables" and value != None): argument_type = "return_variable"
 
-							value = xml_parser.node_get_value("{0} scpd:relatedStateVariable".format(xml_base_path))
+							value = xml_resource.node_get_value("{0} scpd:relatedStateVariable".format(xml_base_path))
 
 							if (value not in self.variables): raise ValueException("SCPD can only contain arguments defined as an stateVariable")
 
@@ -560,7 +572,7 @@ Initialize the list of service actions from a UPnP SCPD description.
 :since:  v0.1.00
 		"""
 
-		return (False if (self.actions == None and self.variables == None) else True)
+		return (self.actions != None or self.variables != None)
 	#
 
 	def is_managed(self):
@@ -595,27 +607,27 @@ device.
 		os_uname = uname()
 		urn = "urn:{0}".format(self.identifier['urn'])
 
-		xml_parser = self._init_xml_parser()
+		xml_resource = self._init_xml_resource()
 
-		xml_parser.node_add("Envelope", attributes = { "xmlns": "http://schemas.xmlsoap.org/soap/envelope/", "encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
-		xml_parser.node_add("Envelope Header")
+		xml_resource.node_add("Envelope", attributes = { "xmlns": "http://schemas.xmlsoap.org/soap/envelope/", "encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
+		xml_resource.node_add("Envelope Header")
 
-		xml_parser.node_add("Envelope Body")
+		xml_resource.node_add("Envelope Body")
 		xml_base_path = "Envelope Body {0}".format(action)
 
-		xml_parser.node_add(xml_base_path, attributes = { "xmlns": urn })
-		xml_parser.node_set_cache_path("Envelope Body")
+		xml_resource.node_add(xml_base_path, attributes = { "xmlns": urn })
+		xml_resource.node_set_cache_path("Envelope Body")
 
-		for argument in arguments: xml_parser.node_add("{0} {1}".format(xml_base_path, argument['name']), argument['value'])
+		for argument in arguments: xml_resource.node_add("{0} {1}".format(xml_base_path, argument['name']), argument['value'])
 
 		http_client = Http(self.url_control, event_handler = self.log_handler)
 		http_client.set_header("Content-Type", "text/xml; charset=UTF-8")
 		http_client.set_header("SoapAction", "{0}#{1}".format(urn, action))
 		http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
 
-		http_response = http_client.request_post(xml_parser.cache_export(True))
+		http_response = http_client.request_post(xml_resource.cache_export(True))
 
-		if (not isinstance(http_response['body'], Exception)): _return = xml_parser.xml2data(Binary.str(http_response['body']))
+		if (not isinstance(http_response['body'], Exception)): _return = xml_resource.xml_to_dict(Binary.str(http_response['body']))
 		elif (self.log_handler != None): self.log_handler.error(http_response['body'])
 
 		if (_return == True):

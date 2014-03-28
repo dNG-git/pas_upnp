@@ -36,6 +36,8 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
+# pylint: disable=import-error,no-name-in-module
+
 from base64 import b64encode
 from os import path
 
@@ -83,7 +85,15 @@ Initializes the content of a container.
 
 		if (self.type != None):
 		#
-			self.content.append(Link(path = "/upnp/stream/{0}".format(quote(Binary.str(b64encode(Binary.utf8_bytes(self.id)))))).build_url(Link.TYPE_FULL, { }))
+			_id = self.get_parent_id()
+			if (id == None): _id = self.get_id()
+
+			self.content.append(
+				Link(
+					path = "/upnp/stream/{0}".format(quote(Binary.str(b64encode(Binary.utf8_bytes(_id)))))
+				).build_url(Link.TYPE_FULL, { })
+			)
+
 			_return = True
 		#
 
