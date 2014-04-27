@@ -89,9 +89,10 @@ Initializes the content of a container.
 			if (id == None): _id = self.get_id()
 
 			self.content.append(
-				Link(
-					path = "/upnp/stream/{0}".format(quote(Binary.str(b64encode(Binary.utf8_bytes(_id)))))
-				).build_url(Link.TYPE_FULL, { })
+				"{0}upnp/stream/{1}".format(
+					Link().build_url(Link.TYPE_ABSOLUTE | Link.TYPE_BASE_PATH),
+					quote(Binary.str(b64encode(Binary.utf8_bytes(_id))))
+				)
 			)
 
 			_return = True

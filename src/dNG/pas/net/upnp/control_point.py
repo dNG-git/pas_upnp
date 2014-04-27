@@ -1158,7 +1158,7 @@ Remove a rootdevice from the list of known root devices.
 	def run(self):
 	#
 		"""
-Worker loop
+Timed task execution
 
 :since: v0.1.00
 		"""

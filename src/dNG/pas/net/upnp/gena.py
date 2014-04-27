@@ -343,7 +343,7 @@ Renews an subscription identified by the given SID.
 	def run(self):
 	#
 		"""
-Worker loop
+Timed task execution
 
 :since: v0.1.00
 		"""
