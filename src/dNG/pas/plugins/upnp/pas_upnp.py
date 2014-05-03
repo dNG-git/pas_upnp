@@ -55,8 +55,8 @@ Called for "dNG.pas.upnp.ControlPoint.deviceAdd"
 	_return = last_return
 
 	user_agent = (
-		params['identifier']['ssdpname']
-		if ("identifier" in params and "ssdpname" in params['identifier']) else
+		params['identifier']['ssdp_server_name']
+		if ("identifier" in params and "ssdp_server_name" in params['identifier']) else
 		None
 	)
 

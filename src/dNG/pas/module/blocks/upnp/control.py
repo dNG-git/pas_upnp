@@ -71,7 +71,7 @@ Action for "request"
 		Hooks.call("dNG.pas.http.l10n.upnp.Control.init")
 
 		soap_request = self.request.get_soap_request()
-		upnp_service.client_set_user_agent(self.request.get_header("User-Agent"))
+		upnp_service.client_set_user_agent(self.client_user_agent)
 
 		if (soap_request == None): raise UpnpException("pas_http_core_500")
 		self.response.handle_result(soap_request['urn'], soap_request['action'], upnp_service.handle_soap_call(soap_request['action'], soap_request['arguments']))

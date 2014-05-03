@@ -36,8 +36,12 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 NOTE_END //n"""
 
+import socket
+
 from dNG.pas.controller.http_upnp_response import HttpUpnpResponse
+from dNG.pas.data.settings import Settings
 from dNG.pas.module.blocks.abstract_block import AbstractBlock
+from dNG.pas.net.upnp.control_point import ControlPoint
 
 class Module(AbstractBlock):
 #
@@ -53,6 +57,22 @@ module for "upnp"
              GNU General Public License 2
 	"""
 
+	def __init__(self):
+	#
+		"""
+Constructor __init__(AbstractBlock)
+
+:since: v0.1.00
+		"""
+
+		AbstractBlock.__init__(self)
+
+		self.client_user_agent = None
+		"""
+Client user agent
+		"""
+	#
+
 	def init(self, request, response):
 	#
 		"""
@@ -65,7 +85,32 @@ Initialize block from the given request and response.
 		"""
 
 		AbstractBlock.init(self, request, response)
-		if (isinstance(self.response, HttpUpnpResponse)): self.response.client_set_user_agent(self.request.get_header("User-Agent"))
+
+		user_agent = self.request.get_header("User-Agent")
+
+		if (Settings.get("pas_upnp_http_client_name_use_cache", False)):
+		#
+			user_agent_blacklist = Settings.get("pas_upnp_http_client_name_blacklist", [ ])
+			if (user_agent != None and user_agent in user_agent_blacklist): user_agent = None
+
+			host = self.request.get_client_host()
+			ip_address_list = socket.getaddrinfo(host, None, socket.AF_UNSPEC, 0, socket.IPPROTO_TCP)
+
+			for ip_address_data in ip_address_list:
+			#
+				if (user_agent == None):
+				#
+						user_agent = ControlPoint.get_instance().http_client_name_get_for_ip(ip_address_data[4][0])
+						if (user_agent != None): break
+					#
+				#
+				else: ControlPoint.get_instance().http_client_name_add_for_ip(user_agent, ip_address_data[4][0])
+			#
+		#
+
+		self.client_user_agent = user_agent
+
+		if (isinstance(self.response, HttpUpnpResponse)): self.response.client_set_user_agent(self.client_user_agent)
 	#
 #
 

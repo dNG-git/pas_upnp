@@ -828,6 +828,91 @@ Return the raw XML UPnP description for the given identifier.
 		return _return
 	#
 
+	def http_client_name_add_for_ip(self, user_agent, ip):
+	#
+		"""
+"User-Agent" HTTP header strings are often different to HTTP server and SSDP
+ones. Keep track of them after their first query.
+
+:param user_agent: "User-Agent" HTTP header value
+:param ip: IP of the requesting host
+
+:since: v0.1.01
+		"""
+
+		if (user_agent != None and user_agent != ""):
+		#
+			with ControlPoint.lock:
+			#
+				for usn in self.usns:
+				#
+					if (
+						"http_client_name" not in self.usns[usn] and
+						"ips" in self.usns[usn] and
+						ip in self.usns[usn]['ips']
+					): self.usns[usn]['http_client_name'] = user_agent
+				#
+			#
+		#
+	#
+
+	def http_client_name_get_for_ip(self, ip):
+	#
+		"""
+Returns the known "User-Agent" HTTP header value previously recorded for
+the given IP.
+
+:param ip: IP of the requesting host
+
+:return: (str) "User-Agent" HTTP header value if known; None otherwise
+:since:  v0.1.01
+		"""
+
+		_return = None
+
+		with ControlPoint.lock:
+		#
+			for usn in self.usns:
+			#
+				if ("ips" in self.usns[usn] and ip in self.usns[usn]['ips']):
+				#
+					if ("http_client_name" in self.usns[usn]): _return = self.usns[usn]['http_client_name']
+					break
+				#
+			#
+		#
+
+		return _return
+	#
+
+	def http_server_name_get_for_ip(self, ip):
+	#
+		"""
+Returns the known "Server" HTTP header value for the given IP.
+
+:param ip: IP to look up
+
+:return: (str) "Server" HTTP header value if known; None otherwise
+:since:  v0.1.01
+		"""
+
+		_return = None
+
+		with ControlPoint.lock:
+		#
+			for usn in self.usns:
+			#
+				if ("ips" in self.usns[usn] and ip in self.usns[usn]['ips']):
+				#
+					if ("http_server_name" in self.usns[usn]): _return = self.usns[usn]['http_server_name']
+					break
+				#
+			#
+		#
+
+		return _return
+	#
+
 	def is_ip_allowed(self, ip):
 	#
 		"""
@@ -995,7 +1080,7 @@ Parse unread UPnP descriptions.
 						if (usn in self.usns and usn not in self.upnp_desc[url]['usns']):
 						#
 							self.usns[usn]['url_desc_read'] = url
-							self.usns[usn]['httpname'] = (http_response['headers']['SERVER'] if ("SERVER" in http_response['headers']) else None)
+							self.usns[usn]['http_server_name'] = (http_response['headers']['SERVER'] if ("SERVER" in http_response['headers']) else None)
 
 							self.upnp_desc[url]['usns'].append(usn)
 
@@ -1345,6 +1430,34 @@ Searches for hosted devices matching the given UPnP search target.
 		#
 	#
 
+	def ssdp_server_name_get_for_ip(self, ip):
+	#
+		"""
+Returns the known "Server" SSDP header value for the given IP.
+
+:param ip: IP to look up
+
+:return: (str) "Server" SSDP header value if known; None otherwise
+:since:  v0.1.01
+		"""
+
+		_return = None
+
+		with ControlPoint.lock:
+		#
+			for usn in self.usns:
+			#
+				if ("ips" in self.usns[usn] and ip in self.usns[usn]['ips']):
+				#
+					if ("ssdp_server_name" in self.usns[usn]): _return = self.usns[usn]['ssdp_server_name']
+					break
+				#
+			#
+		#
+
+		return _return
+	#
+
 	def start(self, params = None, last_return = None):
 	#
 		"""
@@ -1575,7 +1688,7 @@ Update the list with the given parsed UPnP identifier.
 
 		url_base = Binary.str(urljoin(url, "."))
 		usn_data = identifier.copy()
-		usn_data.update({ "http_version": http_version, "ssdpname": servername, "unicast_port": unicast_port, "url_base": url_base, "url_desc": url })
+		usn_data.update({ "http_version": http_version, "ssdp_server_name": servername, "unicast_port": unicast_port, "url_base": url_base, "url_desc": url })
 		url_elements = urlsplit(url_base)
 
 		ip_address_list = socket.getaddrinfo(url_elements.hostname, url_elements.port, socket.AF_UNSPEC, 0, socket.IPPROTO_TCP)

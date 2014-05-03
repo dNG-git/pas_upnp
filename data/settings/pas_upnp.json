@@ -12,5 +12,7 @@
   "SEC_HHP_ Family TV": "SEC_HHP_Family_TV",
   "Teleal-Cling": "Teleal_Cling",
   "TwonkyMedia-NMC": "TwonkyMedia_NMC/0"
- }
+ },
+
+ "pas_upnp_http_client_name_blacklist": [ "FDSSDP" ]
 }

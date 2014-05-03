@@ -84,7 +84,7 @@ Action for "request"
 
 		callback_url = self.request.get_header("Callback")
 		gena_sid = self.request.get_header("SID")
-		upnp_service.client_set_user_agent(self.request.get_header("User-Agent"))
+		upnp_service.client_set_user_agent(self.client_user_agent)
 
 		if ((callback_url == None or self.request.get_header("NT") != "upnp:event") and gena_sid == None): raise UpnpException("pas_http_core_400", 400)
 
@@ -95,7 +95,7 @@ Action for "request"
 
 		if (re_result == None):
 		#
-			client = Client.load_user_agent(self.request.get_header("User-Agent"))
+			client = Client.load_user_agent(self.client_user_agent)
 			timeout = int(client.get("upnp_subscription_timeout", 1800))
 		#
 		else: timeout = int(re_result.group(1))
@@ -144,7 +144,7 @@ Action for "request"
 		Hooks.call("dNG.pas.http.l10n.upnp.Events.init")
 
 		gena_sid = self.request.get_header("SID")
-		upnp_service.client_set_user_agent(self.request.get_header("User-Agent"))
+		upnp_service.client_set_user_agent(self.client_user_agent)
 
 		if (gena_sid == None): raise UpnpException("pas_http_core_400", 400)
 
