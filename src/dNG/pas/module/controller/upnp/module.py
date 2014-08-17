@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.module.blocks.upnp.Xml
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,19 +29,19 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
-from dNG.pas.controller.http_upnp_request import HttpUpnpRequest
-from dNG.pas.data.upnp.upnp_exception import UpnpException
-from dNG.pas.data.upnp.devices.abstract_device import AbstractDevice
-from dNG.pas.data.upnp.services.abstract_service import AbstractService
-from .module import Module
+import socket
 
-class Xml(Module):
+from dNG.pas.controller.http_upnp_response import HttpUpnpResponse
+from dNG.pas.data.settings import Settings
+from dNG.pas.module.controller.abstract_http import AbstractHttp as AbstractHttpController
+from dNG.pas.net.upnp.control_point import ControlPoint
+
+class Module(AbstractHttpController):
 #
 	"""
-Service for "m=upnp;s=xml"
+module for "upnp"
 
 :author:     direct Netware Group
 :copyright:  (C) direct Netware Group - All rights reserved
@@ -56,42 +52,59 @@ Service for "m=upnp;s=xml"
              GNU General Public License 2
 	"""
 
-	def execute_get_device(self):
+	def __init__(self):
 	#
 		"""
-Action for "get_device"
+Constructor __init__(AbstractHttpController)
 
 :since: v0.1.00
 		"""
 
-		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
-		upnp_device = self.request.get_upnp_device()
-		if (not isinstance(upnp_device, AbstractDevice)): raise UpnpException("pas_http_core_400", 401)
+		AbstractHttpController.__init__(self)
 
-		upnp_device.client_set_user_agent(self.client_user_agent)
-
-		self.response.init(True)
-		self.response.set_header("Content-Type", "text/xml; charset=UTF-8")
-		self.response.set_raw_data("<?xml version='1.0' encoding='UTF-8' ?>" + upnp_device.get_xml())
+		self.client_user_agent = None
+		"""
+Client user agent
+		"""
 	#
 
-	def execute_get_service(self):
+	def init(self, request, response):
 	#
 		"""
-Action for "get_service"
+Initialize block from the given request and response.
+
+:param request: Request object
+:param response: Response object
 
 :since: v0.1.00
 		"""
 
-		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
-		upnp_service = self.request.get_upnp_service()
-		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_core_400", 401)
+		AbstractHttpController.init(self, request, response)
 
-		upnp_service.client_set_user_agent(self.client_user_agent)
+		user_agent = self.request.get_header("User-Agent")
 
-		self.response.init(True)
-		self.response.set_header("Content-Type", "text/xml; charset=UTF-8")
-		self.response.set_raw_data("<?xml version='1.0' encoding='UTF-8' ?>" + upnp_service.get_xml())
+		if (Settings.get("pas_upnp_http_client_name_use_cache", False)):
+		#
+			user_agent_blacklist = Settings.get("pas_upnp_http_client_name_blacklist", [ ])
+			if (user_agent != None and user_agent in user_agent_blacklist): user_agent = None
+
+			host = self.request.get_client_host()
+			ip_address_list = socket.getaddrinfo(host, None, socket.AF_UNSPEC, 0, socket.IPPROTO_TCP)
+
+			for ip_address_data in ip_address_list:
+			#
+				if (user_agent == None):
+				#
+					user_agent = ControlPoint.get_instance().get_http_client_name_of_ip(ip_address_data[4][0])
+					if (user_agent != None): break
+				#
+				else: ControlPoint.get_instance().add_http_client_name_to_ip(user_agent, ip_address_data[4][0])
+			#
+		#
+
+		self.client_user_agent = user_agent
+
+		if (isinstance(self.response, HttpUpnpResponse)): self.response.set_client_user_agent(self.client_user_agent)
 	#
 #
 

@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.net.upnp.SsdpListenerIpv4Multicast
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,8 +29,7 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
 import socket
 
@@ -106,12 +101,20 @@ Run the main loop for this server instance.
 		#
 			try:
 			#
-				self.listener_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, socket.inet_pton(socket.AF_INET, "239.255.255.250") + socket.inet_pton(socket.AF_INET, self.listener_ip))
+				mreq = (socket.inet_pton(socket.AF_INET, "239.255.255.250") + socket.inet_pton(socket.AF_INET, self.listener_ip)
+				        if (hasattr(socket, "inet_pton")) else
+				        socket.inet_aton("239.255.255.250") + socket.inet_aton(self.listener_ip)
+				       )
+
+				self.listener_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+
 				self.listener_active = True
+
+				if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.run()- reporting: Started listening on '{1}'", self, self.listener_ip, context = "pas_upnp")
 			#
 			except Exception as handled_exception:
 			#
-				if (self.log_handler != None): self.log_handler.error(handled_exception)
+				if (self.log_handler != None): self.log_handler.debug(handled_exception, context = "pas_upnp")
 			#
 		#
 
@@ -133,7 +136,7 @@ Stops the listener and unqueues all running sockets.
 			try: self.listener_socket.setsockopt(socket.IPPROTO_IP, socket.IP_DROP_MEMBERSHIP, socket.inet_pton(socket.AF_INET, "239.255.255.250") + socket.inet_pton(socket.AF_INET, self.listener_ip))
 			except Exception as handled_exception:
 			#
-				if (self.log_handler != None): self.log_handler.error(handled_exception)
+				if (self.log_handler != None): self.log_handler.debug(handled_exception, context = "pas_upnp")
 			#
 
 			self.listener_active = False

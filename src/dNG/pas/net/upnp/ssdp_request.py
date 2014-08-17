@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.net.upnp.SsdpRequest
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,13 +29,14 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
 import re
 
-from dNG.data.rfc.http import Http
+from dNG.net.http.raw_client import RawClient as HttpClient
+from dNG.pas.data.upnp.client import Client
 from dNG.pas.module.named_loader import NamedLoader
+from dNG.pas.plugins.hook import Hook
 from dNG.pas.net.server.handler import Handler
 
 class SsdpRequest(Handler):
@@ -56,7 +53,10 @@ Class for handling a received SSDP message.
              GNU General Public License 2
 	"""
 
-	RE_HTTP_HEADER_MAX_AGE = re.compile("(^|[ ,]+)max\\-age=(\\d+)([, ]+|$)")
+	RE_HEADER_MAX_AGE = re.compile("(^|[ ,]+)max\\-age=(\\d+)([, ]+|$)")
+	"""
+RegEx to extract the "Max-Age" header value
+	"""
 
 	def _thread_run(self):
 	#
@@ -66,61 +66,70 @@ Active conversation
 :since: v1.0.0
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -SsdpRequest._thread_run()- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._thread_run()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
-		http_data = self.get_data(512)
+		ssdp_data = self.get_data(512)
 
-		http_headers = (None if (http_data == "") else Http.header_get(http_data))
-		http_request = None
+		headers = (None if (ssdp_data == "") else HttpClient.get_headers(ssdp_data))
+		ssdp_request = None
 
-		if (http_headers != None and "@http" in http_headers):
+		if (headers != None and "@http" in headers):
 		#
-			http_request_data = http_headers['@http'].split(" ", 2)
+			ssdp_request_data = headers['@http'].split(" ", 2)
 
-			if (len(http_request_data) > 2 and http_request_data[2].startswith("HTTP/")):
+			if (len(ssdp_request_data) > 2 and ssdp_request_data[2].startswith("HTTP/")):
 			#
-				http_request = http_request_data[0].upper()
-				http_request_path = http_request_data[1]
-				http_request_version = (1.1 if (http_request_data[2] == "HTTP/1.1") else 1)
+				ssdp_request = ssdp_request_data[0].upper()
+				ssdp_request_path = ssdp_request_data[1]
+				http_version = (1.1 if (ssdp_request_data[2] == "HTTP/1.1") else 1)
 			#
 		#
 
-		if (http_request == "NOTIFY" and http_request_path == "*" and "NT" in http_headers and "NTS" in http_headers and "USN" in http_headers):
+		if (ssdp_request == "NOTIFY" and ssdp_request_path == "*" and "NT" in headers and "NTS" in headers and "USN" in headers):
 		#
-			bootid = (int(http_headers['BOOTID.UPNP.ORG']) if ("BOOTID.UPNP.ORG" in http_headers) else None)
-			configid = (int(http_headers['CONFIGID.UPNP.ORG']) if ("CONFIGID.UPNP.ORG" in http_headers) else None)
+			bootid = (int(headers['BOOTID.UPNP.ORG']) if ("BOOTID.UPNP.ORG" in headers) else None)
+			configid = (int(headers['CONFIGID.UPNP.ORG']) if ("CONFIGID.UPNP.ORG" in headers) else None)
 			control_point = NamedLoader.get_singleton("dNG.pas.net.upnp.ControlPoint")
+			user_agent = headers.get("SERVER")
 
-			if (http_headers['NTS'] == "ssdp:alive" or http_headers['NTS'] == "ssdp:update"):
+			client = Client.load_user_agent(user_agent)
+
+			if (client.get("ssdp_notify_use_filter", False)):
 			#
-				if ("CACHE-CONTROL" in http_headers and "LOCATION" in http_headers and "SERVER" in http_headers):
+				headers_filtered = Hook.call("dNG.pas.upnp.SsdpRequest.filterHeaders", headers = headers, user_agent = user_agent)
+				if (headers_filtered != None): headers = headers_filtered
+			#
+
+			if (headers['NTS'] == "ssdp:alive" or headers['NTS'] == "ssdp:update"):
+			#
+				if ("CACHE-CONTROL" in headers and "LOCATION" in headers and "SERVER" in headers):
 				#
 					bootid_old = None
 
-					if (http_headers['NTS'] == "ssdp:update"):
+					if (headers['NTS'] == "ssdp:update"):
 					#
-						bootid = (int(http_headers['NEXTBOOTID.UPNP.ORG']) if ("NEXTBOOTID.UPNP.ORG" in http_headers) else None)
-						bootid_old = (int(http_headers['BOOTID.UPNP.ORG']) if ("BOOTID.UPNP.ORG" in http_headers) else None)
+						bootid = (int(headers['NEXTBOOTID.UPNP.ORG']) if ("NEXTBOOTID.UPNP.ORG" in headers) else None)
+						bootid_old = (int(headers['BOOTID.UPNP.ORG']) if ("BOOTID.UPNP.ORG" in headers) else None)
 					#
 
-					re_result = SsdpRequest.RE_HTTP_HEADER_MAX_AGE.search(http_headers['CACHE-CONTROL'])
-					unicast_port = (int(http_headers['SEARCHPORT.UPNP.ORG']) if ("SEARCHPORT.UPNP.ORG" in http_headers) else None)
+					re_result = SsdpRequest.RE_HEADER_MAX_AGE.search(headers['CACHE-CONTROL'])
+					unicast_port = (int(headers['SEARCHPORT.UPNP.ORG']) if ("SEARCHPORT.UPNP.ORG" in headers) else None)
 
-					if (re_result != None): control_point.update_usn(http_headers['SERVER'], http_headers['USN'], bootid, bootid_old, configid, int(re_result.group(2)), unicast_port, http_request_version, http_headers['LOCATION'], http_headers)
-					elif (self.log_handler != None): self.log_handler.debug("pas.upnp.SsdpRequest ignored incomplete NOTIFY nts '{0}'".format(http_headers['NTS']))
+					if (re_result != None): control_point.update_usn(headers['SERVER'], headers['USN'], bootid, bootid_old, configid, int(re_result.group(2)), unicast_port, http_version, headers['LOCATION'], headers)
+					elif (self.log_handler != None): self.log_handler.debug("{0!r} ignored broken NOTIFY CACHE-CONTROL '{1}'", self, headers['CACHE-CONTROL'], context = "pas_upnp")
 				#
-				elif (self.log_handler != None): self.log_handler.debug("pas.upnp.SsdpRequest ignored incomplete NOTIFY nts '{0}'".format(http_headers['NTS']))
+				elif (self.log_handler != None): self.log_handler.debug("{0!r} ignored incomplete NOTIFY {1!r}", self, headers, context = "pas_upnp")
 			#
-			elif (http_headers['NTS'] == "ssdp:byebye"): control_point.delete_usn(http_headers['USN'], bootid, configid, http_headers)
-			elif (self.log_handler != None): self.log_handler.debug("pas.upnp.SsdpRequest received unknown NOTIFY nts '{0}'".format(http_headers['NTS']))
+			elif (headers['NTS'] == "ssdp:byebye"): control_point.delete_usn(headers['USN'], bootid, configid, headers)
+			elif (self.log_handler != None): self.log_handler.debug("{0!r} received unknown NOTIFY {1!r}", self, headers, context = "pas_upnp")
 		#
-		elif (http_request == "M-SEARCH" and http_request_path == "*" and "MAN" in http_headers and http_headers['MAN'].strip("\"") == "ssdp:discover" and "ST" in http_headers):
+		elif (ssdp_request == "M-SEARCH" and ssdp_request_path == "*" and "MAN" in headers and headers['MAN'].strip("\"") == "ssdp:discover" and "ST" in headers):
 		#
-			wait_timeout = (int(http_headers['MX']) if ("MX" in http_headers) else 1)
+			wait_timeout = (int(headers['MX']) if ("MX" in headers) else 1)
 			if (wait_timeout > 5): wait_timeout = 5
 
 			control_point = NamedLoader.get_singleton("dNG.pas.net.upnp.ControlPoint")
-			control_point.search(self.address, wait_timeout, http_headers['ST'], http_headers)
+			control_point.search(self.address, wait_timeout, headers['ST'], headers)
 		#
 	#
 #

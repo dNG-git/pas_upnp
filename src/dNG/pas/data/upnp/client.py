@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.Client
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,8 +29,7 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
 from os import path
 import re
@@ -43,7 +38,7 @@ from dNG.pas.data.cached_json_file import CachedJsonFile
 from dNG.pas.data.settings import Settings
 from dNG.pas.data.logging.log_line import LogLine
 from dNG.pas.data.text.input_filter import InputFilter
-from dNG.pas.plugins.hooks import Hooks
+from dNG.pas.plugins.hook import Hook
 
 class Client(dict):
 #
@@ -59,6 +54,20 @@ This class holds static methods to handle UPnP client settings.
              GNU General Public License 2
 	"""
 
+	def __repr__(self):
+	#
+		"""
+python.org: Called by the repr() built-in function and by string conversions
+(reverse quotes) to compute the "official" string representation of an
+object.
+
+:return: (str) String representation
+:since:  v0.1.00
+		"""
+
+		return object.__repr__(self)
+	#
+
 	def _load_user_agent_file(self, user_agent):
 	#
 		"""
@@ -70,22 +79,20 @@ user agent.
 :since: v0.1.00
 		"""
 
-		if (type(user_agent) == str):
-		#
-			identifier = Client.get_user_agent_identifiers(user_agent)
-			LogLine.debug("pas.upnp client requested user agent with identifier '{0}'".format(identifier))
+		identifier = Client.get_user_agent_identifiers(user_agent)
 
-			settings = Client.get_settings_file("{0}/upnp/user_agents/{1}.json".format(Settings.get("path_data"), identifier))
-			if (type(settings) == dict): self.update(settings)
-		#
+		settings = Client.get_settings_file("{0}/upnp/user_agents/{1}.json".format(Settings.get("path_data"), identifier))
+
+		if (type(settings) == dict): self.update(settings)
+		else: LogLine.debug("#echo(__FILEPATH__)# -{0!r}._load_user_agent_file()- reporting: No client file for user agent '{1}' with identifier '{2}'", self, user_agent, identifier, context = "pas_upnp")
 	#
 
 	@staticmethod
 	def get_settings_file(file_pathname):
 	#
 		"""
-Return the client settings from the given file or a client file specified in
-it.
+Returns the client settings from the given file or a client file specified
+in it.
 
 :param file_pathname: Settings file path
 
@@ -94,7 +101,12 @@ it.
 		"""
 
 		_return = CachedJsonFile.read(path.normpath(file_pathname))
-		if (type(_return) == dict and "client_file" in _return): _return = CachedJsonFile.read(path.normpath("{0}/upnp/{1}".format(Settings.get("path_data"), InputFilter.filter_file_path(_return['client_file']))))
+
+		if (type(_return) == dict and "client_file" in _return):
+		#
+			_return = CachedJsonFile.read(path.join(Settings.get("path_data"), "upnp", "user_agents", InputFilter.filter_file_path(_return['client_file'])))
+		#
+
 		return _return
 	#
 
@@ -102,7 +114,7 @@ it.
 	def get_user_agent_identifiers(user_agent):
 	#
 		"""
-Return a UPnP client based on the given HTTP or SSDP user agent value.
+Returns a UPnP client based on the given HTTP or SSDP user agent value.
 
 :param user_agent: HTTP or SSDP user agent value
 
@@ -112,20 +124,22 @@ Return a UPnP client based on the given HTTP or SSDP user agent value.
 
 		_return = ""
 
+		if (not Settings.is_defined("pas_upnp_client_replacement_list")): Settings.read_file("{0}/settings/pas_upnp.json".format(Settings.get("path_data")))
 		replacement_list = Settings.get("pas_upnp_client_replacement_list", None)
 
 		if (type(replacement_list) == dict):
 		#
-			for upnp_value in replacement_list: user_agent = user_agent.replace(upnp_value, replacement_list[upnp_value])
+			replacement_list_keys = sorted(replacement_list.keys(), reverse=True)
+			for upnp_value in replacement_list_keys: user_agent = user_agent.replace(upnp_value, replacement_list[upnp_value])
 		#
 
-		for re_result in re.finditer("([\\d\\w\\.]+\\W[0-9\\.]+)", user_agent):
+		for re_result in re.finditer("([\\d\\w\\.]+/([0-9\\.]+(\\W|$))+)", user_agent):
 		#
 			if (_return != ""): _return += "_"
-			_return += re.sub("\\W+", "_", re_result.group(1))
+			_return += re.sub("\\W+", "_", re_result.group(1)).strip("_")
 		#
 
-		if (_return == ""): _return = re.sub("\\W+", "_", _return).lower()
+		if (_return == ""): _return = re.sub("\\W+", "_", user_agent).lower()
 		else: _return = _return.lower()
 
 		return _return
@@ -135,7 +149,7 @@ Return a UPnP client based on the given HTTP or SSDP user agent value.
 	def load_user_agent(user_agent):
 	#
 		"""
-Return a UPnP client based on the given HTTP or SSDP user agent value.
+Returns a UPnP client based on the given HTTP or SSDP user agent value.
 
 :param user_agent: HTTP or SSDP user agent value
 
@@ -149,7 +163,7 @@ Return a UPnP client based on the given HTTP or SSDP user agent value.
 
 		if (type(user_agent) == str):
 		#
-			external_client = Hooks.call("dNG.pas.upnp.Client.userAgentGet", user_agent = user_agent)
+			external_client = Hook.call("dNG.pas.upnp.Client.getUserAgent", user_agent = user_agent)
 
 			if (external_client == None): _return._load_user_agent_file(user_agent)
 			else: _return = external_client

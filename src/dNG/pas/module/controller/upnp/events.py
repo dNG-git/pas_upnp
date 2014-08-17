@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.module.blocks.upnp.Events
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,10 +29,9 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
-from os import uname
+from platform import uname
 from time import time
 import re
 
@@ -46,7 +41,7 @@ from dNG.pas.data.upnp.client import Client
 from dNG.pas.data.upnp.upnp_exception import UpnpException
 from dNG.pas.data.upnp.services.abstract_service import AbstractService
 from dNG.pas.net.upnp.gena import Gena
-from dNG.pas.plugins.hooks import Hooks
+from dNG.pas.plugins.hook import Hook
 from .module import Module
 
 class Events(Module):
@@ -73,18 +68,19 @@ Action for "request"
 
 		os_uname = uname()
 
-		self.response.set_header("Date", RfcBasics.get_rfc1123_datetime(time()))
+		self.response.init()
+		self.response.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
 		self.response.set_header("Server", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2]))
 
 		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
 		upnp_service = self.request.get_upnp_service()
 		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_core_400", 401)
 
-		Hooks.call("dNG.pas.http.l10n.upnp.Events.init")
+		Hook.call("dNG.pas.http.l10n.upnp.Events.init")
 
 		callback_url = self.request.get_header("Callback")
 		gena_sid = self.request.get_header("SID")
-		upnp_service.client_set_user_agent(self.client_user_agent)
+		upnp_service.set_client_user_agent(self.client_user_agent)
 
 		if ((callback_url == None or self.request.get_header("NT") != "upnp:event") and gena_sid == None): raise UpnpException("pas_http_core_400", 400)
 
@@ -106,7 +102,7 @@ Action for "request"
 
 			if (gena_sid == False): raise UpnpException("pas_http_core_404", 412)
 
-			self.response.set_header("Date", RfcBasics.get_rfc1123_datetime(time()))
+			self.response.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
 			self.response.set_header("SID", gena_sid)
 			self.response.set_header("Timeout", "Second-{0:d}".format(timeout))
 			self.response.set_raw_data("")
@@ -117,7 +113,7 @@ Action for "request"
 
 			if (result == False): raise UpnpException("pas_http_core_404", 412)
 
-			self.response.set_header("Date", RfcBasics.get_rfc1123_datetime(time()))
+			self.response.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
 			self.response.set_header("SID", gena_sid)
 			self.response.set_header("Timeout", "Second-{0:d}".format(timeout))
 			self.response.set_raw_data("")
@@ -134,24 +130,25 @@ Action for "request"
 
 		os_uname = uname()
 
-		self.response.set_header("Date", RfcBasics.get_rfc1123_datetime(time()))
+		self.response.init()
+		self.response.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
 		self.response.set_header("Server", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2]))
 
 		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
 		upnp_service = self.request.get_upnp_service()
 		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_core_400", 401)
 
-		Hooks.call("dNG.pas.http.l10n.upnp.Events.init")
+		Hook.call("dNG.pas.http.l10n.upnp.Events.init")
 
 		gena_sid = self.request.get_header("SID")
-		upnp_service.client_set_user_agent(self.client_user_agent)
+		upnp_service.set_client_user_agent(self.client_user_agent)
 
 		if (gena_sid == None): raise UpnpException("pas_http_core_400", 400)
 
 		gena = Gena.get_instance()
 		if (not gena.deregister(upnp_service.get_name(), gena_sid)): raise UpnpException("pas_http_core_404", 412)
 
-		self.response.set_header("Date", RfcBasics.get_rfc1123_datetime(time()))
+		self.response.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
 		self.response.set_raw_data("")
 	#
 #

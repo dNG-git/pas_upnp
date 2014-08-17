@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.Resource
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,8 +29,7 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
 # pylint: disable=import-error,no-name-in-module
 
@@ -51,7 +46,7 @@ from dNG.pas.data.supports_mixin import SupportsMixin
 from dNG.pas.data.text.input_filter import InputFilter
 from dNG.pas.data.text.l10n import L10n
 from dNG.pas.module.named_loader import NamedLoader
-from dNG.pas.plugins.hooks import Hooks
+from dNG.pas.plugins.hook import Hook
 from dNG.pas.runtime.thread_lock import ThreadLock
 from dNG.pas.runtime.value_exception import ValueException
 from .client import Client
@@ -130,7 +125,7 @@ UPnP resource DIDL protocolInfo value
 		"""
 UPnP resource ID
 		"""
-		self.lock = ThreadLock()
+		self._lock = ThreadLock()
 		"""
 Thread safety lock
 		"""
@@ -191,35 +186,10 @@ UPnP UpdateID value
 True if the resource is writable
 		"""
 
-		self.supported_features['content_search'] = self._supports_content_search
+		self.supported_features['search_content'] = self._supports_search_content
 	#
 
-	def client_get_user_agent(self):
-	#
-		"""
-Returns the UPnP client user agent requesting the resource.
-
-:return: (str) Client user agent if known; None otherwise
-:since:  v0.1.00
-		"""
-
-		return self.client_user_agent
-	#
-
-	def client_set_user_agent(self, user_agent):
-	#
-		"""
-Sets the UPnP client user agent.
-
-:param user_agent: Client user agent
-
-:since: v0.1.00
-		"""
-
-		self.client_user_agent = user_agent
-	#
-
-	def content_add(self, resource):
+	def add_content(self, resource):
 	#
 		"""
 Add the given resource to the content list.
@@ -232,12 +202,12 @@ Add the given resource to the content list.
 
 		_return = False
 
-		with self.lock:
+		if (isinstance(resource, Resource) and resource.get_type() != None):
 		#
-			self._content_init()
-
-			if (isinstance(resource, Resource) and resource.get_type() != None):
+			with self._lock:
 			#
+				self._init_content()
+
 				self.content.append(resource)
 				self.set_update_id("++")
 
@@ -248,7 +218,106 @@ Add the given resource to the content list.
 		return _return
 	#
 
-	def content_flush_cache(self):
+	def _add_metadata_to_didl_xml_node(self, xml_resource, xml_node_path, parent_id = None):
+	#
+		"""
+Uses the given XML resource to add the DIDL metadata of this UPnP resource.
+
+:param xml_resource: XML resource
+:param xml_base_path: UPnP resource XML base path (e.g. "DIDL-Lite
+                      item")
+
+:since:  v0.1.01
+		"""
+
+		attributes = None
+		# TODO: Replace with get_parent_id()
+		if (parent_id == None): parent_id = self.get_id()
+		resource_searchable = self.get_searchable()
+		resource_type = self.get_type()
+		resource_updatable = self.get_updatable()
+		value = ""
+
+		if (resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
+		#
+			attributes = { "id": self.get_id(),
+			               "parentID": parent_id,
+			               "restricted": ("0" if (resource_updatable) else "1"),
+			               "searchable": ("0" if (resource_searchable) else "1")
+			             }
+
+			didl_fields = self.get_didl_fields()
+			if (len(didl_fields) < 1 or "@childCount" in didl_fields): attributes['childCount'] = str(self.get_total())
+		#
+		elif (resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM):
+		#
+			attributes = { "id": self.get_id(),
+			               "parentID": parent_id,
+			               "restricted": ("0" if (resource_updatable) else "1")
+			             }
+		#
+		elif (resource_type & Resource.TYPE_CDS_RESOURCE == Resource.TYPE_CDS_RESOURCE):
+		#
+			res_protocol = self.get_didl_res_protocol()
+			size = self.get_size()
+
+			if (res_protocol != None):
+			#
+				attributes = { "protocolInfo": res_protocol }
+				if (size != None): attributes['size'] = size
+
+				url = Binary.str(self.get_content(0))
+				if (type(url) == str): value = url
+			#
+		#
+
+		if (attributes != None):
+		#
+			xml_resource.add_node(xml_node_path, value, attributes)
+
+			if (resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER or resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM):
+			#
+				type_name = self.get_type_name()
+				type_attributes = (None if (type_name == None) else { "name": type_name })
+
+				xml_resource.add_node("{0} dc:title".format(xml_node_path), self.get_name())
+				xml_resource.add_node("{0} upnp:class".format(xml_node_path), self.get_type_class(), type_attributes)
+				if (resource_searchable): xml_resource.add_node("{0} upnp:searchClass".format(xml_node_path), "object.item", { "includeDerived": True })
+
+				timestamp = self.get_timestamp()
+				if (timestamp > -1): xml_resource.add_node("{0} dc:date".format(xml_node_path), Basics.get_iso8601_datetime(timestamp))
+				xml_resource.add_node("{0} upnp:writeStatus".format(xml_node_path), ("WRITABLE" if (resource_updatable) else "NOT_WRITABLE"))
+
+				if (resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): Resource._append_content_didl_xml_nodes(xml_resource, xml_node_path, self.get_content_list(), self.get_id())
+			#
+		#
+	#
+
+	def _filter_metadata_of_didl_xml_node(self, xml_resource, xml_node_path):
+	#
+		"""
+Uses the given XML resource to remove DIDL metadata not requested by the
+client.
+
+:param xml_resource: XML resource
+:param xml_base_path: UPnP resource XML base path (e.g. "DIDL-Lite
+                      item")
+
+:since:  v0.1.01
+		"""
+
+		didl_fields = self.get_didl_fields()
+		resource_type = self.get_type()
+
+		if (len(didl_fields) > 0
+		    and (resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER
+		         or resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM
+		        )
+		    and "upnp:writeStatus" not in didl_fields
+		   ): xml_resource.remove_node("{0} upnp:writeStatus".format(xml_node_path))
+	#
+
+	def flush_content_cache(self):
 	#
 		"""
 Flushes the content cache.
@@ -256,10 +325,22 @@ Flushes the content cache.
 :since: v0.1.01
 		"""
 
-		with self.lock: self.content = None
+		with self._lock: self.content = None
 	#
 
-	def content_get(self, position):
+	def get_client_user_agent(self):
+	#
+		"""
+Returns the UPnP client user agent requesting the resource.
+
+:return: (str) Client user agent if known; None otherwise
+:since:  v0.1.00
+		"""
+
+		return self.client_user_agent
+	#
+
+	def get_content(self, position):
 	#
 		"""
 Returns the UPnP content resource at the given position.
@@ -271,12 +352,12 @@ Returns the UPnP content resource at the given position.
 		"""
 
 		position -= self.content_offset
-		self._content_init()
+		self._init_content()
 
 		return (self.content[position] if (position >= 0 and self.content != None and len(self.content) > position) else None)
 	#
 
-	def content_get_list(self):
+	def get_content_list(self):
 	#
 		"""
 Returns the UPnP content resources between offset and limit.
@@ -287,13 +368,13 @@ Returns the UPnP content resources between offset and limit.
 
 		_return = [ ]
 
-		self._content_init()
+		self._init_content()
 		if (self.content != None): _return = (self.content if (self.content_limit == None) else self.content[self.content_offset:self.content_offset + self.content_limit])
 
 		return _return
 	#
 
-	def content_get_list_of_type(self, _type = None):
+	def get_content_list_of_type(self, _type = None):
 	#
 		"""
 Returns the UPnP content resources of the given type or all ones between
@@ -307,13 +388,13 @@ offset and limit.
 
 		if (_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER): _return = None
 		elif (_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): _return = None
-		else: _return = self.content_get_list()
+		else: _return = self.get_content_list()
 
 		if (_return == None):
 		#
 			_return = [ ]
 
-			for entry in self.content_get_list():
+			for entry in self.get_content_list():
 			#
 				if (entry.get_type() == _type): _return.append(entry)
 			#
@@ -322,7 +403,7 @@ offset and limit.
 		return _return
 	#
 
-	def content_get_didl_xml(self):
+	def get_content_didl_xml(self):
 	#
 		"""
 Returns an UPnP DIDL result of generated XML for all contained UPnP content
@@ -339,156 +420,15 @@ resources.
 		if (self.type != None and self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
 		#
 			xml_resource = self._init_xml_resource()
-			xml_resource.node_add("DIDL-Lite", attributes = { "xmlns": "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/", "xmlns:dc": "http://purl.org/dc/elements/1.1/", "xmlns:upnp": "urn:schemas-upnp-org:metadata-1-0/upnp/" })
+			xml_resource.add_node("DIDL-Lite", attributes = { "xmlns": "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/", "xmlns:dc": "http://purl.org/dc/elements/1.1/", "xmlns:upnp": "urn:schemas-upnp-org:metadata-1-0/upnp/" })
 
-			content_count = Resource._content_append_didl_xml_nodes(xml_resource, "DIDL-Lite", self.content_get_list(), self.get_id())
+			content_count = Resource._append_content_didl_xml_nodes(xml_resource, "DIDL-Lite", self.get_content_list(), self.get_id())
 
-			_return = {
-				"result": xml_resource.cache_export(True),
-				"number_returned": content_count,
-				"total_matches": self.get_total(),
-				"update_id": self.update_id
-			}
-		#
-
-		return _return
-	#
-
-	def _content_init(self):
-	#
-		"""
-Initializes the content of a container.
-
-:return: (bool) True if successful
-:since:  v0.1.01
-		"""
-
-		_return = False
-
-		if (self.content == None):
-		# Content could be set by another thread so check again
-			with self.lock:
-			#
-				if (self.content == None):
-				#
-					self.content = [ ]
-
-					if (self.id == "0"):
-					#
-						Hooks.call("dNG.pas.upnp.Resource.getRootResourceClientContent", container = self)
-						if (len(self.content) == 0): Hooks.call("dNG.pas.upnp.Resource.getRootResourceContent", container = self)
-						_return = True
-					#
-				#
-			#
-		#
-
-		return _return
-	#
-
-	def content_search(self, search_criteria):
-	#
-		"""
-Returns all contained UPnP content resources matching the given UPnP search
-criteria.
-
-:return: (dict) Result dict containting "result" as generated XML,
-         "number_returned" as the number of DIDL nodes, "total_matches" of
-         all DIDL nodes and the current UPnP update ID.
-:since:  v0.1.01
-		"""
-
-		_return = [ ]
-
-		return _return
-	#
-
-	def content_search_didl_xml(self, search_criteria):
-	#
-		"""
-Returns an UPnP DIDL result of generated XML for all UPnP content resources
-matching the given UPnP search criteria.
-
-:return: (dict) Result dict containting "result" as generated XML,
-         "number_returned" as the number of DIDL nodes, "total_matches" of
-         all DIDL nodes and the current UPnP update ID.
-:since:  v0.1.01
-		"""
-
-		_return = None
-
-		if (self.type != None and self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
-		#
-			xml_resource = self._init_xml_resource()
-			xml_resource.node_add("DIDL-Lite", attributes = { "xmlns": "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/", "xmlns:dc": "http://purl.org/dc/elements/1.1/", "xmlns:upnp": "urn:schemas-upnp-org:metadata-1-0/upnp/" })
-
-			content_matched = self.content_search(search_criteria)
-			content_matched_count = len(content_matched)
-
-			content_count = (Resource._content_append_didl_xml_nodes(xml_resource, "DIDL-Lite", content_matched, self.get_id()) if (content_matched_count > 0) else 0)
-
-			_return = {
-				"result": xml_resource.cache_export(True),
-				"number_returned": content_count,
-				"total_matches": content_matched_count,
-				"update_id": self.update_id
-			}
-		#
-
-		return _return
-	#
-
-	def content_set_offset(self, content_offset):
-	#
-		"""
-Sets the UPnP resource content offset.
-
-:param content_offset: UPnP resource content offset
-
-:since: v0.1.01
-		"""
-
-		self.content_offset = content_offset
-	#
-
-	def content_set_limit(self, content_limit):
-	#
-		"""
-Sets the UPnP resource content limit.
-
-:param content_limit: UPnP resource content limit
-
-:since: v0.1.01
-		"""
-
-		self.content_limit = content_limit
-	#
-
-	def content_remove(self, resource):
-	#
-		"""
-Removes the given resource from the content list.
-
-:param resource: UPnP resource
-
-:return: (bool) True on success
-:since:  v0.1.01
-		"""
-
-		_return = False
-
-		with self.lock:
-		#
-			if (self.content != None):
-			#
-				if (resource in self.content):
-				#
-					self.content.remove(resource)
-					self.set_update_id("++")
-
-					_return = True
-				#
-			#
+			_return = { "result": xml_resource.export_cache(True),
+			            "number_returned": content_count,
+			            "total_matches": self.get_total(),
+			            "update_id": self.update_id
+			          }
 		#
 
 		return _return
@@ -503,7 +443,7 @@ Returns the user agent specific DIDL fields requested.
 :since:  v0.1.01
 		"""
 
-		_return = (None if (self.client_user_agent == None) else Hooks.call("dNG.pas.upnp.Resource.getDidlFields", didl_fields = didl_fields, client_user_agent = self.client_user_agent))
+		_return = (None if (self.client_user_agent == None) else Hook.call("dNG.pas.upnp.Resource.getDidlFields", didl_fields = didl_fields, client_user_agent = self.client_user_agent))
 		return (didl_fields if (_return == None) else _return)
 	#
 
@@ -516,7 +456,7 @@ Returns a user agent specific DIDL protcolInfo value.
 :since:  v0.1.01
 		"""
 
-		_return = (None if (self.client_user_agent == None) else Hooks.call("dNG.pas.upnp.Resource.getDidlResProtocol", didl_res_protocol = didl_res_protocol, client_user_agent = self.client_user_agent))
+		_return = (None if (self.client_user_agent == None) else Hook.call("dNG.pas.upnp.Resource.getDidlResProtocol", didl_res_protocol = didl_res_protocol, client_user_agent = self.client_user_agent))
 		return (didl_res_protocol if (_return == None) else _return)
 	#
 
@@ -529,7 +469,7 @@ Returns a user agent specific UPnP resource mime type.
 :since:  v0.1.01
 		"""
 
-		_return = (None if (self.client_user_agent == None) else Hooks.call("dNG.pas.upnp.Resource.getMimetype", mimetype = mimetype, client_user_agent = self.client_user_agent))
+		_return = (None if (self.client_user_agent == None) else Hook.call("dNG.pas.upnp.Resource.getMimetype", mimetype = mimetype, client_user_agent = self.client_user_agent))
 		if (_return == None): _return = mimetype
 
 		client = Client.load_user_agent(self.client_user_agent)
@@ -548,7 +488,7 @@ Returns a user agent specific UPnP resource type.
 :since:  v0.1.01
 		"""
 
-		_return = (None if (self.client_user_agent == None) else Hooks.call("dNG.pas.upnp.Resource.getType", _type = _type, client_user_agent = self.client_user_agent))
+		_return = (None if (self.client_user_agent == None) else Hook.call("dNG.pas.upnp.Resource.getType", _type = _type, client_user_agent = self.client_user_agent))
 		return (_type if (_return == None) else _return)
 	#
 
@@ -561,7 +501,7 @@ Returns a user agent specific UPnP resource type class.
 :since:  v0.1.01
 		"""
 
-		_return = (None if (self.client_user_agent == None) else Hooks.call("dNG.pas.upnp.Resource.getTypeClass", type_class = type_class, client_user_agent = self.client_user_agent))
+		_return = (None if (self.client_user_agent == None) else Hook.call("dNG.pas.upnp.Resource.getTypeClass", type_class = type_class, client_user_agent = self.client_user_agent))
 		return (type_class if (_return == None) else _return)
 	#
 
@@ -615,6 +555,44 @@ Returns the UPnP resource ID.
 		"""
 
 		return self.id
+	#
+
+	def get_metadata_didl_xml(self):
+	#
+		"""
+Returns an UPnP DIDL result of generated XML for this UPnP resource.
+
+:return: (dict) Result dict containting the same keys as
+         "get_content_didl_xml()"
+:since:  v0.1.01
+		"""
+
+		_return = None
+
+		if (self.type != None):
+		#
+			xml_resource = self._init_xml_resource()
+			xml_resource.add_node("DIDL-Lite", attributes = { "xmlns": "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/", "xmlns:dc": "http://purl.org/dc/elements/1.1/", "xmlns:upnp": "urn:schemas-upnp-org:metadata-1-0/upnp/" })
+
+			if (self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER): xml_node_path = "DIDL-Lite container"
+			elif (self.type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): xml_node_path = "DIDL-Lite item"
+			else: xml_node_path = None
+
+			if (xml_node_path != None):
+			#
+				self._add_metadata_to_didl_xml_node(xml_resource, xml_node_path)
+				self._rewrite_metadata_of_didl_xml_node(xml_resource, xml_node_path)
+				self._filter_metadata_of_didl_xml_node(xml_resource, xml_node_path)
+			#
+
+			_return = { "result": xml_resource.export_cache(True),
+			            "number_returned": 1,
+			            "total_matches": 1,
+			            "update_id": self.update_id
+			          }
+		#
+
+		return _return
 	#
 
 	def get_mimeclass(self):
@@ -686,7 +664,7 @@ Returns the UPnP search capabilities.
 :since:  v0.1.00
 		"""
 
-		didl_fields = Hooks.call("dNG.pas.upnp.Resource.getSearchableDidlFields", client_user_agent = self.client_user_agent)
+		didl_fields = Hook.call("dNG.pas.upnp.Resource.getSearchableDidlFields", client_user_agent = self.client_user_agent)
 		if (type(didl_fields) != list or len(didl_fields) < 1): didl_fields = None
 
 		if (didl_fields == None): _return = ""
@@ -716,7 +694,7 @@ Returns the UPnP sort capabilities.
 :since:  v0.1.00
 		"""
 
-		didl_fields = Hooks.call("dNG.pas.upnp.Resource.getSortableDidlFields", client_user_agent = self.client_user_agent)
+		didl_fields = Hook.call("dNG.pas.upnp.Resource.getSortableDidlFields", client_user_agent = self.client_user_agent)
 		if (type(didl_fields) != list or len(didl_fields) < 1): didl_fields = None
 
 		if (didl_fields == None): _return = ""
@@ -730,7 +708,7 @@ Returns the UPnP sort capabilities.
 		"""
 Returns the UPnP stream resource.
 
-:return: UPnP stream resource; None if not streamable
+:return: (object) UPnP stream resource; None if not streamable
 :since:  v0.1.01
 		"""
 
@@ -753,7 +731,7 @@ Returns the number of UPnP content resources.
 :since:  v0.1.01
 		"""
 
-		self._content_init()
+		self._init_content()
 		return len(self.content)
 	#
 
@@ -886,10 +864,42 @@ Initialize a UPnP resource by CDS ID.
 			self.parent_id = "-1"
 			self.type = Resource.TYPE_CDS_CONTAINER
 
-			search_callbacks = Hooks.call("dNG.pas.upnp.Resource.getSearchCallbacks")
+			search_callbacks = Hook.call("dNG.pas.upnp.Resource.getSearchCallbacks")
 			self.searchable = (search_callbacks != None and len(search_callbacks) > 0)
 
 			_return = True
+		#
+
+		return _return
+	#
+
+	def _init_content(self):
+	#
+		"""
+Initializes the content of a container.
+
+:return: (bool) True if successful
+:since:  v0.1.01
+		"""
+
+		_return = False
+
+		if (self.content == None):
+		# Thread safety
+			with self._lock:
+			#
+				if (self.content == None):
+				#
+					self.content = [ ]
+
+					if (self.id == "0"):
+					#
+						Hook.call("dNG.pas.upnp.Resource.getRootResourceClientContent", container = self)
+						if (len(self.content) == 0): Hook.call("dNG.pas.upnp.Resource.getRootResourceContent", container = self)
+						_return = True
+					#
+				#
+			#
 		#
 
 		return _return
@@ -910,12 +920,12 @@ slash. We define both notations just in case.
 		"""
 
 		_return = XmlResource(node_type = OrderedDict)
-		_return.ns_register("dc", "http://purl.org/dc/elements/1.1")
-		_return.ns_register("dc", "http://purl.org/dc/elements/1.1/")
-		_return.ns_register("didl", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite")
-		_return.ns_register("didl", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/")
-		_return.ns_register("upnp", "urn:schemas-upnp-org:metadata-1-0/upnp")
-		_return.ns_register("upnp", "urn:schemas-upnp-org:metadata-1-0/upnp/")
+		_return.register_ns("dc", "http://purl.org/dc/elements/1.1")
+		_return.register_ns("dc", "http://purl.org/dc/elements/1.1/")
+		_return.register_ns("didl", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite")
+		_return.register_ns("didl", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/")
+		_return.register_ns("upnp", "urn:schemas-upnp-org:metadata-1-0/upnp")
+		_return.register_ns("upnp", "urn:schemas-upnp-org:metadata-1-0/upnp/")
 		return _return
 	#
 
@@ -931,107 +941,40 @@ Returns true if the resource is represented in the filesystem.
 		return False
 	#
 
-	def metadata_add_didl_xml_node(self, xml_resource, xml_node_path, parent_id = None):
+	def remove_content(self, resource):
 	#
 		"""
-Uses the given XML resource to add the DIDL metadata of this UPnP resource.
+Removes the given resource from the content list.
 
-:param xml_resource: XML resource
-:param xml_base_path: UPnP resource XML base path (e.g. "DIDL-Lite
-                      item")
+:param resource: UPnP resource
 
+:return: (bool) True on success
 :since:  v0.1.01
 		"""
 
-		attributes = None
-		# TODO: Replace with get_parent_id()
-		if (parent_id == None): parent_id = self.get_id()
-		resource_searchable = self.get_searchable()
-		resource_type = self.get_type()
-		resource_updatable = self.get_updatable()
-		value = ""
+		_return = False
 
-		if (resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
-		#
-			attributes = {
-				"id": self.get_id(),
-				"parentID": parent_id,
-				"restricted": ("0" if (resource_updatable) else "1"),
-				"searchable": ("0" if (resource_searchable) else "1")
-			}
-
-			didl_fields = self.get_didl_fields()
-			if (len(didl_fields) < 1 or "@childCount" in didl_fields): attributes['childCount'] = str(self.get_total())
-		#
-		elif (resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM):
-		#
-			attributes = {
-				"id": self.get_id(),
-				"parentID": parent_id,
-				"restricted": ("0" if (resource_updatable) else "1")
-			}
-		#
-		elif (resource_type & Resource.TYPE_CDS_RESOURCE == Resource.TYPE_CDS_RESOURCE):
-		#
-			res_protocol = self.get_didl_res_protocol()
-			size = self.get_size()
-
-			if (res_protocol != None):
+		if (self.content != None):
+		# Thread safety
+			with self._lock:
 			#
-				attributes = { "protocolInfo": res_protocol }
-				if (size != None): attributes['size'] = size
+				if (self.content != None):
+				#
+					if (resource in self.content):
+					#
+						self.content.remove(resource)
+						self.set_update_id("++")
 
-				url = Binary.str(self.content_get(0))
-				if (type(url) == str): value = url
+						_return = True
+					#
+				#
 			#
 		#
 
-		if (attributes != None):
-		#
-			xml_resource.node_add(xml_node_path, value, attributes)
-
-			if (resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER or resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM):
-			#
-				type_name = self.get_type_name()
-				type_attributes = (None if (type_name == None) else { "name": type_name })
-
-				xml_resource.node_add("{0} dc:title".format(xml_node_path), self.get_name())
-				xml_resource.node_add("{0} upnp:class".format(xml_node_path), self.get_type_class(), type_attributes)
-				if (resource_searchable): xml_resource.node_add("{0} upnp:searchClass".format(xml_node_path), "object.item", { "includeDerived": True })
-
-				timestamp = self.get_timestamp()
-				if (timestamp > -1): xml_resource.node_add("{0} dc:date".format(xml_node_path), Basics.get_iso8601_datetime(timestamp))
-				xml_resource.node_add("{0} upnp:writeStatus".format(xml_node_path), ("WRITABLE" if (resource_updatable) else "NOT_WRITABLE"))
-
-				if (resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): Resource._content_append_didl_xml_nodes(xml_resource, xml_node_path, self.content_get_list(), self.get_id())
-			#
-		#
+		return _return
 	#
 
-	def metadata_filter_didl_xml_node(self, xml_resource, xml_node_path):
-	#
-		"""
-Uses the given XML resource to remove DIDL metadata not requested by the
-client.
-
-:param xml_resource: XML resource
-:param xml_base_path: UPnP resource XML base path (e.g. "DIDL-Lite
-                      item")
-
-:since:  v0.1.01
-		"""
-
-		didl_fields = self.get_didl_fields()
-		resource_type = self.get_type()
-
-		if (
-			len(didl_fields) > 0 and
-			(resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER or resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM) and
-			"upnp:writeStatus" not in didl_fields
-		): xml_resource.node_remove("{0} upnp:writeStatus".format(xml_node_path))
-	#
-
-	def metadata_rewrite_didl_xml_node(self, xml_resource, xml_node_path):
+	def _rewrite_metadata_of_didl_xml_node(self, xml_resource, xml_node_path):
 	#
 		"""
 Uses the given XML resource to manipulate DIDL metadata for the client.
@@ -1058,47 +1001,98 @@ Uses the given XML resource to manipulate DIDL metadata for the client.
 		if (title_format != None):
 		#
 			title = XmlRewriteParser().render(title_format, xml_resource, xml_node_path)
-			xml_resource.node_change_value("{0} dc:title".format(xml_node_path), title)
+			xml_resource.change_node_value("{0} dc:title".format(xml_node_path), title)
 		#
 	#
 
-	def metadata_get_didl_xml(self):
+	def search_content(self, search_criteria):
 	#
 		"""
-Returns an UPnP DIDL result of generated XML for this UPnP resource.
+Returns all contained UPnP content resources matching the given UPnP search
+criteria.
 
-:return: (dict) Result dict containting the same keys as
-         "content_get_didl_xml()"
+:return: (dict) Result dict containting "result" as generated XML,
+         "number_returned" as the number of DIDL nodes, "total_matches" of
+         all DIDL nodes and the current UPnP update ID.
+:since:  v0.1.01
+		"""
+
+		_return = [ ]
+
+		return _return
+	#
+
+	def search_content_didl_xml(self, search_criteria):
+	#
+		"""
+Returns an UPnP DIDL result of generated XML for all UPnP content resources
+matching the given UPnP search criteria.
+
+:return: (dict) Result dict containting "result" as generated XML,
+         "number_returned" as the number of DIDL nodes, "total_matches" of
+         all DIDL nodes and the current UPnP update ID.
 :since:  v0.1.01
 		"""
 
 		_return = None
 
-		if (self.type != None):
+		if (self.type != None and self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
 		#
 			xml_resource = self._init_xml_resource()
-			xml_resource.node_add("DIDL-Lite", attributes = { "xmlns": "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/", "xmlns:dc": "http://purl.org/dc/elements/1.1/", "xmlns:upnp": "urn:schemas-upnp-org:metadata-1-0/upnp/" })
+			xml_resource.add_node("DIDL-Lite", attributes = { "xmlns": "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/", "xmlns:dc": "http://purl.org/dc/elements/1.1/", "xmlns:upnp": "urn:schemas-upnp-org:metadata-1-0/upnp/" })
 
-			if (self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER): xml_node_path = "DIDL-Lite container"
-			elif (self.type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): xml_node_path = "DIDL-Lite item"
-			else: xml_node_path = None
+			content_matched = self.search_content(search_criteria)
+			content_matched_count = len(content_matched)
 
-			if (xml_node_path != None):
-			#
-				self.metadata_add_didl_xml_node(xml_resource, xml_node_path)
-				self.metadata_rewrite_didl_xml_node(xml_resource, xml_node_path)
-				self.metadata_filter_didl_xml_node(xml_resource, xml_node_path)
-			#
+			content_count = (Resource._append_content_didl_xml_nodes(xml_resource, "DIDL-Lite", content_matched, self.get_id()) if (content_matched_count > 0) else 0)
 
-			_return = {
-				"result": xml_resource.cache_export(True),
-				"number_returned": 1,
-				"total_matches": 1,
-				"update_id": self.update_id
-			}
+			_return = { "result": xml_resource.export_cache(True),
+			            "number_returned": content_count,
+			            "total_matches": content_matched_count,
+			            "update_id": self.update_id
+			          }
 		#
 
 		return _return
+	#
+
+	def set_client_user_agent(self, user_agent):
+	#
+		"""
+Sets the UPnP client user agent.
+
+:param user_agent: Client user agent
+
+:since: v0.1.00
+		"""
+
+		self.client_user_agent = user_agent
+	#
+
+	def set_content_offset(self, content_offset):
+	#
+		"""
+Sets the UPnP resource content offset.
+
+:param content_offset: UPnP resource content offset
+
+:since: v0.1.01
+		"""
+
+		self.content_offset = content_offset
+	#
+
+	def set_content_limit(self, content_limit):
+	#
+		"""
+Sets the UPnP resource content limit.
+
+:param content_limit: UPnP resource content limit
+
+:since: v0.1.01
+		"""
+
+		self.content_limit = content_limit
 	#
 
 	def set_didl_fields(self, fields):
@@ -1161,7 +1155,7 @@ Sets the UPnP resource update ID or increments it.
 		#TODO: Gena.update_value("")
 	#
 
-	def _supports_content_search(self):
+	def _supports_search_content(self):
 	#
 		"""
 Returns false if the resource content can't be searched for.
@@ -1174,7 +1168,7 @@ Returns false if the resource content can't be searched for.
 	#
 
 	@staticmethod
-	def _content_append_didl_xml_nodes(xml_resource, xml_base_path, content, parent_id = None):
+	def _append_content_didl_xml_nodes(xml_resource, xml_base_path, content, parent_id = None):
 	#
 		"""
 Uses the given XML resource to add DIDL nodes for the content of the UPnP
@@ -1184,9 +1178,11 @@ resource.
 :param xml_base_path: UPnP resource XML base path (e.g. "DIDL-Lite
                       container")
 
-:return: Number of DIDL nodes added
+:return: (int) Number of DIDL nodes added
 :since:  v0.1.01
 		"""
+
+		# pylint: disable=protected-access
 
 		content_containers = 0
 		content_items = 0
@@ -1216,9 +1212,9 @@ resource.
 
 			if (xml_node_path != None):
 			#
-				resource.metadata_add_didl_xml_node(xml_resource, xml_node_path, parent_id)
-				resource.metadata_rewrite_didl_xml_node(xml_resource, xml_node_path)
-				resource.metadata_filter_didl_xml_node(xml_resource, xml_node_path)
+				resource._add_metadata_to_didl_xml_node(xml_resource, xml_node_path, parent_id)
+				resource._rewrite_metadata_of_didl_xml_node(xml_resource, xml_node_path)
+				resource._filter_metadata_of_didl_xml_node(xml_resource, xml_node_path)
 			#
 		#
 
@@ -1247,7 +1243,7 @@ Load a UPnP resource by CDS ID.
 			_return = Resource()
 			_return.init_cds_id(_id, client_user_agent, cds.get_system_update_id(), deleted)
 		#
-		elif ("://" in _id):
+		elif (_id != None and "://" in _id):
 		#
 			url_elements = urlsplit(_id)
 

@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.UpnpException
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,12 +29,11 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
-from dNG.pas.data.translatable_exception import TranslatableException
+from dNG.pas.data.http.translatable_error import TranslatableError
 
-class UpnpException(TranslatableException):
+class UpnpException(TranslatableError):
 #
 	"""
 "UpnpException" takes a UPnP error message and its error code for later
@@ -66,18 +61,18 @@ Constructor __init__(UpnpException)
 :since: v0.1.01
 		"""
 
+		TranslatableError.__init__(self, l10n_id, 500, value, _exception)
+
 		self.upnp_code = upnp_code
 		"""
 UPnP error code
 		"""
-
-		TranslatableException.__init__(self, l10n_id, value, _exception)
 	#
 
 	def get_upnp_code(self):
 	#
 		"""
-Return the UPnP error code.
+Returns the UPnP error code.
 
 :return: (int) UPnP error code
 :since:  v0.1.01

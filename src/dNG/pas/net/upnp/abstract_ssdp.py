@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.AbstractSsdp
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,13 +29,12 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
-from os import uname
+from platform import uname
 import socket
 
-from dNG.data.rfc.http import Http
+from dNG.net.http.raw_client import RawClient
 from dNG.pas.data.binary import Binary
 from dNG.pas.data.settings import Settings
 from dNG.pas.module.named_loader import NamedLoader
@@ -47,7 +42,7 @@ from dNG.pas.net.udp_ne_ipv4_socket import UdpNeIpv4Socket
 from dNG.pas.net.udp_ne_ipv6_socket import UdpNeIpv6Socket
 from dNG.pas.runtime.instance_lock import InstanceLock
 
-class AbstractSsdp(Http):
+class AbstractSsdp(RawClient):
 #
 	"""
 This class contains a generic SSDP message implementation. Its based on HTTP
@@ -81,9 +76,13 @@ Quirk mode replaces the OS string from the SERVER header with "Windows".
 Quirk mode adds UPnP/1.0 version to the SERVER header.
 	"""
 
-	lock = InstanceLock()
+	_lock = InstanceLock()
 	"""
 Thread safety lock
+	"""
+	_os_uname = uname()
+	"""
+OS uname data
 	"""
 	quirks_mode = 0
 	"""
@@ -107,7 +106,7 @@ SSDP target family
 SSDP target host
 		"""
 
-		Http.__init__(self, "ssdp://{0}:{1:d}/*".format(target, port))
+		RawClient.__init__(self, "ssdp://{0}:{1:d}/*".format(target, port))
 
 		self.ipv4_udp_ttl = int(Settings.get("pas_upnp_ssdp_ipv4_udp_ttl", 1))
 		"""
@@ -153,7 +152,7 @@ Returns a connection to the HTTP server.
 :since:  v0.1.00
 		"""
 
-		Http._configure(self, url)
+		RawClient._configure(self, url)
 
 		self.ssdp_host = (self.host[1:-1] if (":" in self.host) else self.host)
 		address_list = socket.getaddrinfo(self.ssdp_host, self.port, socket.AF_UNSPEC, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -184,8 +183,12 @@ Returns a connection to the configured UDP address.
 			#
 				self.connection = UdpNeIpv6Socket()
 				self.connection.bind(( "::", self.source_port ))
-				if (hasattr(socket, "IPV6_MULTICAST_LOOP")): self.connection.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_LOOP, 0)
-				if (hasattr(socket, "IPV6_MULTICAST_HOPS")): self.connection.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_HOPS, self.ipv6_udp_hops)
+
+				if (hasattr(socket, "IPPROTO_IPV6")):
+				#
+					if (hasattr(socket, "IPV6_MULTICAST_LOOP")): self.connection.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_LOOP, 0)
+					if (hasattr(socket, "IPV6_MULTICAST_HOPS")): self.connection.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_HOPS, self.ipv6_udp_hops)
+				#
 			#
 		#
 
@@ -202,24 +205,20 @@ Invoke a given SSDP method on the unicast or multicast recipient.
 :param params: Parsed query parameters as str
 :param data: HTTP body
 
-:return: (mixed) Response data; Exception on error
+:return: (bool) Request result
 :since:  v0.1.00
 		"""
 
 		if (data != None): data = Binary.utf8_bytes(data)
-		os_uname = uname()
 
 		headers = self.headers.copy()
 
-		if (AbstractSsdp.quirks_mode & AbstractSsdp.QUIRK_OS_LINUX == AbstractSsdp.QUIRK_OS_LINUX): os_name = "Linux"
-		elif (AbstractSsdp.quirks_mode & AbstractSsdp.QUIRK_OS_WINDOWS == AbstractSsdp.QUIRK_OS_WINDOWS): os_name = "Windows"
-		else: os_name = os_uname[0]
+		server_name = "{0}/{1} {2} pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50"
 
-		headers['SERVER'] = "{0}/{1} {2} pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(
-			os_name,
-			("1.0" if (AbstractSsdp.quirks_mode & AbstractSsdp.QUIRK_OS_VERSION == AbstractSsdp.QUIRK_OS_VERSION) else os_uname[2]),
-			("UPnP/1.1 UPnP/1.0" if (AbstractSsdp.quirks_mode & AbstractSsdp.QUIRK_UPNP_1_0 == AbstractSsdp.QUIRK_UPNP_1_0) else "UPnP/1.1")
-		)
+		headers['SERVER'] = server_name.format(AbstractSsdp._get_os_name(),
+		                                       AbstractSsdp._get_os_version(),
+		                                       AbstractSsdp._get_upnp_string()
+		                                      )
 
 		headers['HOST'] = "{0}:{1:d}".format(self.host, self.port)
 		headers['CONTENT-LENGTH'] = (0 if (data == None) else len(data))
@@ -241,52 +240,6 @@ Invoke a given SSDP method on the unicast or multicast recipient.
 		return self._write_data(data)
 	#
 
-	def request_get(self, params = None, separator = ";"):
-	#
-		"""
-Invoke the GET method on the unicast or multicast recipient.
-
-:param params: Query parameters as dict
-:param separator: Query parameter separator
-
-:return: (mixed) Response data; Exception on error
-:since:  v0.1.00
-		"""
-
-		return self.request("GET")
-	#
-
-	def request_head(self, params = None, separator = ";"):
-	#
-		"""
-Invoke the HEAD method on the unicast or multicast recipient.
-
-:param params: Query parameters as dict
-:param separator: Query parameter separator
-
-:return: (mixed) Response data; Exception on error
-:since:  v0.1.00
-		"""
-
-		return self.request("HEAD")
-	#
-
-	def request_post(self, data = None, params = None, separator = ";"):
-	#
-		"""
-Invoke the POST method on the unicast or multicast recipient.
-
-:param data: HTTP body
-:param params: Query parameters as dict
-:param separator: Query parameter separator
-
-:return: (mixed) Response data; Exception on error
-:since:  v0.1.00
-		"""
-
-		return self.request("POST", data)
-	#
-
 	def _write_data(self, data):
 	#
 		"""
@@ -305,7 +258,7 @@ Send the given data to the defined recipient.
 		try: self._get_connection().sendto(data, ( self.ssdp_host, self.port ))
 		except Exception as handled_exception:
 		#
-			if (self.log_handler != None): self.log_handler.error(handled_exception)
+			if (self.log_handler != None): self.log_handler.error(handled_exception, context = "pas_upnp")
 			_return = False
 		#
 
@@ -313,7 +266,53 @@ Send the given data to the defined recipient.
 	#
 
 	@staticmethod
-	def _quirk_mode_get(mode):
+	def add_quirks_mode(mode):
+	#
+		"""
+Adds the defined quirks mode to the already activated ones.
+
+:since: v0.1.00
+		"""
+
+		if (type(mode) == str): mode = AbstractSsdp.get_quirks_mode(mode)
+		with AbstractSsdp._lock: AbstractSsdp.quirks_mode |= mode
+	#
+
+	@staticmethod
+	def _get_os_name():
+	#
+		"""
+Returns the OS name based on the currently active quirks mode.
+
+:return: (str) OS name
+:since:  v0.1.00
+		"""
+
+		if (AbstractSsdp.quirks_mode & AbstractSsdp.QUIRK_OS_LINUX == AbstractSsdp.QUIRK_OS_LINUX): _return = "Linux"
+		elif (AbstractSsdp.quirks_mode & AbstractSsdp.QUIRK_OS_WINDOWS == AbstractSsdp.QUIRK_OS_WINDOWS): _return = "Windows"
+		else: _return = AbstractSsdp._os_uname[0]
+
+		return _return
+	#
+
+	@staticmethod
+	def _get_os_version():
+	#
+		"""
+Returns the OS version based on the currently active quirks mode.
+
+:return: (str) OS version
+:since:  v0.1.00
+		"""
+
+		return ("1.0"
+		        if (AbstractSsdp.quirks_mode & AbstractSsdp.QUIRK_OS_VERSION == AbstractSsdp.QUIRK_OS_VERSION) else
+		        AbstractSsdp._os_uname[2]
+		       )
+	#
+
+	@staticmethod
+	def get_quirks_mode(mode):
 	#
 		"""
 Adds the defined quirks mode to the already activated ones.
@@ -329,20 +328,21 @@ Adds the defined quirks mode to the already activated ones.
 	#
 
 	@staticmethod
-	def quirks_mode_add(mode):
+	def _get_upnp_string():
 	#
 		"""
-Adds the defined quirks mode to the already activated ones.
+Returns the supported UPnP specification string based on the currently
+active quirks mode.
 
-:since: v0.1.00
+:return: (str) UPnP specification string
+:since:  v0.1.00
 		"""
 
-		if (type(mode) == str): mode = AbstractSsdp._quirk_mode_get(mode)
-		with AbstractSsdp.lock: AbstractSsdp.quirks_mode |= mode
+		return ("UPnP/1.1 UPnP/1.0" if (AbstractSsdp.quirks_mode & AbstractSsdp.QUIRK_UPNP_1_0 == AbstractSsdp.QUIRK_UPNP_1_0) else "UPnP/1.1")
 	#
 
 	@staticmethod
-	def quirks_mode_remove(mode):
+	def remove_quirks_mode(mode):
 	#
 		"""
 Removes the defined quirks mode from the activated ones.
@@ -350,7 +350,7 @@ Removes the defined quirks mode from the activated ones.
 :since: v0.1.00
 		"""
 
-		with AbstractSsdp.lock: AbstractSsdp.quirks_mode &= ~mode
+		with AbstractSsdp._lock: AbstractSsdp.quirks_mode &= ~mode
 	#
 #
 

@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.Variable
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,8 +29,7 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
 # pylint: disable=import-error,no-name-in-module
 
@@ -67,7 +62,13 @@ and the UPnP format.
 	"""
 
 	RE_NODE_NAME_XMLNS = re.compile("^(.+):(\\w+)$")
+	"""
+RegEx for "*:*" node attributes
+	"""
 	RE_UUID = re.compile("^[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{12}$")
+	"""
+RegEx for UUIDs
+	"""
 
 	@staticmethod
 	def get_native(native_type, value):
@@ -171,7 +172,7 @@ XML node.
 				else:
 				#
 					re_result = Variable.RE_NODE_NAME_XMLNS.match(xml_node['attributes']['type'])
-					uri = xml_parser.ns_get_uri(xml_node['attributes']['type'])
+					uri = xml_parser.get_ns_uri(xml_node['attributes']['type'])
 
 					if (re_result != None and uri != ""): _return = _return = Variable.get_native_type({ "type": "xmlns", "type_xmlns": "{0}:{1}".format(uri, re_result.group(2)) })
 				#

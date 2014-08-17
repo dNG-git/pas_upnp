@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.net.upnp.Gena
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,8 +29,7 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
 # pylint: disable=import-error,no-name-in-module
 
@@ -49,6 +44,7 @@ except ImportError: from urlparse import urlsplit
 
 from dNG.pas.data.text.md5 import Md5
 from dNG.pas.module.named_loader import NamedLoader
+from dNG.pas.runtime.instance_lock import InstanceLock
 from dNG.pas.tasks.abstract_timed import AbstractTimed
 
 class Gena(AbstractTimed):
@@ -65,9 +61,13 @@ The UPnP GENA manager.
              GNU General Public License 2
 	"""
 
-	weakref_instance = None
+	_instance_lock = InstanceLock()
 	"""
-ControlPoint weakref instance
+Thread safety lock
+	"""
+	_weakref_instance = None
+	"""
+UPnP GENA weakref instance
 	"""
 
 	def __init__(self):
@@ -109,10 +109,10 @@ preferred if possible.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Gena.cancel(service_name, {0})- (#echo(__LINE__)#)".format(ip))
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.cancel(service_name, {1})- (#echo(__LINE__)#)", self, ip, context = "pas_upnp")
 		_return = False
 
-		with Gena.lock:
+		with self.lock:
 		#
 			if (service_name == None): subscriptions = self.subscriptions.copy()
 			elif (service_name in self.subscriptions): subscriptions = { service_name: self.subscriptions[service_name].copy() }
@@ -157,10 +157,10 @@ Removes the subscription identified by the given SID.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Gena.deregister({0}, {1})- (#echo(__LINE__)#)".format(service_name, sid))
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.deregister({1}, {2})- (#echo(__LINE__)#)", self, service_name, sid, context = "pas_upnp")
 		_return = False
 
-		with Gena.lock:
+		with self.lock:
 		#
 			sid_callback_url = None
 
@@ -206,7 +206,7 @@ Get the implementation specific next "run()" UNIX timestamp.
 :since:  v0.1.00
 		"""
 
-		with Gena.lock:
+		with self.lock:
 		#
 			if (len(self.timeouts) > 0): _return = self.timeouts[0]['timestamp']
 			else: _return = -1
@@ -234,7 +234,7 @@ name.
 		index = 1
 		timestamp = -1
 
-		with Gena.lock:
+		with self.lock:
 		#
 			if (service_name not in self.subscriptions or callback_url not in self.subscriptions[service_name]):
 			#
@@ -273,7 +273,7 @@ name.
 				#
 
 				self.timeouts.insert(index, { "timestamp": timestamp, "service_name": service_name, "callback_url": callback_url })
-				if (self.log_handler != None): self.log_handler.debug("pas.upnp.GENA adds subscription '{0}' with URL '{1}' and timeout '{2:d}'".format(service_name, callback_url, timeout))
+				if (self.log_handler != None): self.log_handler.debug("{0!r} adds subscription '{1}' with URL '{2}' and timeout '{3:d}'", self, service_name, callback_url, timeout, context = "pas_upnp")
 			#
 		#
 
@@ -294,13 +294,13 @@ Renews an subscription identified by the given SID.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Gena.reregister({0}, {1}, {2:d})- (#echo(__LINE__)#)".format(service_name, sid, timeout))
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.reregister({1}, {2}, {3:d})- (#echo(__LINE__)#)", self, service_name, sid, timeout, context = "pas_upnp")
 		_return = False
 
 		index = 1
 		timestamp = -1
 
-		with Gena.lock:
+		with self.lock:
 		#
 			sid_callback_url = None
 
@@ -348,15 +348,20 @@ Timed task execution
 :since: v0.1.00
 		"""
 
-		with Gena.lock:
+		timeout_entry = None
+
+		if (self.timer_active):
 		#
-			timeout_entry = (self.timeouts.pop(0) if (len(self.timeouts) > 0 and int(self.timeouts[0]['timestamp']) <= time()) else None)
-			AbstractTimed.run(self)
+			with self.lock:
+			#
+				if (len(self.timeouts) > 0 and int(self.timeouts[0]['timestamp']) <= time()): timeout_entry = self.timeouts.pop(0)
+				AbstractTimed.run(self)
+			#
 		#
 
 		if (timeout_entry != None and self.subscriptions != None and timeout_entry['service_name'] in self.subscriptions and timeout_entry['callback_url'] in self.subscriptions[timeout_entry['service_name']]):
 		#
-			if (self.log_handler != None): self.log_handler.debug("pas.upnp.GENA removes subscription '{0}'".format(timeout_entry['service_name']))
+			if (self.log_handler != None): self.log_handler.debug("{0!r} removes subscription '{1}'", self, timeout_entry['service_name'], context = "pas_upnp")
 
 			del(self.subscriptions[timeout_entry['service_name']][timeout_entry['callback_url']])
 			if (len(self.subscriptions[timeout_entry['service_name']]) < 1): del(self.subscriptions[timeout_entry['service_name']])
@@ -374,7 +379,7 @@ Starts the GENA manager.
 :since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Gena.start()- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.start()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
 		AbstractTimed.start(self)
 		self.subscriptions = { }
@@ -393,13 +398,11 @@ Stops the GENA manager.
 :since: v0.1.00
 		"""
 
-		with Gena.lock:
+		AbstractTimed.stop(self)
+
+		with self.lock:
 		#
-			if (self.subscriptions != None):
-			#
-				AbstractTimed.stop(self)
-				self.subscriptions = None
-			#
+			if (self.subscriptions != None): self.subscriptions = None
 		#
 
 		return last_return
@@ -417,14 +420,14 @@ Get the GENA singleton.
 
 		_return = None
 
-		with Gena.lock:
+		with Gena._instance_lock:
 		#
-			if (Gena.weakref_instance != None): _return = Gena.weakref_instance()
+			if (Gena._weakref_instance != None): _return = Gena._weakref_instance()
 
 			if (_return == None):
 			#
 				_return = Gena()
-				Gena.weakref_instance = ref(_return)
+				Gena._weakref_instance = ref(_return)
 			#
 		#
 

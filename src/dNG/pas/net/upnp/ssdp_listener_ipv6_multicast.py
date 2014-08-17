@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.net.upnp.SsdpListenerIpv6Multicast
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,8 +29,7 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
 from copy import copy
 from struct import pack
@@ -42,7 +37,6 @@ import socket
 
 from dNG.pas.net.udp_ne_ipv6_socket import UdpNeIpv6Socket
 from dNG.pas.net.server.dispatcher import Dispatcher
-from dNG.pas.runtime.io_exception import IOException
 from .ssdp_request import SsdpRequest
 
 class SsdpListenerIpv6Multicast(Dispatcher):
@@ -115,10 +109,12 @@ Adds a new IPv6 multicast address to listen for SSDP messages.
 			#
 				self.listener_socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, socket.inet_pton(socket.AF_INET6, multicast_address) + pack("I", self.listener_if_index))
 				self.multicast_addresses.append(multicast_address)
+
+				if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.run()- reporting: Added listener for '{1} {2:d}'", self, multicast_address, self.listener_if_index, context = "pas_upnp")
 			#
 			except Exception as handled_exception:
 			#
-				if (self.log_handler != None): self.log_handler.error(handled_exception)
+				if (self.log_handler != None): self.log_handler.debug(handled_exception, context = "pas_upnp")
 			#
 		#
 	#
@@ -160,10 +156,12 @@ Run the main loop for this server instance.
 
 		if (not self.listener_active):
 		#
-			if (len(self.multicast_addresses) < 1): raise IOException("No valid multicast addresses available to listen on")
-
-			self.listener_active = True
-			Dispatcher.run(self)
+			if (len(self.multicast_addresses) > 0):
+			#
+				self.listener_active = True
+				Dispatcher.run(self)
+			#
+			elif (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.run()- reporting: No IPv6 multicast addresses bound", self, context = "pas_upnp")
 		#
 	#
 
@@ -186,7 +184,7 @@ Stops the listener and unqueues all running sockets.
 				try: self.remove_address(multicast_address)
 				except Exception as handled_exception:
 				#
-					if (self.log_handler != None): self.log_handler.error(handled_exception)
+					if (self.log_handler != None): self.log_handler.debug(handled_exception, context = "pas_upnp")
 				#
 			#
 

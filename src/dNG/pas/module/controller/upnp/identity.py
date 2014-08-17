@@ -31,16 +31,20 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 #echo(__FILEPATH__)#
 """
 
-from dNG.pas.data.upnp.services.remote_ui_server import RemoteUiServer
-from .abstract_device import AbstractDevice
+from dNG.pas.controller.http_upnp_request import HttpUpnpRequest
+from dNG.pas.data.upnp.client import Client
+from dNG.pas.data.upnp.upnp_exception import UpnpException
+from dNG.pas.data.upnp.devices.abstract_device import AbstractDevice
+from dNG.pas.data.upnp.services.abstract_service import AbstractService
+from .module import Module
 
-class RemoteUiServerDevice(AbstractDevice):
+class Identity(Module):
 #
 	"""
-The UPnP RemoteUIServerDevice:1 device implementation.
+Service for "m=upnp;s=identity"
 
 :author:     direct Netware Group
-:copyright:  direct Netware Group - All rights reserved
+:copyright:  (C) direct Netware Group - All rights reserved
 :package:    pas
 :subpackage: upnp
 :since:      v0.1.00
@@ -48,45 +52,42 @@ The UPnP RemoteUIServerDevice:1 device implementation.
              GNU General Public License 2
 	"""
 
-	def __init__(self):
+	def execute_device(self):
 	#
 		"""
-Constructor __init__(RemoteUiServerDevice)
+Action for "index"
+
+:since: v0.1.01
+		"""
+
+		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
+		upnp_device = self.request.get_upnp_device()
+		if (not isinstance(upnp_device, AbstractDevice)): raise UpnpException("pas_http_core_400", 401)
+
+		client = Client.load_user_agent(self.client_user_agent)
+
+		self.response.init(compress = client.get("upnp_http_compression_supported", True))
+		self.response.set_header("Content-Type", "text/plain")
+		self.response.set_raw_data(upnp_device.get_udn())
+	#
+
+	def execute_service(self):
+	#
+		"""
+Action for "service"
 
 :since: v0.1.00
 		"""
 
-		AbstractDevice.__init__(self)
+		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
+		upnp_service = self.request.get_upnp_service()
+		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_core_400", 401)
 
-		self.type = "RemoteUIServerDevice"
-		self.upnp_domain = "schemas-upnp-org"
-		self.version = "1"
-	#
+		client = Client.load_user_agent(self.client_user_agent)
 
-	def init_device(self, control_point, udn = None, configid = None):
-	#
-		"""
-Initialize a host device.
-
-:return: (bool) Returns true if initialization was successful.
-:since: v0.1.00
-		"""
-
-		AbstractDevice.init_device(self, control_point, udn, configid)
-
-		self.device_model = "UPnP remote UI server"
-		self.device_model_desc = "Python based UPnP remote UI server"
-		self.device_model_url = "http://www.direct-netware.de/redirect.py?pas;upnp"
-		self.device_model_version = "#echo(pasUPnPVersion)#"
-		self.manufacturer = "direct Netware Group"
-		self.manufacturer_url = "http://www.direct-netware.de"
-		self.spec_major = 1
-		self.spec_minor = 1
-
-		service = RemoteUiServer()
-		if (service.init_host(self, configid = self.configid)): self.add_service(service)
-
-		return True
+		self.response.init(compress = client.get("upnp_http_compression_supported", True))
+		self.response.set_header("Content-Type", "text/plain")
+		self.response.set_raw_data(upnp_service.get_udn())
 	#
 #
 

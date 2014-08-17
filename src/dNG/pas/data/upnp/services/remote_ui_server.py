@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.services.RemoteUiServer
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,8 +29,7 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
 from .abstract_service import AbstractService
 
@@ -68,58 +63,75 @@ TODO: Add implementation
 		return None
 	#
 
-	def init_service(self, device, service_id = None, configid = None):
+	def init_host(self, device, service_id = None, configid = None):
 	#
 		"""
-Initialize a host service.
+Initializes a host service.
+
+:param device: Host device this UPnP service is added to
+:param service_id: Unique UPnP service ID
+:param configid: UPnP configId for the host device
 
 :return: (bool) Returns true if initialization was successful.
-:since:  v0.1.01
+:since:  v0.1.00
 		"""
 
-		if (service_id == None): service_id = "RemoteUIServer"
-		AbstractService.init_service(self, device, service_id, configid)
-
-		self.actions = {
-			"GetCompatibleUIs": {
-				"argument_variables": [
-					{ "name": "InputDeviceProfile", "variable": "A_ARG_TYPE_DeviceProfile" },
-					{ "name": "UIFilter", "variable": "A_ARG_TYPE_String" }
-				],
-				"return_variable": { "name": "UIListing", "variable": "A_ARG_TYPE_CompatibleUIs" },
-				"result_variables": [ ]
-			}
-		}
-
-		self.service_id = service_id
 		self.spec_major = 1
 		self.spec_minor = 1
 		self.type = "RemoteUIServer"
 		self.upnp_domain = "schemas-upnp-org"
 		self.version = "1"
 
-		self.variables = {
-			"A_ARG_TYPE_DeviceProfile": {
-				"is_sending_events": True,
-				"is_multicasting_events": False,
-				"type": "string",
-				"value": ""
-			},
-			"A_ARG_TYPE_CompatibleUIs": {
-				"is_sending_events": True,
-				"is_multicasting_events": False,
-				"type": "string",
-				"value": ""
-			},
-			"A_ARG_TYPE_String": {
-				"is_sending_events": True,
-				"is_multicasting_events": False,
-				"type": "string",
-				"value": ""
-			}
-		}
+		if (service_id == None): service_id = "RemoteUIServer"
+		return AbstractService.init_host(self, device, service_id, configid)
+	#
 
-		return True
+	def _init_host_actions(self, device):
+	#
+		"""
+Initializes the dict of host service actions.
+
+:param device: Host device this UPnP service is added to
+
+:since: v0.1.00
+		"""
+
+		get_compatible_uis = { "argument_variables": [ { "name": "InputDeviceProfile", "variable": "A_ARG_TYPE_DeviceProfile" },
+		                                               { "name": "UIFilter", "variable": "A_ARG_TYPE_String" }
+		                                             ],
+		                       "return_variable": { "name": "UIListing", "variable": "A_ARG_TYPE_CompatibleUIs" },
+		                       "result_variables": [ ]
+		                     }
+
+		self.actions = { "GetCompatibleUIs": get_compatible_uis }
+	#
+
+	def _init_host_variables(self, device):
+	#
+		"""
+Initializes the dict of host service variables.
+
+:param device: Host device this UPnP service is added to
+
+:since: v0.1.00
+		"""
+
+		self.variables = { "A_ARG_TYPE_DeviceProfile": { "is_sending_events": True,
+		                                                 "is_multicasting_events": False,
+		                                                 "type": "string",
+		                                                 "value": ""
+		                                               },
+		                   "A_ARG_TYPE_CompatibleUIs": { "is_sending_events": True,
+		                                                 "is_multicasting_events": False,
+		                                                 "type": "string",
+		                                                 "value": ""
+		                                               },
+		                   "A_ARG_TYPE_String": { "is_sending_events": True,
+		                                          "is_multicasting_events": False,
+		                                          "type": "string",
+		                                          "value": ""
+		                                        }
+		                 }
 	#
 #
 

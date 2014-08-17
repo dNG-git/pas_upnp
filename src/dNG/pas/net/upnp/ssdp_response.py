@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.net.upnp.SsdpResponse
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,13 +29,12 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
-from os import uname
+from platform import uname
 
 from dNG.pas.data.binary import Binary
-from dNG.pas.runtime.not_implemented_exception import NotImplementedException
+from dNG.pas.runtime.operation_not_supported_exception import OperationNotSupportedException
 from .abstract_ssdp import AbstractSsdp
 
 class SsdpResponse(AbstractSsdp):
@@ -87,53 +82,7 @@ Call a given request method on the connected HTTP server.
 :since:  v0.1.00
 		"""
 
-		raise NotImplementedException()
-	#
-
-	def request_get(self, params = None, separator = ";"):
-	#
-		"""
-Do a GET request on the connected HTTP server.
-
-:param params: Query parameters as dict
-:param separator: Query parameter separator
-
-:return: (mixed) Response data; Exception on error
-:since:  v0.1.00
-		"""
-
-		raise NotImplementedException()
-	#
-
-	def request_head(self, params = None, separator = ";"):
-	#
-		"""
-Do a HEAD request on the connected HTTP server.
-
-:param params: Query parameters as dict
-:param separator: Query parameter separator
-
-:return: (mixed) Response data; Exception on error
-:since:  v0.1.00
-		"""
-
-		raise NotImplementedException()
-	#
-
-	def request_post(self, data = None, params = None, separator = ";"):
-	#
-		"""
-Do a POST request on the connected HTTP server.
-
-:param data: HTTP body
-:param params: Query parameters as dict
-:param separator: Query parameter separator
-
-:return: (mixed) Response data; Exception on error
-:since:  v0.1.00
-		"""
-
-		raise NotImplementedException()
+		raise OperationNotSupportedException()
 	#
 
 	def send(self, data = None):

@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.module.blocks.upnp.Identity
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,61 +29,45 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
-from dNG.pas.controller.http_upnp_request import HttpUpnpRequest
-from dNG.pas.data.upnp.upnp_exception import UpnpException
-from dNG.pas.data.upnp.devices.abstract_device import AbstractDevice
-from dNG.pas.data.upnp.services.abstract_service import AbstractService
-from .module import Module
-
-class Identity(Module):
+class SearchCriteriaParser(object):
 #
 	"""
-Service for "m=upnp;s=identity"
+UPnP "SearchCriteria" is defined in the UPnP ContentDirectory specification.
 
 :author:     direct Netware Group
-:copyright:  (C) direct Netware Group - All rights reserved
+:copyright:  direct Netware Group - All rights reserved
 :package:    pas
 :subpackage: upnp
-:since:      v0.1.00
+:since:      v0.1.01
 :license:    http://www.direct-netware.de/redirect.py?licenses;gpl
              GNU General Public License 2
 	"""
 
-	def execute_device(self):
+	def __init__(self):
 	#
 		"""
-Action for "index"
+Constructor __init__(SearchCriteriaParser)
 
 :since: v0.1.01
 		"""
 
-		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
-		upnp_device = self.request.get_upnp_device()
-		if (not isinstance(upnp_device, AbstractDevice)): raise UpnpException("pas_http_core_400", 401)
-
-		self.response.init()
-		self.response.set_header("Content-Type", "text/plain")
-		self.response.set_raw_data(upnp_device.get_udn())
+		pass
 	#
 
-	def execute_service(self):
+	def parse(self, criteria):
 	#
 		"""
-Action for "service"
+Parse the given search criteria string.
 
-:since: v0.1.00
+:return: (list) Tuples of "and" criteria in lists of "or" criteria
+:since:  v0.1.01
 		"""
 
-		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
-		upnp_service = self.request.get_upnp_service()
-		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_core_400", 401)
+		_return = [ ]
 
-		self.response.init()
-		self.response.set_header("Content-Type", "text/plain")
-		self.response.set_raw_data(upnp_service.get_udn())
+		return _return
 	#
 #
 

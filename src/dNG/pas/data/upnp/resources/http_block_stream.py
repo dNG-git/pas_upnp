@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.resources.HttpBlockStream
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,8 +29,7 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
 # pylint: disable=import-error,no-name-in-module
 
@@ -70,37 +65,6 @@ class HttpBlockStream(AbstractStream):
              GNU General Public License 2
 	"""
 
-	def _content_init(self):
-	#
-		"""
-Initializes the content of a container.
-
-:return: (bool) True if successful
-:since:  v0.1.00
-		"""
-
-		_return = False
-
-		self.content = [ ]
-
-		if (self.type != None):
-		#
-			_id = self.get_parent_id()
-			if (id == None): _id = self.get_id()
-
-			self.content.append(
-				"{0}upnp/stream/{1}".format(
-					Link().build_url(Link.TYPE_ABSOLUTE | Link.TYPE_BASE_PATH),
-					quote(Binary.str(b64encode(Binary.utf8_bytes(_id))))
-				)
-			)
-
-			_return = True
-		#
-
-		return _return
-	#
-
 	def init_cds_id(self, _id, client_user_agent = None, update_id = None, deleted = False):
 	#
 		"""
@@ -124,10 +88,12 @@ Initialize a UPnP resource by CDS ID.
 
 			streamer = (None if (url_elements.scheme == "") else NamedLoader.get_instance("dNG.pas.data.streamer.{0}".format(url_elements.scheme.capitalize()), False))
 
-			if (streamer.url_supported(self.id)):
+			if (streamer.is_url_supported(self.id)):
 			#
 				self.name = path.basename(unquote(url_elements.path))
 				self.type = HttpBlockStream.TYPE_CDS_RESOURCE
+
+				mimetype = None
 
 				if (self.mimetype == None):
 				#
@@ -137,16 +103,59 @@ Initialize a UPnP resource by CDS ID.
 					if (mimetype_definition != None):
 					#
 						self.mimeclass = mimetype_definition['class']
-						self.mimetype = mimetype_definition['type']
+						mimetype = mimetype_definition['type']
 					#
 				#
 
-				if (self.mimetype != None): self.didl_res_protocol = "http-get:*:{0}:*".format(self.get_mimetype())
+				if (mimetype != None): self.set_mimetype(mimetype)
 			#
 			else: _return = False
 		#
 
 		return _return
+	#
+
+	def _init_content(self):
+	#
+		"""
+Initializes the content of a container.
+
+:return: (bool) True if successful
+:since:  v0.1.00
+		"""
+
+		_return = False
+
+		self.content = [ ]
+
+		if (self.type != None):
+		#
+			_id = self.get_parent_id()
+			if (id == None): _id = self.get_id()
+
+			self.content.append("{0}upnp/stream/{1}".format(Link().build_url(Link.TYPE_ABSOLUTE | Link.TYPE_BASE_PATH),
+			                                                quote(Binary.str(b64encode(Binary.utf8_bytes(_id))))
+			                                               )
+			                   )
+
+			_return = True
+		#
+
+		return _return
+	#
+
+	def set_mimetype(self, mimetype):
+	#
+		"""
+Sets the UPnP resource mime type.
+
+:param mimetype: UPnP resource mime type
+
+:since: v0.1.01
+		"""
+
+		AbstractStream.set_mimetype(self, mimetype)
+		if (self.didl_res_protocol == None): self.didl_res_protocol = "http-get:*:{0}:*".format(self.get_mimetype())
 	#
 
 	@staticmethod

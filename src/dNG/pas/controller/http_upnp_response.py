@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.controller.HttpUpnpResponse
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,11 +29,10 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
 from collections import OrderedDict
-from os import uname
+from platform import uname
 from time import time
 
 from dNG.data.xml_resource import XmlResource
@@ -78,19 +73,6 @@ Client user agent
 		"""
 	#
 
-	def client_set_user_agent(self, user_agent):
-	#
-		"""
-Sets the UPnP client user agent.
-
-:param user_agent: Client user agent
-
-:since: v0.1.00
-		"""
-
-		self.client_user_agent = user_agent
-	#
-
 	def init(self, cache = False, compress = True):
 	#
 		"""
@@ -103,12 +85,15 @@ compression setting and information about P3P.
 :since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -Response.init(cache, compress)- (#echo(__LINE__)#)")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.init()- (#echo(__LINE__)#)", self, context = "pas_http_site")
 
+		client = Client.load_user_agent(self.client_user_agent)
+
+		AbstractHttpResponse.init(self, cache, client.get("upnp_http_compression_supported", True))
 		os_uname = uname()
 
 		self.set_header("Content-Type", "text/xml; charset=UTF-8")
-		self.set_header("Date", RfcBasics.get_rfc1123_datetime(time()))
+		self.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
 		self.set_header("Server", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2]))
 	#
 
@@ -134,17 +119,17 @@ Returns a UPNP response for the given URN and SOAP action.
 			xml_resource = XmlResource(node_type = OrderedDict)
 
 			client = Client.load_user_agent(self.client_user_agent)
-			if (not client.get("upnp_xml_cdata_encoded", False)): xml_resource.define_cdata_encoding(False)
+			if (not client.get("upnp_xml_cdata_encoded", False)): xml_resource.set_cdata_encoding(False)
 
-			xml_resource.node_add("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "s:encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
+			xml_resource.add_node("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "s:encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
 
 			xml_base_path = "s:Envelope s:Body u:{0}Response".format(action)
-			xml_resource.node_add(xml_base_path, attributes = { "xmlns:u": urn })
-			xml_resource.node_set_cache_path(xml_base_path)
+			xml_resource.add_node(xml_base_path, attributes = { "xmlns:u": urn })
+			xml_resource.set_cached_node(xml_base_path)
 
-			for result_value in result: xml_resource.node_add("{0} {1}".format(xml_base_path, result_value['name']), result_value['value'])
+			for result_value in result: xml_resource.add_node("{0} {1}".format(xml_base_path, result_value['name']), result_value['value'])
 
-			self.data = Binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_resource.cache_export(True)))
+			self.data = Binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_resource.export_cache(True)))
 		#
 	#
 
@@ -169,14 +154,14 @@ Sends the prepared response.
 			self.set_header("HTTP/1.1", "HTTP/1.1 500 Internal Server Error", True)
 
 			if (self.errors == None): self.send_error(501, L10n.get("errors_core_unknown_error"))
-			else: self.send_error((self.errors[0]['code'] if ("code" in self.errors[0]) else 501), self.errors[0]['message'])
+			else: self.send_error(self.errors[0].get("code", 501), self.errors[0]['message'])
 		#
 	#
 
 	def send_error(self, code, description):
 	#
 		"""
-Return a UPNP response for the requested SOAP action.
+Returns a UPNP response for the requested SOAP action.
 
 :param code: UPnP error code
 :param description: UPnP error description
@@ -186,20 +171,33 @@ Return a UPNP response for the requested SOAP action.
 
 		xml_resource = XmlResource()
 
-		xml_resource.node_add("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "s:encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
+		xml_resource.add_node("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "s:encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
 
-		xml_resource.node_add("s:Envelope s:Body s:Fault faultcode", "Client")
-		xml_resource.node_set_cache_path("s:Envelope s:Body")
+		xml_resource.add_node("s:Envelope s:Body s:Fault faultcode", "Client")
+		xml_resource.set_cached_node("s:Envelope s:Body")
 
-		xml_resource.node_add("s:Envelope s:Body s:Fault faultstring", "UPnPError")
-		xml_resource.node_add("s:Envelope s:Body s:Fault detail UPnPError", attributes = { "xmlns": "urn:schemas-upnp-org:control-1.0" })
-		xml_resource.node_set_cache_path("s:Envelope s:Body s:Fault detail UPnPError")
+		xml_resource.add_node("s:Envelope s:Body s:Fault faultstring", "UPnPError")
+		xml_resource.add_node("s:Envelope s:Body s:Fault detail UPnPError", attributes = { "xmlns": "urn:schemas-upnp-org:control-1.0" })
+		xml_resource.set_cached_node("s:Envelope s:Body s:Fault detail UPnPError")
 
-		xml_resource.node_add("s:Envelope s:Body s:Fault detail UPnPError errorCode", str(code))
-		xml_resource.node_add("s:Envelope s:Body s:Fault detail UPnPError errorDescription", description)
+		xml_resource.add_node("s:Envelope s:Body s:Fault detail UPnPError errorCode", str(code))
+		xml_resource.add_node("s:Envelope s:Body s:Fault detail UPnPError errorDescription", description)
 
-		self.data = Binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_resource.cache_export(True)))
+		self.data = Binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_resource.export_cache(True)))
 		self.send()
+	#
+
+	def set_client_user_agent(self, user_agent):
+	#
+		"""
+Sets the UPnP client user agent.
+
+:param user_agent: Client user agent
+
+:since: v0.1.00
+		"""
+
+		self.client_user_agent = user_agent
 	#
 #
 

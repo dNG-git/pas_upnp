@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.XmlRewriteParser
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,8 +29,7 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
 import re
 
@@ -83,7 +78,7 @@ XML parser containing replacements
 		"""
 	#
 
-	def _match_change(self, tag_definition, data, tag_position, data_position, tag_end_position):
+	def _change_match(self, tag_definition, data, tag_position, data_position, tag_end_position):
 	#
 		"""
 Change data according to the matched tag.
@@ -127,7 +122,7 @@ Change data according to the matched tag.
 		return _return
 	#
 
-	def _match_check(self, data):
+	def _check_match(self, data):
 	#
 		"""
 Check if a possible tag match is a false positive.
@@ -179,7 +174,7 @@ Renders content with the given template.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.render(template_data, xml_parser, {1})- (#echo(__LINE__)#)".format(self, xml_node_path))
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.render({1})- (#echo(__LINE__)#)", self, xml_node_path, context = "pas_upnp")
 
 		self.xml_node_path = xml_node_path
 		self.xml_parser = xml_parser

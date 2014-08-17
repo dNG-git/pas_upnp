@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.controller.HttpUpnpRequest
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,16 +29,14 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
 from base64 import b64decode
 
 from dNG.data.xml_resource import XmlResource
 from dNG.pas.data.binary import Binary
-from dNG.pas.data.http.request_body import RequestBody
 from dNG.pas.data.upnp.client import Client
-from dNG.pas.plugins.hooks import Hooks
+from dNG.pas.plugins.hook import Hook
 from .abstract_inner_http_request import AbstractInnerHttpRequest
 
 class HttpUpnpRequest(AbstractInnerHttpRequest):
@@ -88,6 +82,56 @@ UPnP service
 		"""
 	#
 
+	def get_soap_request(self, timeout = 30):
+	#
+		"""
+Parses the SOAP request to identify the contained request.
+
+:param timeout: Timeout for receiving the SOAP request.
+
+:return: (dict) UPnP request with URN, SOAP action and arguments
+:since:  v0.1.00
+		"""
+
+		_return = None
+
+		request_body = self.http_request.get_request_body(content_type_expected = "text/xml")
+
+		soap_action = self.get_header("SoapAction")
+		if (soap_action != None): soap_action = soap_action.strip("\"").split("#", 1)
+
+		if (request_body != None and soap_action != None):
+		#
+			urn = soap_action[0]
+			soap_action = soap_action[1]
+
+			post_data = request_body.get(timeout)
+
+			xml_data = Binary.str(post_data.read())
+			xml_resource = XmlResource()
+			xml_resource.register_ns("soap", "http://schemas.xmlsoap.org/soap/envelope/")
+			xml_resource.register_ns("upnpsns", urn)
+
+			if (xml_resource.xml_to_dict(xml_data) != None):
+			#
+				soap_arguments = { }
+				xml_node = xml_resource.get_node("soap:Envelope soap:Body upnpsns:{0}".format(soap_action))
+
+				if (xml_node != None):
+				#
+					for position in xml_node:
+					#
+						if (isinstance(xml_node[position], dict) and "tag" in xml_node[position] and "value" in xml_node[position]): soap_arguments[xml_node[position]['tag']] = xml_node[position]['value']
+					#
+				#
+
+				_return = { "urn": urn, "action": soap_action, "arguments": soap_arguments }
+			#
+		#
+
+		return _return
+	#
+
 	def get_upnp_control_point(self):
 	#
 		"""
@@ -122,57 +166,6 @@ Returns the UPnP service requested.
 		"""
 
 		return self.upnp_service
-	#
-
-	def get_soap_request(self, timeout = 30):
-	#
-		"""
-Parses the SOAP request to identify the contained request.
-
-:param timeout: Timeout for receiving the SOAP request.
-
-:return: (dict) UPnP request with URN, SOAP action and arguments
-:since:  v0.1.00
-		"""
-
-		_return = None
-
-		request_body = RequestBody()
-		request_body = self.http_request.configure_request_body(request_body, "text/xml")
-
-		soap_action = self.get_header("SoapAction")
-		if (soap_action != None): soap_action = soap_action.strip("\"").split("#", 1)
-
-		if (request_body != None and soap_action != None):
-		#
-			urn = soap_action[0]
-			soap_action = soap_action[1]
-
-			post_data = request_body.get(timeout)
-
-			xml_data = Binary.str(post_data.read())
-			xml_resource = XmlResource()
-			xml_resource.ns_register("soap", "http://schemas.xmlsoap.org/soap/envelope/")
-			xml_resource.ns_register("upnpsns", urn)
-
-			if (xml_resource.xml_to_dict(xml_data) != None):
-			#
-				soap_arguments = { }
-				xml_node = xml_resource.node_get("soap:Envelope soap:Body upnpsns:{0}".format(soap_action))
-
-				if (xml_node != None):
-				#
-					for position in xml_node:
-					#
-						if (isinstance(xml_node[position], dict) and "tag" in xml_node[position] and "value" in xml_node[position]): soap_arguments[xml_node[position]['tag']] = xml_node[position]['value']
-					#
-				#
-
-				_return = { "urn": urn, "action": soap_action, "arguments": soap_arguments }
-			#
-		#
-
-		return _return
 	#
 
 	def set_request(self, http_request, control_point, device, request_data):
@@ -214,7 +207,7 @@ Sets the requested action.
 
 				if (client.get("upnp_stream_url_use_filter", False)):
 				#
-					stream_url_filtered = Hooks.call("dNG.pas.controller.HttpUpnpRequest.filter_stream_url", encoded_url = request_data[1], user_agent = user_agent)
+					stream_url_filtered = Hook.call("dNG.pas.http.HttpUpnpRequest.filterStreamUrl", encoded_url = request_data[1], user_agent = user_agent)
 					if (stream_url_filtered != None): stream_url = stream_url_filtered
 				#
 
@@ -228,7 +221,7 @@ Sets the requested action.
 			#
 			elif (device != None):
 			#
-				self.upnp_service = device.service_get(request_data[1])
+				self.upnp_service = device.get_service(request_data[1])
 
 				self.service = "identity"
 				self.action = "service"
@@ -236,7 +229,7 @@ Sets the requested action.
 		#
 		elif (device != None):
 		#
-			self.upnp_service = device.service_get(request_data[1])
+			self.upnp_service = device.get_service(request_data[1])
 
 			if (request_data[2] == "control"):
 			#

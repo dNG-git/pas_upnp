@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.devices.AbstractDevice
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,8 +29,7 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
 from binascii import hexlify
 from os import urandom
@@ -100,19 +95,6 @@ UPnP device specification domain
 		"""
 UPnP device type version
 		"""
-	#
-
-	def client_set_user_agent(self, user_agent):
-	#
-		"""
-Sets the UPnP client user agent.
-
-:param configid: Client user agent
-
-:since: v0.1.00
-		"""
-
-		self.client_user_agent = user_agent
 	#
 
 	def get_desc_url(self):
@@ -196,10 +178,8 @@ Returns the UPnP device description.
 :since:  v0.1.00
 		"""
 
-		LogLine.debug("#echo(__FILEPATH__)# -upnpDevice.get_xml()- (#echo(__LINE__)#)")
-
 		xml_resource = self._get_xml(self._init_xml_resource())
-		return xml_resource.cache_export(True)
+		return xml_resource.export_cache(True)
 	#
 
 	def _get_xml(self, xml_resource):
@@ -213,18 +193,20 @@ Returns the UPnP device description for encoding.
 :since:  v0.1.01
 		"""
 
+		LogLine.debug("#echo(__FILEPATH__)# -{0!r}._get_xml()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+
 		client = Client.load_user_agent(self.client_user_agent)
-		if (not client.get("upnp_xml_cdata_encoded", False)): xml_resource.define_cdata_encoding(False)
+		if (not client.get("upnp_xml_cdata_encoded", False)): xml_resource.set_cdata_encoding(False)
 
 		attributes = { "xmlns": "urn:schemas-upnp-org:device-1-0" }
 		if (self.configid != None): attributes['configId'] = self.configid
 
-		xml_resource.node_add("root", attributes = attributes)
-		xml_resource.node_set_cache_path("root")
+		xml_resource.add_node("root", attributes = attributes)
+		xml_resource.set_cached_node("root")
 
 		spec_version = self.get_spec_version()
-		xml_resource.node_add("root specVersion major", str(spec_version[0]))
-		xml_resource.node_add("root specVersion minor", str(spec_version[1]))
+		xml_resource.add_node("root specVersion major", str(spec_version[0]))
+		xml_resource.add_node("root specVersion minor", str(spec_version[1]))
 
 		self._get_xml_walker(xml_resource, "root device")
 		return xml_resource
@@ -245,36 +227,36 @@ XML node path.
 		# pylint: disable=protected-access
 
 		udn = "uuid:{0}".format(self.get_udn())
-		xml_resource.node_add("{0} UDN".format(xml_base_path), udn)
-		xml_resource.node_set_cache_path(xml_base_path)
+		xml_resource.add_node("{0} UDN".format(xml_base_path), udn)
+		xml_resource.set_cached_node(xml_base_path)
 
-		xml_resource.node_add("{0} deviceType".format(xml_base_path), "urn:{0}".format(self.get_urn()))
-		xml_resource.node_add("{0} friendlyName".format(xml_base_path), self.get_name())
-		xml_resource.node_add("{0} manufacturer".format(xml_base_path), self.get_manufacturer())
+		xml_resource.add_node("{0} deviceType".format(xml_base_path), "urn:{0}".format(self.get_urn()))
+		xml_resource.add_node("{0} friendlyName".format(xml_base_path), self.get_name())
+		xml_resource.add_node("{0} manufacturer".format(xml_base_path), self.get_manufacturer())
 
 		value = self.get_manufacturer_url()
-		if (value != None): xml_resource.node_add("{0} manufacturerURL".format(xml_base_path), value)
+		if (value != None): xml_resource.add_node("{0} manufacturerURL".format(xml_base_path), value)
 
 		value = self.get_device_model()
-		if (value != None): xml_resource.node_add("{0} modelName".format(xml_base_path), value)
+		if (value != None): xml_resource.add_node("{0} modelName".format(xml_base_path), value)
 
 		value = self.get_device_model_desc()
-		if (value != None): xml_resource.node_add("{0} modelDescription".format(xml_base_path), value)
+		if (value != None): xml_resource.add_node("{0} modelDescription".format(xml_base_path), value)
 
 		value = self.get_device_model_version()
-		if (value != None): xml_resource.node_add("{0} modelNumber".format(xml_base_path), value)
+		if (value != None): xml_resource.add_node("{0} modelNumber".format(xml_base_path), value)
 
 		value = self.get_device_model_url()
-		if (value != None): xml_resource.node_add("{0} modelURL".format(xml_base_path), value)
+		if (value != None): xml_resource.add_node("{0} modelURL".format(xml_base_path), value)
 
 		value = self.get_device_model_upc()
-		if (value != None): xml_resource.node_add("{0} UPC".format(xml_base_path), value)
+		if (value != None): xml_resource.add_node("{0} UPC".format(xml_base_path), value)
 
 		value = self.get_device_serial_number()
-		if (value != None): xml_resource.node_add("{0} serialNumber".format(xml_base_path), value)
+		if (value != None): xml_resource.add_node("{0} serialNumber".format(xml_base_path), value)
 
 		value = self.get_presentation_url()
-		if (value != None): xml_resource.node_add("{0} presentationURL".format(xml_base_path), value)
+		if (value != None): xml_resource.add_node("{0} presentationURL".format(xml_base_path), value)
 
 		if (len(self.services) > 0):
 		#
@@ -282,20 +264,20 @@ XML node path.
 
 			for service_name in self.services:
 			#
-				service = self.service_get(service_name)
+				service = self.get_service(service_name)
 
 				if (isinstance(service, AbstractService)):
 				#
 					xml_service_base_path = "{0} serviceList service#{1:d}".format(xml_base_path, position)
 
-					xml_resource.node_add(xml_service_base_path)
-					xml_resource.node_set_cache_path(xml_service_base_path)
+					xml_resource.add_node(xml_service_base_path)
+					xml_resource.set_cached_node(xml_service_base_path)
 
-					xml_resource.node_add("{0} serviceId".format(xml_service_base_path), "urn:{0}".format(service.get_service_id_urn()))
-					xml_resource.node_add("{0} serviceType".format(xml_service_base_path), "urn:{0}".format(service.get_urn()))
-					xml_resource.node_add("{0} SCPDURL".format(xml_service_base_path), service.get_url_scpd())
-					xml_resource.node_add("{0} controlURL".format(xml_service_base_path), service.get_url_control())
-					xml_resource.node_add("{0} eventSubURL".format(xml_service_base_path), service.get_url_event_control())
+					xml_resource.add_node("{0} serviceId".format(xml_service_base_path), "urn:{0}".format(service.get_service_id_urn()))
+					xml_resource.add_node("{0} serviceType".format(xml_service_base_path), "urn:{0}".format(service.get_urn()))
+					xml_resource.add_node("{0} SCPDURL".format(xml_service_base_path), service.get_url_scpd())
+					xml_resource.add_node("{0} controlURL".format(xml_service_base_path), service.get_url_control())
+					xml_resource.add_node("{0} eventSubURL".format(xml_service_base_path), service.get_url_event_control())
 
 					position += 1
 				#
@@ -308,11 +290,11 @@ XML node path.
 
 			for uuid in self.embedded_devices:
 			#
-				device = self.embedded_device_get(uuid)
+				device = self.get_embedded_device(uuid)
 
 				if (isinstance(device, AbstractDevice)):
 				#
-					xml_resource.node_add("{0} deviceList device#{1:d}".format(xml_base_path, position))
+					xml_resource.add_node("{0} deviceList device#{1:d}".format(xml_base_path, position))
 
 					device._get_xml_walker(xml_resource, "{0} deviceList device#{1:d}".format(xml_base_path, position))
 					position += 1
@@ -335,7 +317,7 @@ Initialize a host device.
 		if (self.name == None): self.name = "{0} {1}".format(gethostname(), self.type)
 		self.udn = (str(uuid_of_namespace(NAMESPACE_URL, "upnp://{0}:{1:d}/{2}".format(control_point.get_http_host(), control_point.get_http_port(), hexlify(urandom(10))))) if (udn == None) else udn)
 
-		url = "http://{0}:{1:d}/upnp/{2}".format(control_point.get_http_host(), control_point.get_http_port(), Link.query_param_encode(self.udn))
+		url = "http://{0}:{1:d}/upnp/{2}".format(control_point.get_http_host(), control_point.get_http_port(), Link.encode_query_value(self.udn))
 		self.desc_url = "{0}/desc".format(url)
 		self.url_base = "{0}/".format(url)
 
@@ -352,6 +334,19 @@ True if the host manages the device.
 		"""
 
 		return self.host_device
+	#
+
+	def set_client_user_agent(self, user_agent):
+	#
+		"""
+Sets the UPnP client user agent.
+
+:param configid: Client user agent
+
+:since: v0.1.00
+		"""
+
+		self.client_user_agent = user_agent
 	#
 
 	def set_configid(self, configid):

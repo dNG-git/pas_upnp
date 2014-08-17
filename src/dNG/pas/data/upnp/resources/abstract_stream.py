@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.resources.AbstractStream
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,8 +29,7 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
 from dNG.pas.data.binary import Binary
 from dNG.pas.data.upnp.resource import Resource
@@ -72,7 +67,7 @@ Dict of UPnP resource metadata
 		self.supported_features['metadata'] = True
 	#
 
-	def metadata_add_didl_xml_node(self, xml_resource, xml_node_path, parent_id = None):
+	def _add_metadata_to_didl_xml_node(self, xml_resource, xml_node_path, parent_id = None):
 	#
 		"""
 Uses the given XML resource to add the DIDL metadata of this UPnP resource.
@@ -91,35 +86,60 @@ Uses the given XML resource to add the DIDL metadata of this UPnP resource.
 			res_protocol = self.get_didl_res_protocol()
 			size = self.get_size()
 
-			if (res_protocol != None):
+			attributes = { }
+
+			if (res_protocol != None): attributes['protocolInfo'] = res_protocol
+			if (size != None): attributes['size'] = size
+
+			didl_fields_filtered = (len(didl_fields) > 0)
+
+			for key in self.metadata:
 			#
-				attributes = { "protocolInfo": res_protocol }
-				if (size != None): attributes['size'] = size
-
-				didl_fields_filtered = (len(didl_fields) > 0)
-
-				for key in self.metadata:
-				#
-					if ((not didl_fields_filtered) or "res@{0}".format(key) in didl_fields): attributes[key] = self.metadata[key]
-				#
-
-				url = Binary.str(self.content_get(0))
-				value = (url if (type(url) == str) else "")
-
-				xml_resource.node_add(xml_node_path, value, attributes)
+				if ((not didl_fields_filtered) or "res@{0}".format(key) in didl_fields): attributes[key] = self.metadata[key]
 			#
+
+			url = Binary.str(self.get_content(0))
+			value = (url if (type(url) == str) else "")
+
+			xml_resource.add_node(xml_node_path, value, attributes)
 		#
 	#
 
 	def set_metadata(self, **kwargs):
 	#
 		"""
-Set metadata used for "metadata_add_didl_xml_node()".
+Sets metadata used for "_add_metadata_to_didl_xml_node()".
 
 :since: v0.1.00
 		"""
 
 		self.metadata.update(kwargs)
+	#
+
+	def set_mimeclass(self, mimeclass):
+	#
+		"""
+Sets the UPnP resource mime class.
+
+:param mimeclass: UPnP resource mime class
+
+:since: v0.1.01
+		"""
+
+		self.mimeclass = mimeclass
+	#
+
+	def set_mimetype(self, mimetype):
+	#
+		"""
+Sets the UPnP resource mime type.
+
+:param mimetype: UPnP resource mime type
+
+:since: v0.1.01
+		"""
+
+		self.mimetype = mimetype
 	#
 #
 

@@ -31,16 +31,19 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 #echo(__FILEPATH__)#
 """
 
-from dNG.pas.data.upnp.services.remote_ui_server import RemoteUiServer
-from .abstract_device import AbstractDevice
+from dNG.pas.controller.http_upnp_request import HttpUpnpRequest
+from dNG.pas.data.upnp.upnp_exception import UpnpException
+from dNG.pas.data.upnp.services.abstract_service import AbstractService
+from dNG.pas.plugins.hook import Hook
+from .module import Module
 
-class RemoteUiServerDevice(AbstractDevice):
+class Control(Module):
 #
 	"""
-The UPnP RemoteUIServerDevice:1 device implementation.
+Service for "m=upnp;s=control"
 
 :author:     direct Netware Group
-:copyright:  direct Netware Group - All rights reserved
+:copyright:  (C) direct Netware Group - All rights reserved
 :package:    pas
 :subpackage: upnp
 :since:      v0.1.00
@@ -48,45 +51,27 @@ The UPnP RemoteUIServerDevice:1 device implementation.
              GNU General Public License 2
 	"""
 
-	def __init__(self):
+	def execute_request(self):
 	#
 		"""
-Constructor __init__(RemoteUiServerDevice)
+Action for "request"
 
 :since: v0.1.00
 		"""
 
-		AbstractDevice.__init__(self)
+		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
+		upnp_service = self.request.get_upnp_service()
+		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_core_400", 401)
 
-		self.type = "RemoteUIServerDevice"
-		self.upnp_domain = "schemas-upnp-org"
-		self.version = "1"
-	#
+		Hook.call("dNG.pas.http.l10n.upnp.Control.init")
 
-	def init_device(self, control_point, udn = None, configid = None):
-	#
-		"""
-Initialize a host device.
+		soap_request = self.request.get_soap_request()
+		upnp_service.set_client_user_agent(self.client_user_agent)
 
-:return: (bool) Returns true if initialization was successful.
-:since: v0.1.00
-		"""
+		if (soap_request == None): raise UpnpException("pas_http_core_500")
 
-		AbstractDevice.init_device(self, control_point, udn, configid)
-
-		self.device_model = "UPnP remote UI server"
-		self.device_model_desc = "Python based UPnP remote UI server"
-		self.device_model_url = "http://www.direct-netware.de/redirect.py?pas;upnp"
-		self.device_model_version = "#echo(pasUPnPVersion)#"
-		self.manufacturer = "direct Netware Group"
-		self.manufacturer_url = "http://www.direct-netware.de"
-		self.spec_major = 1
-		self.spec_minor = 1
-
-		service = RemoteUiServer()
-		if (service.init_host(self, configid = self.configid)): self.add_service(service)
-
-		return True
+		self.response.init()
+		self.response.handle_result(soap_request['urn'], soap_request['action'], upnp_service.handle_soap_call(soap_request['action'], soap_request['arguments']))
 	#
 #
 

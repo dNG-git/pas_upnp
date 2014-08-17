@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.services.CallableService
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,11 +29,10 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
 from dNG.data.json_resource import JsonResource
-from dNG.pas.plugins.hooks import Hooks
+from dNG.pas.plugins.hook import Hook
 from .abstract_service import AbstractService
 
 class CallableService(AbstractService):
@@ -68,29 +63,22 @@ Calls the given hook and returns the result.
 		json_resource = JsonResource()
 		arguments = ({ } if (json_arguments.strip() == "") else json_resource.json_to_data(json_arguments))
 
-		result = Hooks.call(hook, **arguments)
+		result = Hook.call(hook, **arguments)
 		return json_resource.data_to_json(result)
 	#
 
-	def init_service(self, device, service_id = None, configid = None):
+	def init_host(self, device, service_id = None, configid = None):
 	#
 		"""
-Initialize a host service.
+Initializes a host service.
+
+:param device: Host device this UPnP service is added to
+:param service_id: Unique UPnP service ID
+:param configid: UPnP configId for the host device
 
 :return: (bool) Returns true if initialization was successful.
 :since:  v0.1.00
 		"""
-
-		if (service_id == None): service_id = "CallableService"
-		AbstractService.init_service(self, device, service_id, configid)
-
-		self.actions = {
-			"CallHook": {
-				"argument_variables": [ { "name": "Hook", "variable": "A_ARG_TYPE_Hook" }, { "name": "JsonArguments", "variable": "A_ARG_TYPE_Json" } ],
-				"return_variable": { "name": "JsonResult", "variable": "A_ARG_TYPE_Json" },
-				"result_variables": [ ]
-			}
-		}
 
 		self.service_id = service_id
 		self.spec_major = 1
@@ -99,21 +87,50 @@ Initialize a host service.
 		self.upnp_domain = "schemas-direct-netware-de"
 		self.version = "1"
 
-		self.variables = {
-			"A_ARG_TYPE_Hook": {
-				"is_sending_events": False,
-				"is_multicasting_events": False,
-				"type": "string"
-			},
-			"A_ARG_TYPE_Json": {
-				"is_sending_events": False,
-				"is_multicasting_events": False,
-				"type": "string",
-				"value": ""
-			}
-		}
+		if (service_id == None): service_id = "CallableService"
+		return AbstractService.init_host(self, device, service_id, configid)
+	#
 
-		return True
+	def _init_host_actions(self, device):
+	#
+		"""
+Initializes the dict of host service actions.
+
+:param device: Host device this UPnP service is added to
+
+:since: v0.1.00
+		"""
+
+		call_hook = { "argument_variables": [ { "name": "Hook", "variable": "A_ARG_TYPE_Hook" },
+		                                      { "name": "JsonArguments", "variable": "A_ARG_TYPE_Json" }
+		                                    ],
+		              "return_variable": { "name": "JsonResult", "variable": "A_ARG_TYPE_Json" },
+		              "result_variables": [ ]
+		            }
+
+		self.actions = { "CallHook": call_hook }
+	#
+
+	def _init_host_variables(self, device):
+	#
+		"""
+Initializes the dict of host service variables.
+
+:param device: Host device this UPnP service is added to
+
+:since: v0.1.00
+		"""
+
+		self.variables = { "A_ARG_TYPE_Hook": { "is_sending_events": False,
+		                                        "is_multicasting_events": False,
+		                                        "type": "string"
+		                                      },
+		                   "A_ARG_TYPE_Json": { "is_sending_events": False,
+		                                        "is_multicasting_events": False,
+		                                        "type": "string",
+		                                        "value": ""
+		                                      }
+		                 }
 	#
 #
 

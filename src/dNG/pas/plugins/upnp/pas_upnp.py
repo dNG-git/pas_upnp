@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.plugins.upnp.pas_upnp
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,17 +29,16 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
 from dNG.pas.data.upnp.client import Client
 from dNG.pas.net.upnp.abstract_ssdp import AbstractSsdp
-from dNG.pas.plugins.hooks import Hooks
+from dNG.pas.plugins.hook import Hook
 
-def plugin_control_point_device_add(params, last_return):
+def on_device_added(params, last_return = None):
 #
 	"""
-Called for "dNG.pas.upnp.ControlPoint.deviceAdd"
+Called for "dNG.pas.upnp.ControlPoint.onDeviceAdded"
 
 :param params: Parameter specified
 :param last_return: The return value from the last hook called.
@@ -54,11 +49,10 @@ Called for "dNG.pas.upnp.ControlPoint.deviceAdd"
 
 	_return = last_return
 
-	user_agent = (
-		params['identifier']['ssdp_server_name']
-		if ("identifier" in params and "ssdp_server_name" in params['identifier']) else
-		None
-	)
+	user_agent = (params['identifier']['ssdp_server_name']
+	              if ("identifier" in params and "ssdp_server_name" in params['identifier']) else
+	              None
+	             )
 
 	ssdp_quirks = Client.load_user_agent(user_agent).get("upnp_quirks_ssdp")
 
@@ -66,7 +60,7 @@ Called for "dNG.pas.upnp.ControlPoint.deviceAdd"
 	#
 		for mode in ssdp_quirks:
 		#
-			AbstractSsdp.quirks_mode_add(mode)
+			AbstractSsdp.add_quirks_mode(mode)
 			_return = True
 		#
 	#
@@ -74,18 +68,7 @@ Called for "dNG.pas.upnp.ControlPoint.deviceAdd"
 	return _return
 #
 
-def plugin_deregistration():
-#
-	"""
-Unregister plugin hooks.
-
-:since: v0.1.00
-	"""
-
-	Hooks.unregister("dNG.pas.upnp.ControlPoint.deviceAdd", plugin_control_point_device_add)
-#
-
-def plugin_registration():
+def register_plugin():
 #
 	"""
 Register plugin hooks.
@@ -93,7 +76,18 @@ Register plugin hooks.
 :since: v0.1.00
 	"""
 
-	Hooks.register("dNG.pas.upnp.ControlPoint.deviceAdd", plugin_control_point_device_add)
+	Hook.register("dNG.pas.upnp.ControlPoint.onDeviceAdded", on_device_added)
+#
+
+def unregister_plugin():
+#
+	"""
+Unregister plugin hooks.
+
+:since: v0.1.00
+	"""
+
+	Hook.unregister("dNG.pas.upnp.ControlPoint.onDeviceAdded", on_device_added)
 #
 
 ##j## EOF

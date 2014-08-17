@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.module.blocks.upnp.Control
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,19 +29,19 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
 from dNG.pas.controller.http_upnp_request import HttpUpnpRequest
+from dNG.pas.data.upnp.client import Client
 from dNG.pas.data.upnp.upnp_exception import UpnpException
+from dNG.pas.data.upnp.devices.abstract_device import AbstractDevice
 from dNG.pas.data.upnp.services.abstract_service import AbstractService
-from dNG.pas.plugins.hooks import Hooks
 from .module import Module
 
-class Control(Module):
+class Xml(Module):
 #
 	"""
-Service for "m=upnp;s=control"
+Service for "m=upnp;s=xml"
 
 :author:     direct Netware Group
 :copyright:  (C) direct Netware Group - All rights reserved
@@ -56,10 +52,30 @@ Service for "m=upnp;s=control"
              GNU General Public License 2
 	"""
 
-	def execute_request(self):
+	def execute_get_device(self):
 	#
 		"""
-Action for "request"
+Action for "get_device"
+
+:since: v0.1.00
+		"""
+
+		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
+		upnp_device = self.request.get_upnp_device()
+		if (not isinstance(upnp_device, AbstractDevice)): raise UpnpException("pas_http_core_400", 401)
+
+		client = Client.load_user_agent(self.client_user_agent)
+		upnp_device.set_client_user_agent(self.client_user_agent)
+
+		self.response.init(True, compress = client.get("upnp_http_compression_supported", True))
+		self.response.set_header("Content-Type", "text/xml; charset=UTF-8")
+		self.response.set_raw_data("<?xml version='1.0' encoding='UTF-8' ?>" + upnp_device.get_xml())
+	#
+
+	def execute_get_service(self):
+	#
+		"""
+Action for "get_service"
 
 :since: v0.1.00
 		"""
@@ -68,13 +84,12 @@ Action for "request"
 		upnp_service = self.request.get_upnp_service()
 		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_core_400", 401)
 
-		Hooks.call("dNG.pas.http.l10n.upnp.Control.init")
+		client = Client.load_user_agent(self.client_user_agent)
+		upnp_service.set_client_user_agent(self.client_user_agent)
 
-		soap_request = self.request.get_soap_request()
-		upnp_service.client_set_user_agent(self.client_user_agent)
-
-		if (soap_request == None): raise UpnpException("pas_http_core_500")
-		self.response.handle_result(soap_request['urn'], soap_request['action'], upnp_service.handle_soap_call(soap_request['action'], soap_request['arguments']))
+		self.response.init(True, compress = client.get("upnp_http_compression_supported", True))
+		self.response.set_header("Content-Type", "text/xml; charset=UTF-8")
+		self.response.set_raw_data("<?xml version='1.0' encoding='UTF-8' ?>" + upnp_service.get_xml())
 	#
 #
 

@@ -1,18 +1,56 @@
+# direct PAS
+# Python Application Services
+#
+# This is the initial extended JSON configuration file. Comments are removed
+# if edited. Comments must be removed before reading this JSON file with an
+# unsupported JSON parser.
+
 {
+ # List of allowed network prefixes separated by comma.
+ # "pas_upnp_allowed_networks": [ ],
+
+ # This setting deactivates the check for incoming requests to originate
+ # from an allowed network. This can be a network with the prefix defined
+ # above or a device with a previously seen UPnP announcement in the same
+ # network.
+ "pas_upnp_allowed_networks_only": false,
+
+ # List of local network addresses to bind to separated by comma.
+ # "pas_upnp_bind_network_addresses": [ ]
+
+ # This setting deactivates the automatic detection of network addresses. If
+ # no address is identified or configured the UPnP server will bind to all
+ # available interfaces.
+ # "pas_upnp_bind_network_addresses_detect": false,
+
+ # The user agent syntax is defined as "word/version". Rewrite known wrong
+ # user agent identifiers to match the specified syntax.
  "pas_upnp_client_replacement_list": {
   "AVM UPnP": "AVM_UPnP",
-  "LGE WebOS TV/Version ": "LGE_WebOS_TV/Version_",
+  "Large Screen WebAppManager Safari": "Large_Screen_WebAppManager_Safari",
+  "LG Smart TV": "LG_Smart_TV",
+  "LGE WebOS TV/Version ": "LGE_WebOS_TV/",
   "LGE WebOS TV": "LGE_WebOS_TV",
   "Reciva UPnP": "Reciva_UPnP",
+  "SEC_HHP_BD-C": "SEC_HHP_BD_C",
   "SEC_HHP_[BD]D": "SEC_HHP_BD_D",
   "SEC_HHP_[BD]E": "SEC_HHP_BD_E",
+  "SEC_HHP_[BD]F": "SEC_HHP_BD_F",
   "SEC_HHP_[HT]D": "SEC_HHP_HT_D",
   "SEC_HHP_[TV]P": "SEC_HHP_TV_P",
   "SEC_HHP_[TV]U": "SEC_HHP_TV_U",
   "SEC_HHP_ Family TV": "SEC_HHP_Family_TV",
   "Teleal-Cling": "Teleal_Cling",
-  "TwonkyMedia-NMC": "TwonkyMedia_NMC/0"
+  "TwonkyMedia-NMC": "TwonkyMedia_NMC/0",
+  "UPnP/1,0": "UPnP/1.0",
+  "Windows/Vista": "Windows/5.1"
  },
 
- "pas_upnp_http_client_name_blacklist": [ "FDSSDP" ]
+ # Misleading HTTP client names blacklisted
+ "pas_upnp_http_client_name_blacklist": [ "DLNADOC/1.50", "FDSSDP" ]
+
+ # Bind the UPnP server to the IPv4 address and announce it instead of a
+ # host name. This enhances compatibility with old devices or networks
+ # without a working DHCP/DNS server.
+ # "pas_upnp_server_bind_host_to_ipv4": true
 }

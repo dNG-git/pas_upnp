@@ -2,10 +2,6 @@
 ##j## BOF
 
 """
-dNG.pas.data.upnp.devices.CallableDevice
-"""
-"""n// NOTE
-----------------------------------------------------------------------------
 direct PAS
 Python Application Services
 ----------------------------------------------------------------------------
@@ -33,8 +29,7 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 ----------------------------------------------------------------------------
 #echo(pasUPnPVersion)#
 #echo(__FILEPATH__)#
-----------------------------------------------------------------------------
-NOTE_END //n"""
+"""
 
 from dNG.pas.data.upnp.services.callable_service import CallableService
 from .abstract_device import AbstractDevice
@@ -89,7 +84,7 @@ Initialize a host device.
 		self.spec_minor = 1
 
 		service = CallableService()
-		if (service.init_service(self, configid = self.configid)): self.service_add(service)
+		if (service.init_host(self, configid = self.configid)): self.add_service(service)
 
 		return True
 	#
