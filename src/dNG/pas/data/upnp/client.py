@@ -34,8 +34,8 @@ http://www.direct-netware.de/redirect.py?licenses;gpl
 from os import path
 import re
 
-from dNG.pas.data.cached_json_file import CachedJsonFile
 from dNG.pas.data.settings import Settings
+from dNG.pas.data.cache.json_file_content import JsonFileContent
 from dNG.pas.data.logging.log_line import LogLine
 from dNG.pas.data.text.input_filter import InputFilter
 from dNG.pas.plugins.hook import Hook
@@ -100,11 +100,11 @@ in it.
 :since:  v0.1.00
 		"""
 
-		_return = CachedJsonFile.read(path.normpath(file_pathname))
+		_return = JsonFileContent.read(path.normpath(file_pathname))
 
 		if (type(_return) == dict and "client_file" in _return):
 		#
-			_return = CachedJsonFile.read(path.join(Settings.get("path_data"), "upnp", "user_agents", InputFilter.filter_file_path(_return['client_file'])))
+			_return = JsonFileContent.read(path.join(Settings.get("path_data"), "upnp", "user_agents", InputFilter.filter_file_path(_return['client_file'])))
 		#
 
 		return _return
@@ -129,7 +129,7 @@ Returns a UPnP client based on the given HTTP or SSDP user agent value.
 
 		if (type(replacement_list) == dict):
 		#
-			replacement_list_keys = sorted(replacement_list.keys(), reverse=True)
+			replacement_list_keys = sorted(replacement_list.keys(), reverse = True)
 			for upnp_value in replacement_list_keys: user_agent = user_agent.replace(upnp_value, replacement_list[upnp_value])
 		#
 
