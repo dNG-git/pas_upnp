@@ -36,7 +36,6 @@ https://www.direct-netware.de/redirect?licenses;gpl
 from copy import copy
 from locale import getlocale
 from platform import uname
-from random import randint
 from random import uniform as randfloat
 from time import time
 from threading import Thread
@@ -44,10 +43,9 @@ from weakref import ref
 import re
 import socket
 
-try: from urllib.parse import urljoin, urlsplit
-except ImportError: from urlparse import urljoin, urlsplit
+try: from urllib.parse import urlsplit
+except ImportError: from urlparse import urlsplit
 
-from dNG.data.rfc.basics import Basics as RfcBasics
 from dNG.net.http.client import Client as HttpClient
 from dNG.pas.controller.abstract_http_request import AbstractHttpRequest
 from dNG.pas.controller.http_upnp_request import HttpUpnpRequest
@@ -58,10 +56,9 @@ from dNG.pas.data.http.translatable_exception import TranslatableException
 from dNG.pas.data.http.virtual_config import VirtualConfig
 from dNG.pas.data.text.l10n import L10n
 from dNG.pas.data.upnp.client import Client
+from dNG.pas.data.upnp.control_point_event import ControlPointEvent
 from dNG.pas.data.upnp.device import Device
 from dNG.pas.module.named_loader import NamedLoader
-from dNG.pas.net.upnp.ssdp_message import SsdpMessage
-from dNG.pas.net.upnp.ssdp_response import SsdpResponse
 from dNG.pas.plugins.hook import Hook
 from dNG.pas.runtime.exception_log_trap import ExceptionLogTrap
 from dNG.pas.runtime.instance_lock import InstanceLock
@@ -74,7 +71,7 @@ from .ssdp_listener_ipv6_multicast import SsdpListenerIpv6Multicast
 class ControlPoint(AbstractTimed):
 #
 	"""
-The UPnP ControlPoint.
+The UPnP control point.
 
 :author:     direct Netware Group
 :copyright:  direct Netware Group - All rights reserved
@@ -86,31 +83,6 @@ The UPnP ControlPoint.
 	"""
 
 	# pylint: disable=unused-argument
-
-	ANNOUNCE_DEVICE = 1
-	"""
-Initial UPnP device announcement
-	"""
-	ANNOUNCE_DEVICE_SHUTDOWN = 2
-	"""
-UPnP device shutdown announcement
-	"""
-	ANNOUNCE_DEVICE_UPDATE = 3
-	"""
-UPnP device update announcement
-	"""
-	ANNOUNCE_SEARCH_RESULT = 4
-	"""
-Search result announcement
-	"""
-	ANNOUNCE_SERVICE = 5
-	"""
-UPnP service announcement
-	"""
-	REANNOUNCE_DEVICE = 6
-	"""
-Subsequent UPnP device announcement
-	"""
 
 	_instance_lock = InstanceLock()
 	"""
@@ -131,21 +103,13 @@ Constructor __init__(ControlPoint)
 
 		AbstractTimed.__init__(self)
 
-		self.announcement_divider = int(Settings.get("pas_upnp_announcement_divider", 3))
-		"""
-Unicast port in the range 49152-65535 (searchport.upnp.org)
-		"""
-		self.announcement_interval = int(Settings.get("pas_upnp_announcement_interval", 3600))
-		"""
-Unicast port in the range 49152-65535 (searchport.upnp.org)
-		"""
 		self.bootid = 0
 		"""
-UPnP bootid value (bootid.upnp.org); nextbootid.upnp.org += 1
+UPnP bootId value (bootid.upnp.org); nextbootid.upnp.org += 1
 		"""
 		self.configid = 0
 		"""
-UPnP configid value (configid.upnp.org)
+UPnP configId value (configid.upnp.org)
 		"""
 		self.devices = { }
 		"""
@@ -292,14 +256,11 @@ supported and must be handled separately.
 		#
 			with self.lock:
 			#
-				if (self.configid < 16777216): self.configid += 1
-				else: self.configid = 0
-
 				device_identifier = Device.get_identifier("uuid:{0}::urn:{1}".format(device.get_udn(), device.get_urn()), self.bootid, self.configid)
 
 				if (device_identifier != None and device_identifier['usn'] not in self.usns):
 				#
-					if (self.log_handler != None): self.log_handler.info("pas.upnp.ControlPoint adds UPnP root device USN '{0}'", device_identifier['usn'], context = "pas_upnp")
+					if (self.log_handler != None): self.log_handler.info("pas.upnp.ControlPoint adds UPnP device USN '{0}'", device_identifier['usn'], context = "pas_upnp")
 
 					if (device_identifier['device'] not in self.rootdevices): self.rootdevices.append(device_identifier['device'])
 					device_identifier['managed'] = True
@@ -307,10 +268,17 @@ supported and must be handled separately.
 					self.managed_devices[device_identifier['uuid']] = device
 					self.usns[device_identifier['usn']] = device_identifier
 
-					self._announce(ControlPoint.ANNOUNCE_DEVICE_SHUTDOWN, device_identifier['usn'], device_identifier['url_desc'])
+					self._remove_task(device_identifier['usn'], "deliver_event")
+
+					if (self.configid < 16777216): self.configid += 1
+					else: self.configid = 0
 
 					wait_seconds = randfloat(0.2, 0.4)
-					self._add_task(wait_seconds, "announce_device", usn = device_identifier['usn'], location = device_identifier['url_desc'])
+
+					event = ControlPointEvent(self, ControlPointEvent.TYPE_DEVICE_ALIVE)
+					event.set_usn(device_identifier['usn'])
+					event.set_location(device_identifier['url_desc'])
+					event.schedule(wait_seconds)
 
 					Hook.call("dNG.pas.upnp.ControlPoint.onHostDeviceAdded", identifier = device_identifier)
 
@@ -328,7 +296,11 @@ supported and must be handled separately.
 						self.usns[embedded_device_identifier['usn']] = embedded_device_identifier
 
 						wait_seconds = randfloat(0.4, 0.6)
-						self._add_task(wait_seconds, "announce_device", usn = embedded_device_identifier['usn'], location = embedded_device_identifier['url_desc'])
+
+						event = ControlPointEvent(self, ControlPointEvent.TYPE_DEVICE_ALIVE)
+						event.set_usn(embedded_device_identifier['usn'])
+						event.set_location(embedded_device_identifier['url_desc'])
+						event.schedule(wait_seconds)
 
 						Hook.call("dNG.pas.upnp.ControlPoint.onHostDeviceAdded", identifier = embedded_device_identifier)
 					#
@@ -460,175 +432,6 @@ Update the list with the given parsed UPnP identifier.
 		if (index < 1): self.update_timestamp(timestamp)
 	#
 
-	def _announce(self, _type, usn = None, location = None, additional_data = None):
-	#
-		"""
-Announces host device changes over SSDP.
-
-:param _type: SSDP message type
-:param usn: UPnP USN
-:param location: Location of the UPnP description
-		"""
-
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._announce()- (#echo(__LINE__)#)", self, context = "pas_upnp")
-
-		identifier = (None if (usn == None) else Device.get_identifier(usn, self.bootid, self.configid))
-
-		announce_targets = [ ]
-		if (self.listeners_multicast_ipv4 > 0): announce_targets.append("239.255.255.250")
-		if (self.listeners_multicast_ipv6 > 0): announce_targets += [ "[ff02::c]", "[ff04::c]", "[ff05::c]", "[ff08::c]", "[ff0e::c]" ]
-
-		with self.lock:
-		#
-			if (_type == ControlPoint.ANNOUNCE_DEVICE_SHUTDOWN and identifier != None):
-			#
-				device = (self.managed_devices[identifier['uuid']] if (identifier['uuid'] in self.managed_devices) else None)
-				services = ([ ] if (device == None) else device.get_unique_service_type_ids())
-
-				for announce_target in announce_targets:
-				#
-					ssdp_request = SsdpMessage(announce_target)
-
-					for service_id in services:
-					#
-						service = device.get_service(service_id)
-
-						ssdp_request.reset_headers()
-						ssdp_request.set_header("NTS", "ssdp:byebye")
-						ssdp_request.set_header("NT", "urn:{0}".format(service.get_urn()))
-						ssdp_request.set_header("USN", "uuid:{0}::urn:{1}".format(service.get_udn(), service.get_urn()))
-						ssdp_request.set_header("BOOTID.UPNP.ORG", str(self.bootid))
-						ssdp_request.set_header("CONFIGID.UPNP.ORG", str(self.configid))
-						ssdp_request.send_notify()
-					#
-
-					ssdp_request.reset_headers()
-					ssdp_request.set_header("NTS", "ssdp:byebye")
-					ssdp_request.set_header("NT", "urn:{0}".format(identifier['urn']))
-					ssdp_request.set_header("USN", usn)
-					ssdp_request.set_header("BOOTID.UPNP.ORG", str(self.bootid))
-					ssdp_request.set_header("CONFIGID.UPNP.ORG", str(self.configid))
-					ssdp_request.send_notify()
-
-					if (identifier['class'] == "device"):
-					#
-						ssdp_request.reset_headers()
-						ssdp_request.set_header("NTS", "ssdp:byebye")
-						ssdp_request.set_header("NT", "uuid:{0}".format(identifier['uuid']))
-						ssdp_request.set_header("USN", "uuid:{0}".format(identifier['uuid']))
-						ssdp_request.set_header("BOOTID.UPNP.ORG", str(self.bootid))
-						ssdp_request.set_header("CONFIGID.UPNP.ORG", str(self.configid))
-						ssdp_request.send_notify()
-					#
-
-					if (self.is_rootdevice_known(device = identifier['device'])):
-					#
-						ssdp_request.reset_headers()
-						ssdp_request.set_header("NTS", "ssdp:byebye")
-						ssdp_request.set_header("NT", "upnp:rootdevice")
-						ssdp_request.set_header("USN", "uuid:{0}::upnp:rootdevice".format(identifier['uuid']))
-						ssdp_request.set_header("BOOTID.UPNP.ORG", str(self.bootid))
-						ssdp_request.set_header("CONFIGID.UPNP.ORG", str(self.configid))
-						ssdp_request.send_notify()
-					#
-				#
-
-				self._remove_task(identifier['usn'], "reannounce_device")
-			#
-			elif ((_type == ControlPoint.ANNOUNCE_DEVICE or _type == ControlPoint.REANNOUNCE_DEVICE) and identifier != None and location != None):
-			#
-				device = (self.managed_devices[identifier['uuid']] if (identifier['uuid'] in self.managed_devices) else None)
-				services = ([ ] if (device == None) else device.get_unique_service_type_ids())
-
-				for announce_target in announce_targets:
-				#
-					ssdp_request = SsdpMessage(announce_target)
-
-					if (self.is_rootdevice_known(device = identifier['device'])):
-					#
-						ssdp_request.reset_headers()
-						ssdp_request.set_header("Cache-Control", "max-age={0:d}".format(self.announcement_interval))
-						ssdp_request.set_header("NTS", "ssdp:alive")
-						ssdp_request.set_header("NT", "upnp:rootdevice")
-						ssdp_request.set_header("USN", "uuid:{0}::upnp:rootdevice".format(identifier['uuid']))
-						ssdp_request.set_header("LOCATION", location)
-						ssdp_request.set_header("BOOTID.UPNP.ORG", str(self.bootid))
-						ssdp_request.set_header("CONFIGID.UPNP.ORG", str(self.configid))
-						ssdp_request.send_notify()
-					#
-
-					if (identifier['class'] == "device"):
-					#
-						ssdp_request.reset_headers()
-						ssdp_request.set_header("Cache-Control", "max-age={0:d}".format(self.announcement_interval))
-						ssdp_request.set_header("NTS", "ssdp:alive")
-						ssdp_request.set_header("NT", "uuid:{0}".format(identifier['uuid']))
-						ssdp_request.set_header("USN", "uuid:{0}".format(identifier['uuid']))
-						ssdp_request.set_header("LOCATION", location)
-						ssdp_request.set_header("BOOTID.UPNP.ORG", str(self.bootid))
-						ssdp_request.set_header("CONFIGID.UPNP.ORG", str(self.configid))
-						ssdp_request.send_notify()
-					#
-
-					ssdp_request.reset_headers()
-					ssdp_request.set_header("Cache-Control", "max-age={0:d}".format(self.announcement_interval))
-					ssdp_request.set_header("NTS", "ssdp:alive")
-					ssdp_request.set_header("NT", "urn:{0}".format(identifier['urn']))
-					ssdp_request.set_header("USN", usn)
-					ssdp_request.set_header("LOCATION", location)
-					ssdp_request.set_header("BOOTID.UPNP.ORG", str(self.bootid))
-					ssdp_request.set_header("CONFIGID.UPNP.ORG", str(self.configid))
-					ssdp_request.send_notify()
-
-					for service_id in services:
-					#
-						service = device.get_service(service_id)
-
-						ssdp_request.reset_headers()
-						ssdp_request.set_header("Cache-Control", "max-age={0:d}".format(self.announcement_interval))
-						ssdp_request.set_header("NTS", "ssdp:alive")
-						ssdp_request.set_header("NT", "urn:{0}".format(service.get_urn()))
-						ssdp_request.set_header("USN", "uuid:{0}::urn:{1}".format(service.get_udn(), service.get_urn()))
-						ssdp_request.set_header("LOCATION", location)
-						ssdp_request.set_header("BOOTID.UPNP.ORG", str(self.bootid))
-						ssdp_request.set_header("CONFIGID.UPNP.ORG", str(self.configid))
-						ssdp_request.send_notify()
-					#
-				#
-
-				if (_type == ControlPoint.ANNOUNCE_DEVICE): self._add_task(0.3, "reannounce_device", usn = usn, location = location)
-				else:
-				#
-					announcement_divider = (self.announcement_divider if (self.announcement_divider > 0) else 1)
-
-					wait_seconds = randint(int(self.announcement_interval / (2 * announcement_divider)), int(self.announcement_interval / announcement_divider))
-					self._add_task(wait_seconds, "reannounce_device", usn = usn, location = location)
-				#
-			#
-			elif (_type == ControlPoint.ANNOUNCE_SEARCH_RESULT
-			      and identifier != None
-			      and location != None
-			      and additional_data != None
-			      and "search_target" in additional_data
-			      and "target_host" in additional_data
-			      and "target_port" in additional_data
-			     ):
-			#
-				ssdp_response = SsdpResponse(additional_data['target_host'], additional_data['target_port'])
-
-				ssdp_response.set_header("Cache-Control", "max-age={0:d}".format(self.announcement_interval))
-				ssdp_response.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
-				ssdp_response.set_header("EXT", "")
-				ssdp_response.set_header("ST", additional_data['search_target'])
-				ssdp_response.set_header("USN", usn)
-				ssdp_response.set_header("LOCATION", location)
-				ssdp_response.set_header("BOOTID.UPNP.ORG", str(self.bootid))
-				ssdp_response.set_header("CONFIGID.UPNP.ORG", str(self.configid))
-				ssdp_response.send()
-			#
-		#
-	#
-
 	def _deactivate_multicast_listener(self, ip):
 	#
 		"""
@@ -677,8 +480,15 @@ Delete the parsed UPnP identifier from the ControlPoint list.
 
 				if (usn_data['uuid'] in self.managed_devices):
 				#
+					if (self.configid < 16777216): self.configid += 1
+					else: self.configid = 0
+
+					event = ControlPointEvent(self, ControlPointEvent.TYPE_DEVICE_SHUTDOWN)
+					event.set_usn(identifier['usn'])
+					event.deliver()
+
 					Hook.call("dNG.pas.upnp.ControlPoint.onHostDeviceRemoved", identifier = identifier)
-					self._announce(ControlPoint.ANNOUNCE_DEVICE_SHUTDOWN, identifier['usn'])
+					self._remove_task(identifier['usn'], "deliver_event")
 					del(self.managed_devices[usn_data['uuid']])
 				#
 				elif ("url_desc_read" in usn_data):
@@ -745,8 +555,8 @@ Delete the USN from the list of UPnP descriptions.
 Delete the USN from the ControlPoint list.
 
 :param usn: UPnP USN
-:param bootid: UPnP bootid (bootid.upnp.org) if any
-:param configid: UPnP configid (configid.upnp.org) if any
+:param bootid: UPnP bootId (bootid.upnp.org) if any
+:param configid: UPnP configId (configid.upnp.org) if any
 :param url: UPnP description location
 :param additional_data: Additional data received
 
@@ -788,6 +598,30 @@ Delete all USNs from the given list.
 				if (usn in self.usns): self._delete(self.usns[usn])
 			#
 		#
+	#
+
+	def get_bootid(self):
+	#
+		"""
+Returns the UPnP bootId value (bootid.upnp.org).
+
+:return: (int) UPnP bootId value (bootid.upnp.org)
+:since:  v0.1.02
+		"""
+
+		return self.bootid
+	#
+
+	def get_configid(self):
+	#
+		"""
+Returns the UPnP configId value (configid.upnp.org).
+
+:return: (int) UPnP configId value (configid.upnp.org)
+:since:  v0.1.02
+		"""
+
+		return self.configid
 	#
 
 	def get_desc_xml(self, identifier):
@@ -1184,6 +1018,30 @@ Returns true if the given IP is a allowed to send UPnP control requests.
 		return _return
 	#
 
+	def is_listening_ipv4(self):
+	#
+		"""
+Returns true if the UPnP control point is listening on an IPv4 address.
+
+:return: (bool) True if listening at IPv4 addresses
+:since:  v0.1.02
+		"""
+
+		return (self.listeners_multicast_ipv4 > 0)
+	#
+
+	def is_listening_ipv6(self):
+	#
+		"""
+Returns true if the UPnP control point is listening on an IPv6 address.
+
+:return: (bool) True if listening at IPv6 addresses
+:since:  v0.1.02
+		"""
+
+		return (self.listeners_multicast_ipv6 > 0)
+	#
+
 	def is_rootdevice_known(self, **kwargs):
 	#
 		"""
@@ -1287,18 +1145,23 @@ Remove a device from the managed list and announce the change.
 
 				if (device_identifier != None and device_identifier['usn'] in self.usns):
 				#
+					self._delete(device_identifier)
+
 					if (self.configid < 16777216): self.configid += 1
 					else: self.configid = 0
-
-					self._delete(device_identifier)
 
 					for uuid in self.managed_devices:
 					#
 						if (device_identifier['uuid'] != uuid):
 						#
 							usn = "uuid:{0}::urn:{1}".format(self.managed_devices[uuid].get_udn(), self.managed_devices[uuid].get_urn())
-							self._remove_task(usn, "reannounce_device")
-							self._announce(ControlPoint.REANNOUNCE_DEVICE, usn, self.managed_devices[uuid].get_desc_url())
+
+							self._remove_task(usn, "deliver_event")
+
+							event = ControlPointEvent(self, ControlPointEvent.TYPE_DEVICE_CONFIG_CHANGED)
+							event.set_usn(usn)
+							event.set_location(self.managed_devices[uuid].get_desc_url())
+							event.schedule()
 						#
 					#
 
@@ -1400,11 +1263,9 @@ Timed task execution
 
 				thread = None
 
-				if (task['type'] == "announce_device"): thread = Thread(target = self._announce, args = ( ControlPoint.ANNOUNCE_DEVICE, task['usn'], task['location'] ))
-				elif (task['type'] == "announce_search_result"): thread = Thread(target = self._announce, args = ( ControlPoint.ANNOUNCE_SEARCH_RESULT, task['usn'], task['location'], task))
-				elif (task['type'] == "delete"): self._delete(task['identifier'])
+				if (task['type'] == "delete"): self._delete(task['identifier'])
+				elif (task['type'] == "deliver_event"): thread = task['event']
 				elif (task['type'] == "read_upnp_descs"): thread = Thread(target = self._read_upnp_descs)
-				elif (task['type'] == "reannounce_device"): thread = Thread(target = self._announce, args = ( ControlPoint.REANNOUNCE_DEVICE, task['usn'], task['location'] ))
 				elif (task['type'] == "remove_rootdevice"): self.remove_rootdevice(task['usn'])
 
 				if (thread != None): thread.start()
@@ -1557,7 +1418,19 @@ Searches for hosted devices matching the given UPnP search target.
 				if (source_wait_timeout > 0): wait_seconds = randfloat(0, (source_wait_timeout if (source_wait_timeout < 10) else 10) / len(results))
 				else: wait_seconds = 0
 
-				for result in results: self._add_task(wait_seconds, "announce_search_result", usn = result['usn'], location = result['location'], search_target = result['search_target'], target_host = ("[{0}]".format(source_data[0]) if (":" in source_data[0]) else source_data[0]), target_port = source_data[1])
+				for result in results:
+				#
+					event = ControlPointEvent(self, ControlPointEvent.TYPE_SEARCH_RESULT)
+					event.set_usn(result['usn'])
+					event.set_location(result['location'])
+					event.set_search_target(result['search_target'])
+
+					event.set_response_target(("[{0}]".format(source_data[0]) if (":" in source_data[0]) else source_data[0]),
+					                          source_data[1]
+					                         )
+
+					event.schedule(wait_seconds)
+				#
 			#
 		#
 	#
@@ -1657,7 +1530,7 @@ Starts all UPnP listeners and announces itself.
 
 		AbstractTimed.start(self)
 		Hook.call("dNG.pas.upnp.ControlPoint.onStartup")
-		if (self.log_handler != None): self.log_handler.info("pas.upnp.ControlPoint starts with bootid '{0:d}' and configid '{1:d}'", self.bootid, self.configid, context = "pas_upnp")
+		if (self.log_handler != None): self.log_handler.info("pas.upnp.ControlPoint starts with bootId '{0:d}' and configId '{1:d}'", self.bootid, self.configid, context = "pas_upnp")
 
 		return last_return
 	#
@@ -1698,9 +1571,9 @@ Update the list with the given parsed UPnP identifier.
 
 :param servername: UPnP server string
 :param identifier: Parsed UPnP identifier
-:param bootid: UPnP bootid (bootid.upnp.org) if any
-:param bootid_old: Current UPnP bootid in case of ssdp:update
-:param configid: UPnP configid (configid.upnp.org) if any
+:param bootid: UPnP bootId (bootid.upnp.org) if any
+:param bootid_old: Current UPnP bootId in case of ssdp:update
+:param configid: UPnP configId (configid.upnp.org) if any
 :param timeout: UPnP USN expire time
 :param unicast_port: Received unicast port
 :param http_version: HTTP request version
@@ -1712,7 +1585,7 @@ Update the list with the given parsed UPnP identifier.
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._update({1}, {2:d}, {3:.1f}, {4})- (#echo(__LINE__)#)", self, servername, timeout, http_version, location_url, context = "pas_upnp")
 
-		url_base = Binary.str(urljoin(location_url, "."))
+		url_base = location_url.rsplit("/", 1)[0]
 		usn_data = identifier.copy()
 		usn_data.update({ "http_version": http_version, "ssdp_server_name": servername, "unicast_port": unicast_port })
 		url_elements = urlsplit(url_base)
@@ -1838,9 +1711,9 @@ Update the list with the given USN.
 
 :param servername: UPnP server string
 :param usn: UPnP USN
-:param bootid: UPnP bootid (bootid.upnp.org) if any
-:param bootid_old: Current UPnP bootid in case of ssdp:update
-:param configid: UPnP configid (configid.upnp.org) if any
+:param bootid: UPnP bootId (bootid.upnp.org) if any
+:param bootid_old: Current UPnP bootId in case of ssdp:update
+:param configid: UPnP configId (configid.upnp.org) if any
 :param timeout: UPnP USN expire time
 :param unicast_port: Received unicast port
 :param http_version: HTTP request version

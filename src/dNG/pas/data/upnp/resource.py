@@ -45,6 +45,7 @@ from dNG.pas.data.binary import Binary
 from dNG.pas.data.supports_mixin import SupportsMixin
 from dNG.pas.data.text.input_filter import InputFilter
 from dNG.pas.data.text.l10n import L10n
+from dNG.pas.data.upnp.update_id_registry import UpdateIdRegistry
 from dNG.pas.module.named_loader import NamedLoader
 from dNG.pas.plugins.hook import Hook
 from dNG.pas.runtime.thread_lock import ThreadLock
@@ -176,10 +177,6 @@ UPnP resource type
 		self.type_name = None
 		"""
 UPnP resource type name
-		"""
-		self.update_id = 1
-		"""
-UPnP UpdateID value
 		"""
 		self.updatable = False
 		"""
@@ -427,7 +424,7 @@ resources.
 			_return = { "result": xml_resource.export_cache(True),
 			            "number_returned": content_count,
 			            "total_matches": self.get_total(),
-			            "update_id": self.update_id
+			            "update_id": self.get_update_id()
 			          }
 		#
 
@@ -588,7 +585,7 @@ Returns an UPnP DIDL result of generated XML for this UPnP resource.
 			_return = { "result": xml_resource.export_cache(True),
 			            "number_returned": 1,
 			            "total_matches": 1,
-			            "update_id": self.update_id
+			            "update_id": self.get_update_id()
 			          }
 		#
 
@@ -804,6 +801,18 @@ Returns if the UPnP resource can be changed.
 		return self.updatable
 	#
 
+	def get_update_id(self):
+	#
+		"""
+Returns the UPnP ContainerUpdateIDValue.
+
+:return: (int) UPnP ContainerUpdateIDValue
+:since:  v0.1.02
+		"""
+
+		return UpdateIdRegistry.get(self.get_id())
+	#
+
 	def init(self, data):
 	#
 		"""
@@ -829,7 +838,7 @@ Initializes a new resource with the data given.
 			if ("source" in data): self.parent_id = data['source']
 			if ("symlink_target_id" in data): self.parent_id = data['symlink_target_id']
 			if ("type_name" in data): self.type_name = data['type_name']
-			if ("update_id" in data): self.update_id = data['update_id']
+			if ("update_id" in data): self.set_update_id(data['update_id'])
 			if ("updatable" in data): self.parent_id = data['updatable']
 
 			_return = True
@@ -838,14 +847,14 @@ Initializes a new resource with the data given.
 		return _return
 	#
 
-	def init_cds_id(self, _id, client_user_agent = None, update_id = None, deleted = False):
+	def init_cds_id(self, _id, client_user_agent = None, deleted = False):
 	#
 		"""
 Initialize a UPnP resource by CDS ID.
 
 :param _id: UPnP CDS ID
 :param client_user_agent: Client user agent
-:param update_id: Initial UPnP resource update ID
+:param update_id: UPnP ContainerUpdateIDValue
 :param deleted: True to include deleted resources
 
 :return: (bool) Returns true if initialization was successful.
@@ -856,7 +865,6 @@ Initialize a UPnP resource by CDS ID.
 
 		self.id = _id
 		if (client_user_agent != None): self.client_user_agent = client_user_agent
-		if (update_id != None): self.update_id = update_id
 
 		if (_id == "0"):
 		#
@@ -1049,7 +1057,7 @@ matching the given UPnP search criteria.
 			_return = { "result": xml_resource.export_cache(True),
 			            "number_returned": content_count,
 			            "total_matches": content_matched_count,
-			            "update_id": self.update_id
+			            "update_id": self.get_update_id()
 			          }
 		#
 
@@ -1142,17 +1150,15 @@ Sets the DIDL fields to be returned.
 	def set_update_id(self, update_id):
 	#
 		"""
-Sets the UPnP resource update ID or increments it.
+Sets the UPnP ContainerUpdateIDValue or increments it.
 
-:param update_id: UPnP resource update ID or "++" to increment id
+:param update_id: UPnP ContainerUpdateIDValue or "++" to increment it
 
 :since: v0.1.01
 		"""
 
-		if (update_id == "++"): self.update_id += 1
-		elif (type(update_id) == int): self.update_id = update_id
-
-		#TODO: Gena.update_value("")
+		UpdateIdRegistry.set(self.get_id(), update_id)
+		#TODO: Gena.fire_update_id_event(self.get_id())
 	#
 
 	def _supports_search_content(self):
@@ -1241,7 +1247,7 @@ Load a UPnP resource by CDS ID.
 		if (_id == "0" and cds != None):
 		#
 			_return = Resource()
-			_return.init_cds_id(_id, client_user_agent, cds.get_system_update_id(), deleted)
+			_return.init_cds_id(_id, client_user_agent, deleted)
 		#
 		elif (_id != None and "://" in _id):
 		#
@@ -1250,7 +1256,7 @@ Load a UPnP resource by CDS ID.
 			if (url_elements.scheme != ""):
 			#
 				resource = NamedLoader.get_instance("dNG.pas.data.upnp.resources.{0}".format("".join([word.capitalize() for word in url_elements.scheme.split("-")])), False)
-				if (isinstance(resource, Resource) and resource.init_cds_id(_id, client_user_agent, deleted = deleted)): _return = resource
+				if (isinstance(resource, Resource) and resource.init_cds_id(_id, client_user_agent, deleted)): _return = resource
 			#
 		#
 

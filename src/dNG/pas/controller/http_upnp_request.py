@@ -64,9 +64,9 @@ Constructor __init__(HttpUpnpRequest)
 
 		AbstractInnerHttpRequest.__init__(self)
 
-		self.http_request = None
+		self.body_instance = None
 		"""
-Retrieved HTTP request
+Retrieved HTTP request body
 		"""
 		self.upnp_control_point = None
 		"""
@@ -95,17 +95,15 @@ Parses the SOAP request to identify the contained request.
 
 		_return = None
 
-		request_body = self.http_request.get_request_body(content_type_expected = "text/xml")
-
 		soap_action = self.get_header("SoapAction")
 		if (soap_action != None): soap_action = soap_action.strip("\"").split("#", 1)
 
-		if (request_body != None and soap_action != None):
+		if (self.body_instance != None and soap_action != None):
 		#
 			urn = soap_action[0]
 			soap_action = soap_action[1]
 
-			post_data = request_body.get(timeout)
+			post_data = self.body_instance.get(timeout)
 
 			xml_data = Binary.str(post_data.read())
 			xml_resource = XmlResource()
@@ -181,11 +179,12 @@ Sets the requested action.
 :since: v0.1.00
 		"""
 
+		self.body_instance = http_request.get_request_body(content_type_expected = "text/xml")
 		self.headers = http_request.get_headers()
 		self.module = "upnp"
 		self.upnp_control_point = control_point
 		self.upnp_device = device
-		self.http_request = http_request
+
 		request_data_length = len(request_data)
 
 		if (request_data_length == 1):
@@ -201,7 +200,7 @@ Sets the requested action.
 				self.action = "source"
 
 				stream_url = None
-				user_agent = self.http_request.get_header("User-Agent")
+				user_agent = http_request.get_header("User-Agent")
 
 				client = Client.load_user_agent(user_agent)
 

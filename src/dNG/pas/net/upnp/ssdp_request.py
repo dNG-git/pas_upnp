@@ -63,7 +63,7 @@ RegEx to extract the "Max-Age" header value
 		"""
 Active conversation
 
-:since: v1.0.0
+:since: v0.1.00
 		"""
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._thread_run()- (#echo(__LINE__)#)", self, context = "pas_upnp")

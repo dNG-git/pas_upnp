@@ -341,7 +341,7 @@ True if the host manages the device.
 		"""
 Sets the UPnP client user agent.
 
-:param configid: Client user agent
+:param user_agent: Client user agent
 
 :since: v0.1.00
 		"""

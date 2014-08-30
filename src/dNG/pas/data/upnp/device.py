@@ -836,10 +836,10 @@ Remove the given service from the list of services.
 Parses the given USN string.
 
 :param usn: UPnP USN
-:param bootid: UPnP bootid (bootid.upnp.org) if any
-:param configid: UPnP configid (configid.upnp.org) if any
+:param bootid: UPnP bootId (bootid.upnp.org) if any
+:param configid: UPnP configId (configid.upnp.org) if any
 
-:return: (dict) Parsed UPnP identifier; False on error
+:return: (dict) Parsed UPnP identifier; None on error
 :since:  v0.1.00
 		"""
 
