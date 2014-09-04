@@ -94,7 +94,7 @@ compression setting and information about P3P.
 
 		self.set_header("Content-Type", "text/xml; charset=UTF-8")
 		self.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
-		self.set_header("Server", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2]))
+		self.set_header("Server", "{0}/{1} UPnP/1.1 HTTP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2]))
 	#
 
 	def handle_result(self, urn, action, result):

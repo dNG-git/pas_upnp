@@ -36,10 +36,10 @@ from time import time
 
 from dNG.data.rfc.basics import Basics as RfcBasics
 from dNG.pas.data.settings import Settings
-from dNG.pas.data.traced_exception import TracedException
 from dNG.pas.data.upnp.device import Device
 from dNG.pas.net.upnp.ssdp_message import SsdpMessage
 from dNG.pas.net.upnp.ssdp_response import SsdpResponse
+from dNG.pas.runtime.value_exception import ValueException
 from .abstract_event import AbstractEvent
 
 class ControlPointEvent(AbstractEvent):
@@ -52,7 +52,7 @@ events.
 :copyright:  direct Netware Group - All rights reserved
 :package:    pas
 :subpackage: upnp
-:since:      v0.1.02
+:since:      v0.1.03
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
 	"""
@@ -82,15 +82,18 @@ UPnP device update announcement
 Search result announcement
 	"""
 
-	def __init__(self, control_point, _type):
+	def __init__(self, _type, control_point = None):
 	#
 		"""
 Constructor __init__(ControlPointEvent)
 
-:since: v0.1.02
+:param _type: Event to be delivered
+:param control_point: Control point scheduling delivery
+
+:since: v0.1.03
 		"""
 
-		AbstractEvent.__init__(self, control_point, _type)
+		AbstractEvent.__init__(self, _type)
 
 		self.announcement_divider = None
 		"""
@@ -129,6 +132,7 @@ UPnP USN
 
 		self.announcement_divider = int(Settings.get("pas_upnp_announcement_divider", 3))
 		self.announcement_interval = int(Settings.get("pas_upnp_announcement_interval", 3600))
+		self.control_point = control_point
 	#
 
 	def _send(self):
@@ -136,7 +140,7 @@ UPnP USN
 		"""
 Send event.
 
-:since: v0.1.02
+:since: v0.1.03
 		"""
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._send()- (#echo(__LINE__)#)", self, context = "pas_upnp")
@@ -167,7 +171,7 @@ Send event.
 					ssdp_request.reset_headers()
 					ssdp_request.set_header("NTS", "ssdp:byebye")
 					ssdp_request.set_header("NT", "urn:{0}".format(service.get_urn()))
-					ssdp_request.set_header("USN", "uuid:{0}::urn:{1}".format(service.get_udn(), service.get_urn()))
+					ssdp_request.set_header("USN", service.get_usn())
 					ssdp_request.set_header("BOOTID.UPNP.ORG", str(bootid))
 					ssdp_request.set_header("CONFIGID.UPNP.ORG", str(configid))
 					ssdp_request.send_notify()
@@ -211,10 +215,10 @@ Send event.
 		                   )
 		     ):
 		#
-			if (self.location == None): raise TracedException("UPnP location value is required for ssdp:alive")
+			if (self.location == None): raise ValueException("UPnP location value is required for ssdp:alive")
 
 			device = self.control_point.get_device(identifier)
-			if (device == None or (not device.is_managed())): raise TracedException("UPnP device is invalid")
+			if (device == None or (not device.is_managed())): raise ValueException("UPnP device is invalid")
 
 			nts = ("ssdp:update" if (self.type == ControlPointEvent.TYPE_DEVICE_UPDATE) else "ssdp:alive")
 			services = device.get_unique_service_type_ids()
@@ -267,7 +271,7 @@ Send event.
 					ssdp_request.set_header("Cache-Control", "max-age={0:d}".format(self.announcement_interval))
 					ssdp_request.set_header("NTS", nts)
 					ssdp_request.set_header("NT", "urn:{0}".format(service.get_urn()))
-					ssdp_request.set_header("USN", "uuid:{0}::urn:{1}".format(service.get_udn(), service.get_urn()))
+					ssdp_request.set_header("USN", service.get_usn())
 					ssdp_request.set_header("LOCATION", self.location)
 					ssdp_request.set_header("BOOTID.UPNP.ORG", str(bootid))
 					ssdp_request.set_header("CONFIGID.UPNP.ORG", str(configid))
@@ -275,7 +279,7 @@ Send event.
 				#
 			#
 
-			event = ControlPointEvent(self.control_point, ControlPointEvent.TYPE_DEVICE_REANNOUNCE_ALIVE)
+			event = ControlPointEvent(ControlPointEvent.TYPE_DEVICE_REANNOUNCE_ALIVE, control_point = self.control_point)
 			if (self.configid != None): event.set_configid(self.configid)
 			event.set_usn(self.usn)
 			event.set_location(self.location)
@@ -291,9 +295,9 @@ Send event.
 		#
 		elif (self.type == ControlPointEvent.TYPE_SEARCH_RESULT):
 		#
-			if (self.location == None): raise TracedException("UPnP location value is required for M-SEARCH responses")
-			if (self.location == None): raise TracedException("M-SEARCH ST value is invalid")
-			if (self.target_host == None or self.target_port == None): raise TracedException("UPnP M-SEARCH response recipient address is invalid")
+			if (self.location == None): raise ValueException("UPnP location value is required for M-SEARCH responses")
+			if (self.search_target == None): raise ValueException("M-SEARCH ST value is invalid")
+			if (self.target_host == None or self.target_port == None): raise ValueException("UPnP M-SEARCH response recipient address is invalid")
 
 			ssdp_response = SsdpResponse(self.target_host, self.target_port)
 
@@ -316,7 +320,7 @@ Activates all relevant multicast listeners based on the IP address given.
 
 :param wait_timeout: Time to wait before delivery
 
-:since: v0.1.02
+:since: v0.1.03
 		"""
 
 		# pylint: disable=star-args
@@ -324,7 +328,7 @@ Activates all relevant multicast listeners based on the IP address given.
 
 		if (self.type == ControlPointEvent.TYPE_DEVICE_ALIVE):
 		#
-			event = ControlPointEvent(self.control_point, ControlPointEvent.TYPE_DEVICE_SHUTDOWN)
+			event = ControlPointEvent(ControlPointEvent.TYPE_DEVICE_SHUTDOWN, control_point = self.control_point)
 			if (self.configid != None): event.set_configid(self.configid)
 			event.set_usn(self.usn)
 			event.schedule()
@@ -333,7 +337,7 @@ Activates all relevant multicast listeners based on the IP address given.
 		      and (not Settings.get("pas_upnp_ssdp_update_disabled", False))
 		     ):
 		#
-			event = ControlPointEvent(self.control_point, ControlPointEvent.TYPE_DEVICE_SHUTDOWN)
+			event = ControlPointEvent(ControlPointEvent.TYPE_DEVICE_SHUTDOWN, control_point = self.control_point)
 			if (self.configid != None): event.set_configid(self.configid)
 			event.set_usn(self.usn)
 			event.set_location(self.location)
@@ -353,10 +357,23 @@ Sets the UPnP configId value.
 
 :param configid: UPnP configId
 
-:since: v0.1.02
+:since: v0.1.03
 		"""
 
 		self.configid = configid
+	#
+
+	def set_control_point(self, control_point):
+	#
+		"""
+Sets the UPnP ControlPoint scheduling the event delivery.
+
+:param control_point: Control point scheduling delivery
+
+:since: v0.1.03
+		"""
+
+		self.control_point = control_point
 	#
 
 	def set_location(self, location):
@@ -366,7 +383,7 @@ Sets the UPnP HTTP location URL.
 
 :param location: UPnP HTTP location URL
 
-:since: v0.1.02
+:since: v0.1.03
 		"""
 
 		self.location = location
@@ -380,7 +397,7 @@ Sets the M-SEARCH response target host and port.
 :param host: Target host
 :param port: Target port
 
-:since: v0.1.02
+:since: v0.1.03
 		"""
 
 		self.target_host = host
@@ -394,7 +411,7 @@ Sets the M-SEARCH ST value.
 
 :param _value: M-SEARCH ST value
 
-:since: v0.1.02
+:since: v0.1.03
 		"""
 
 		self.search_target = _value

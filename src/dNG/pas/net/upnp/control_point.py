@@ -256,14 +256,13 @@ supported and must be handled separately.
 		#
 			with self.lock:
 			#
-				device_identifier = Device.get_identifier("uuid:{0}::urn:{1}".format(device.get_udn(), device.get_urn()), self.bootid, self.configid)
+				device_identifier = Device.get_identifier(device.get_usn(), self.bootid, self.configid)
 
 				if (device_identifier != None and device_identifier['usn'] not in self.usns):
 				#
 					if (self.log_handler != None): self.log_handler.info("pas.upnp.ControlPoint adds UPnP device USN '{0}'", device_identifier['usn'], context = "pas_upnp")
 
 					if (device_identifier['device'] not in self.rootdevices): self.rootdevices.append(device_identifier['device'])
-					device_identifier['managed'] = True
 					device_identifier['url_desc'] = device.get_desc_url()
 					self.managed_devices[device_identifier['uuid']] = device
 					self.usns[device_identifier['usn']] = device_identifier
@@ -275,7 +274,7 @@ supported and must be handled separately.
 
 					wait_seconds = randfloat(0.2, 0.4)
 
-					event = ControlPointEvent(self, ControlPointEvent.TYPE_DEVICE_ALIVE)
+					event = ControlPointEvent(ControlPointEvent.TYPE_DEVICE_ALIVE, control_point = self)
 					event.set_usn(device_identifier['usn'])
 					event.set_location(device_identifier['url_desc'])
 					event.schedule(wait_seconds)
@@ -287,17 +286,16 @@ supported and must be handled separately.
 					for uuid in embedded_device_uuids:
 					#
 						embedded_device = device.get_embedded_device(uuid)
-						embedded_device_identifier = Device.get_identifier("uuid:{0}::urn:{1}".format(embedded_device.get_udn(), embedded_device.get_urn()), self.bootid, self.configid)
+						embedded_device_identifier = Device.get_identifier(embedded_device.get_usn(), self.bootid, self.configid)
 						if (self.log_handler != None): self.log_handler.info("pas.upnp.ControlPoint adds UPnP device USN '{0}'", embedded_device_identifier['usn'], context = "pas_upnp")
 
-						embedded_device_identifier['managed'] = True
 						embedded_device_identifier['url_desc'] = embedded_device.get_desc_url()
 						self.managed_devices[embedded_device_identifier['uuid']] = embedded_device
 						self.usns[embedded_device_identifier['usn']] = embedded_device_identifier
 
 						wait_seconds = randfloat(0.4, 0.6)
 
-						event = ControlPointEvent(self, ControlPointEvent.TYPE_DEVICE_ALIVE)
+						event = ControlPointEvent(ControlPointEvent.TYPE_DEVICE_ALIVE, control_point = self)
 						event.set_usn(embedded_device_identifier['usn'])
 						event.set_location(embedded_device_identifier['url_desc'])
 						event.schedule(wait_seconds)
@@ -483,7 +481,7 @@ Delete the parsed UPnP identifier from the ControlPoint list.
 					if (self.configid < 16777216): self.configid += 1
 					else: self.configid = 0
 
-					event = ControlPointEvent(self, ControlPointEvent.TYPE_DEVICE_SHUTDOWN)
+					event = ControlPointEvent(ControlPointEvent.TYPE_DEVICE_SHUTDOWN, control_point = self)
 					event.set_usn(identifier['usn'])
 					event.deliver()
 
@@ -847,7 +845,7 @@ Returns a UPnP rootdevice for the given identifier.
 					#
 						if (ip in self.usns[usn].get("ips", [ ])):
 						#
-							_return = self.get_rootdevice(self, self.usns[usn])
+							_return = self.get_rootdevice(self.usns[usn])
 							break
 						#
 					#
@@ -1088,7 +1086,7 @@ Parse unread UPnP descriptions.
 
 			http_client = HttpClient(url, event_handler = self.log_handler)
 			http_client.set_header("Accept-Language", self.http_language)
-			http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
+			http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 HTTP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
 			http_client.set_ipv6_link_local_interface(Settings.get("pas_global_ipv6_link_local_interface"))
 
 			http_response = http_client.request_get()
@@ -1141,7 +1139,7 @@ Remove a device from the managed list and announce the change.
 		#
 			with self.lock:
 			#
-				device_identifier = Device.get_identifier("uuid:{0}::urn:{1}".format(device.get_udn(), device.get_urn()), self.bootid, self.configid)
+				device_identifier = Device.get_identifier(device.get_usn(), self.bootid, self.configid)
 
 				if (device_identifier != None and device_identifier['usn'] in self.usns):
 				#
@@ -1158,7 +1156,7 @@ Remove a device from the managed list and announce the change.
 
 							self._remove_task(usn, "deliver_event")
 
-							event = ControlPointEvent(self, ControlPointEvent.TYPE_DEVICE_CONFIG_CHANGED)
+							event = ControlPointEvent(ControlPointEvent.TYPE_DEVICE_CONFIG_CHANGED, control_point = self)
 							event.set_usn(usn)
 							event.set_location(self.managed_devices[uuid].get_desc_url())
 							event.schedule()
@@ -1420,7 +1418,7 @@ Searches for hosted devices matching the given UPnP search target.
 
 				for result in results:
 				#
-					event = ControlPointEvent(self, ControlPointEvent.TYPE_SEARCH_RESULT)
+					event = ControlPointEvent(ControlPointEvent.TYPE_SEARCH_RESULT, control_point = self)
 					event.set_usn(result['usn'])
 					event.set_location(result['location'])
 					event.set_search_target(result['search_target'])
@@ -1449,6 +1447,12 @@ Starts all UPnP listeners and announces itself.
 		# pylint: disable=broad-except
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.start()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+
+		# Set bootid and configid to a value between 0 and 16777215
+		startupid = int(time()) % 16777216
+
+		self.bootid = startupid
+		self.configid = startupid
 
 		preferred_host = Settings.get("pas_upnp_server_preferred_host")
 		preferred_port = Settings.get("pas_upnp_server_preferred_port")

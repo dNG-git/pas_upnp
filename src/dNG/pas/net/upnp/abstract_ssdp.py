@@ -213,7 +213,7 @@ Invoke a given SSDP method on the unicast or multicast recipient.
 
 		headers = self.headers.copy()
 
-		server_name = "{0}/{1} {2} pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50"
+		server_name = "{0}/{1} {2} HTTP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50"
 
 		headers['SERVER'] = server_name.format(AbstractSsdp._get_os_name(),
 		                                       AbstractSsdp._get_os_version(),

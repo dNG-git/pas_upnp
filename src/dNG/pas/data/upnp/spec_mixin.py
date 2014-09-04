@@ -31,14 +31,10 @@ https://www.direct-netware.de/redirect?licenses;gpl
 #echo(__FILEPATH__)#
 """
 
-from dNG.pas.plugins.hook import Hook
-from dNG.pas.runtime.thread_lock import ThreadLock
-
-class UpdateIdRegistry(object):
+class SpecMixin(object):
 #
 	"""
-"UpdateIdRegistry" takes a UPnP error message and its error code for later
-output.
+"SpecMixin" is used to provide the UPnP specVersion data.
 
 :author:     direct Netware Group
 :copyright:  direct Netware Group - All rights reserved
@@ -49,78 +45,34 @@ output.
              GNU General Public License 2
 	"""
 
-	UPDATE_ID_MAX = 4294967295
-	"""
-Largest UpdateID number supported by UPnP v1.0
-	"""
-
-	_ids = { }
-	"""
-	"""
-	_lock = ThreadLock()
-	"""
-	"""
-
-	@staticmethod
-	def get(_id):
+	def __init__(self):
 	#
 		"""
-Returns the UPnP UpdateID for the ID given.
+Constructor __init__(SpecMixin)
 
-:param _id: Registry ID
+:since: v0.1.03
+		"""
 
-:return: (int) UPnP UpdateID value
+		self.spec_major = None
+		"""
+UPnP specVersion major number
+		"""
+		self.spec_minor = None
+		"""
+UPnP specVersion minor number
+		"""
+	#
+
+	def get_spec_version(self):
+	#
+		"""
+Returns the UPnP specVersion number.
+
+:return: (tuple) UPnP Device Architecture version: Major and minor number
 :since:  v0.1.03
 		"""
 
-		return UpdateIdRegistry._ids.get(_id, 1)
-	#
-
-	@staticmethod
-	def set(_id, value):
-	#
-		"""
-Sets the UPnP UpdateID for the ID given.
-
-:param _id: Registry ID
-:param value: UPnP UpdateID value
-
-:since: v0.1.03
-		"""
-
-		if (value == "++"):
-		#
-			with UpdateIdRegistry._lock:
-			#
-				value = UpdateIdRegistry.get(_id) + 1
-				if (value > UpdateIdRegistry.UPDATE_ID_MAX): value = 1
-
-				UpdateIdRegistry._ids[_id] = value
-			#
-		#
-		else:
-		#
-			if (value < 1): value = UpdateIdRegistry.UPDATE_ID_MAX
-			elif (value > UpdateIdRegistry.UPDATE_ID_MAX): value = 1
-
-			UpdateIdRegistry._ids[_id] = value
-		#
-
-		Hook.call("dNG.pas.upnp.Resource.onUpdateIdChanged", id = _id, value = value)
-	#
-
-	@staticmethod
-	def unset(_id):
-	#
-		"""
-Unsets the UPnP UpdateID for the ID given.
-
-:param _id: Registry ID
-
-:since: v0.1.03
-		"""
-
-		pass
+		return ( self.spec_major, self.spec_minor )
 	#
 #
 

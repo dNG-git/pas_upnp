@@ -32,7 +32,6 @@ https://www.direct-netware.de/redirect?licenses;gpl
 """
 
 from platform import uname
-import re
 
 from dNG.data.xml_resource import XmlResource
 from dNG.net.http.client import Client as HttpClient
@@ -42,9 +41,11 @@ from dNG.pas.data.logging.log_line import LogLine
 from dNG.pas.module.named_loader import NamedLoader
 from dNG.pas.runtime.thread_lock import ThreadLock
 from dNG.pas.runtime.value_exception import ValueException
+from .identifier_mixin import IdentifierMixin
 from .service import Service
+from .spec_mixin import SpecMixin
 
-class Device(object):
+class Device(IdentifierMixin, SpecMixin):
 #
 	"""
 The UPnP Basic:1 device implementation.
@@ -58,11 +59,6 @@ The UPnP Basic:1 device implementation.
              GNU General Public License 2
 	"""
 
-	RE_USN_URN = re.compile("^urn:(.+):(.+):(.*):(.*)$", re.I)
-	"""
-URN RegExp
-	"""
-
 	def __init__(self):
 	#
 		"""
@@ -70,6 +66,9 @@ Constructor __init__(Device)
 
 :since: v0.1.00
 		"""
+
+		IdentifierMixin.__init__(self)
+		SpecMixin.__init__(self)
 
 		self.configid = None
 		"""
@@ -103,10 +102,6 @@ UPnP modelNumber value
 		"""
 UPnP embedded devices
 		"""
-		self.identifier = None
-		"""
-Parsed UPnP identifier
-		"""
 		self.manufacturer = None
 		"""
 UPnP manufacturer value
@@ -130,14 +125,6 @@ Received Service Control Protocol Definitions
 		self.services = { }
 		"""
 UPnP services
-		"""
-		self.spec_major = None
-		"""
-UPnP specVersion major number
-		"""
-		self.spec_minor = None
-		"""
-UPnP specVersion minor number
 		"""
 		self._lock = ThreadLock()
 		"""
@@ -379,7 +366,7 @@ Returns a UPnP service for the given UPnP service ID.
 						os_uname = uname()
 
 						http_client = HttpClient(scpd_url, event_handler = NamedLoader.get_singleton("dNG.pas.data.logging.LogHandler", False))
-						http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
+						http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 HTTP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
 						http_client.set_ipv6_link_local_interface(Settings.get("pas_global_ipv6_link_local_interface"))
 						http_response = http_client.request_get()
 
@@ -430,30 +417,6 @@ Returns a list of unique (serviceType differs) UPnP service USNs.
 		return self.services.keys()
 	#
 
-	def get_spec_version(self):
-	#
-		"""
-Returns the UPnP specVersion number.
-
-:return: (tuple) UPnP Device Architecture version: Major and minor number
-:since:  v0.1.00
-		"""
-
-		return ( self.spec_major, self.spec_minor )
-	#
-
-	def get_type(self):
-	#
-		"""
-Returns the UPnP device type.
-
-:return: (str) Device type
-:since:  v0.1.00
-		"""
-
-		return self.identifier['type']
-	#
-
 	def get_url_base(self):
 	#
 		"""
@@ -464,54 +427,6 @@ Returns the HTTP base URL.
 		"""
 
 		return self.url_base
-	#
-
-	def get_udn(self):
-	#
-		"""
-Returns the UPnP UDN value.
-
-:return: (str) UPnP device UDN
-:since:  v0.1.00
-		"""
-
-		return self.identifier['uuid']
-	#
-
-	def get_upnp_domain(self):
-	#
-		"""
-Returns the UPnP device specification domain.
-
-:return: (str) UPnP device specification domain
-:since:  v0.1.00
-		"""
-
-		return self.identifier['domain']
-	#
-
-	def get_urn(self):
-	#
-		"""
-Returns the UPnP deviceType value.
-
-:return: (str) UPnP URN
-:since:  v0.1.00
-		"""
-
-		return self.identifier['urn']
-	#
-
-	def get_version(self):
-	#
-		"""
-Returns the UPnP device type version.
-
-:return: (str) Device type version; None if undefined
-:since:  v0.1.00
-		"""
-
-		return (self.identifier['version'] if ("urn" in self.identifier) else None)
 	#
 
 	def _init_device_xml_tree(self, xml_tree):
@@ -640,7 +555,7 @@ Initialize the embedded device from a UPnP description.
 
 		if (_return):
 		#
-			self.identifier = identifier
+			self._set_identifier(identifier)
 			self.url_base = url_base
 
 			xml_node = xml_resource.get_node("upnp:device upnp:serviceList", False)
@@ -678,7 +593,7 @@ Initialize the list of services from a UPnP description.
 			#
 				service = Service()
 				xml_node = xml_resource.get_node("upnp:serviceList upnp:service#{0:d}".format(position), False)
-				if (xml_node != None and "xml.item" in xml_node and service.init_metadata_xml_tree(self.identifier, self.url_base, { xml_node['xml.item']['tag']: xml_node })): self.add_service(service)
+				if (xml_node != None and "xml.item" in xml_node and service.init_metadata_xml_tree(self._get_identifier(), self.url_base, { xml_node['xml.item']['tag']: xml_node })): self.add_service(service)
 			#
 		#
 
@@ -761,7 +676,7 @@ Initialize the device structure from a UPnP description.
 
 		if (_return):
 		#
-			self.identifier = Device.get_identifier(usn_data['usn'], usn_data['bootid'], usn_data['configid'])
+			self._set_identifier(Device.get_identifier(usn_data['usn'], usn_data['bootid'], usn_data['configid']))
 
 			xml_node = xml_resource.get_node("upnp:root upnp:device upnp:serviceList", False)
 			if (xml_node != None and "xml.item" in xml_node): _return = self._init_services_xml_tree({ xml_node['xml.item']['tag']: xml_node })
@@ -827,58 +742,6 @@ Remove the given service from the list of services.
 
 		service = service.get_service_id().lower()
 		if (service in self.services): del(self.services[service])
-	#
-
-	@staticmethod
-	def get_identifier(usn, bootid = None, configid = None):
-	#
-		"""
-Parses the given USN string.
-
-:param usn: UPnP USN
-:param bootid: UPnP bootId (bootid.upnp.org) if any
-:param configid: UPnP configId (configid.upnp.org) if any
-
-:return: (dict) Parsed UPnP identifier; None on error
-:since:  v0.1.00
-		"""
-
-		usn = Binary.str(usn)
-
-		if (type(usn) == str):
-		#
-			usn_data = usn.split("::", 1)
-			device_id = usn_data[0].lower().replace("-", "")
-		#
-		else: device_id = ""
-
-		if (device_id.startswith("uuid:")):
-		#
-			device_id = device_id[5:]
-			_return = { "device": device_id, "bootid": None, "configid": None, "uuid": usn_data[0][5:], "class": "unknown", "managed": False, "usn": usn }
-
-			if (bootid != None and configid != None):
-			#
-				_return['bootid'] = bootid
-				_return['configid'] = configid
-			#
-
-			re_result = (Device.RE_USN_URN.match(usn_data[1]) if (len(usn_data) > 1) else None)
-
-			if (re_result != None):
-			#
-				_return['urn'] = usn_data[1][4:]
-
-				_return['domain'] = re_result.group(1)
-				_return['class'] = re_result.group(2)
-				_return['type'] = re_result.group(3)
-				_return['version'] = re_result.group(4)
-			#
-			elif (usn[-17:].lower() == "::upnp:rootdevice"): _return['class'] = "rootdevice"
-		#
-		else: _return = None
-
-		return _return
 	#
 #
 

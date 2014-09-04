@@ -70,7 +70,7 @@ Action for "request"
 
 		self.response.init()
 		self.response.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
-		self.response.set_header("Server", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2]))
+		self.response.set_header("Server", "{0}/{1} UPnP/1.1 HTTP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2]))
 
 		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
 		upnp_service = self.request.get_upnp_service()
@@ -78,11 +78,13 @@ Action for "request"
 
 		Hook.call("dNG.pas.http.l10n.upnp.Events.init")
 
-		callback_url = self.request.get_header("Callback")
+		callback_value = self.request.get_header("Callback")
 		gena_sid = self.request.get_header("SID")
 		upnp_service.set_client_user_agent(self.client_user_agent)
 
-		if ((callback_url == None or self.request.get_header("NT") != "upnp:event") and gena_sid == None): raise UpnpException("pas_http_core_400", 400)
+		if ((callback_value == None or self.request.get_header("NT") != "upnp:event")
+		    and gena_sid == None
+		   ): raise UpnpException("pas_http_core_400", 400)
 
 		gena = Gena.get_instance()
 		timeout = self.request.get_header("Timeout")
@@ -96,9 +98,11 @@ Action for "request"
 		#
 		else: timeout = int(re_result.group(1))
 
+		usn = upnp_service.get_usn()
+
 		if (gena_sid == None):
 		#
-			gena_sid = gena.register(upnp_service.get_name(), callback_url.strip("<>"), timeout)
+			gena_sid = gena.register(usn, callback_value, timeout)
 
 			if (gena_sid == False): raise UpnpException("pas_http_core_404", 412)
 
@@ -109,7 +113,7 @@ Action for "request"
 		#
 		else:
 		#
-			result = gena.reregister(upnp_service.get_name(), gena_sid, timeout)
+			result = gena.reregister(usn, gena_sid, timeout)
 
 			if (result == False): raise UpnpException("pas_http_core_404", 412)
 
@@ -132,7 +136,7 @@ Action for "request"
 
 		self.response.init()
 		self.response.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
-		self.response.set_header("Server", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2]))
+		self.response.set_header("Server", "{0}/{1} UPnP/1.1 HTTP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2]))
 
 		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
 		upnp_service = self.request.get_upnp_service()
@@ -146,7 +150,9 @@ Action for "request"
 		if (gena_sid == None): raise UpnpException("pas_http_core_400", 400)
 
 		gena = Gena.get_instance()
-		if (not gena.deregister(upnp_service.get_name(), gena_sid)): raise UpnpException("pas_http_core_404", 412)
+		usn = upnp_service.get_usn()
+
+		if (not gena.deregister(usn, gena_sid)): raise UpnpException("pas_http_core_404", 412)
 
 		self.response.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
 		self.response.set_raw_data("")

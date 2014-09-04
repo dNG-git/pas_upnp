@@ -47,36 +47,35 @@ The abstract event class for scheduled delivery by the UPnP control point.
 :copyright:  direct Netware Group - All rights reserved
 :package:    pas
 :subpackage: upnp
-:since:      v0.1.02
+:since:      v0.1.03
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
 	"""
 
-	def __init__(self, control_point, _type):
+	def __init__(self, _type):
 	#
 		"""
 Constructor __init__(AbstractEvent)
 
-:param control_point: Control point scheduling delivery
 :param _type: Event to be delivered
 
-:since: v0.1.02
+:since: v0.1.03
 		"""
 
 		Thread.__init__(self, target = self._send)
 
-		self.control_point = control_point
+		self.control_point = None
 		"""
 The UPnP ControlPoint scheduling the event delivery.
-		"""
-		self.type = _type
-		"""
-Event type to be handled
 		"""
 		self.log_handler = NamedLoader.get_singleton("dNG.pas.data.logging.LogHandler", False)
 		"""
 The LogHandler is called whenever debug messages should be logged or errors
 happened.
+		"""
+		self.type = _type
+		"""
+Event type to be handled
 		"""
 		self.usn = None
 		"""
@@ -91,22 +90,37 @@ Activates all relevant multicast listeners based on the IP address given.
 
 :param wait_timeout: Time to wait before delivery
 
-:since: v0.1.02
+:since: v0.1.03
 		"""
 
 		if (wait_timeout > 0): self.schedule(wait_timeout)
 		else: self.start()
 	#
 
+	def get_usn(self):
+	#
+		"""
+Returns the UPnP USN value.
+
+:return: (str) UPnP USN
+:since:  v0.1.03
+		"""
+
+		return self.usn
+	#
+
 	def run(self):
 	#
 		"""
-python.org: Method representing the thread’s activity.
+python.org: Method representing the thread's activity.
 
-:since: v0.1.01
+:since: v0.1.03
 		"""
 
-		with ExceptionLogTrap("pas_upnp"): Thread.run(self)
+		with ExceptionLogTrap("pas_upnp"):
+		#
+			Thread.run(self)
+		#
 	#
 
 	def schedule(self, wait_timeout = 0):
@@ -116,7 +130,7 @@ Activates all relevant multicast listeners based on the IP address given.
 
 :param wait_timeout: Time to wait before delivery
 
-:since: v0.1.02
+:since: v0.1.03
 		"""
 
 		# pylint: disable=star-args
@@ -134,7 +148,7 @@ Activates all relevant multicast listeners based on the IP address given.
 		"""
 Send event.
 
-:since: v0.1.02
+:since: v0.1.03
 		"""
 
 		raise NotImplementedException()
@@ -147,7 +161,7 @@ Sets the UPnP USN fpr this event.
 
 :param usn: UPnP USN
 
-:since: v0.1.02
+:since: v0.1.03
 		"""
 
 		self.usn = usn

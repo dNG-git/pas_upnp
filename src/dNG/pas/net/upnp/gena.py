@@ -33,18 +33,23 @@ https://www.direct-netware.de/redirect?licenses;gpl
 
 # pylint: disable=import-error,no-name-in-module
 
+from copy import copy
 from time import time
 from uuid import NAMESPACE_URL
 from uuid import uuid3 as uuid
 from weakref import ref
+import re
 import socket
 
 try: from urllib.parse import urlsplit
 except ImportError: from urlparse import urlsplit
 
 from dNG.pas.data.text.md5 import Md5
+from dNG.pas.data.upnp.abstract_event import AbstractEvent
 from dNG.pas.module.named_loader import NamedLoader
+from dNG.pas.plugins.hook import Hook
 from dNG.pas.runtime.instance_lock import InstanceLock
+from dNG.pas.runtime.type_exception import TypeException
 from dNG.pas.tasks.abstract_timed import AbstractTimed
 
 class Gena(AbstractTimed):
@@ -59,6 +64,15 @@ The UPnP GENA manager.
 :since:      v0.1.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
+	"""
+
+	RE_CALLBACK_URL_ELEMENTS = re.compile("<(.+?)>")
+	"""
+RegEx to find UPnP GENA subscription URLs
+	"""
+	SEQ_NUMBER_MAX = 4294967295
+	"""
+Largest sequence number supported by UPnP v1.0
 	"""
 
 	_instance_lock = InstanceLock()
@@ -80,7 +94,7 @@ Constructor __init__(Gena)
 
 		AbstractTimed.__init__(self)
 
-		self.subscriptions = None
+		self.subscriptions = { }
 		"""
 Active subscriptions
 		"""
@@ -88,56 +102,70 @@ Active subscriptions
 		"""
 Active subscriptions
 		"""
-		self.notifications = { }
-		"""
-Cached notifications for submission
-		"""
 
 		self.log_handler = NamedLoader.get_singleton("dNG.pas.data.logging.LogHandler", False)
 	#
 
-	def cancel(self, service_name, ip):
+	def _approve_seq_for_event(self, event, sid):
 	#
 		"""
-Cancels all subscriptions based on the given IP. "deregister()" should be
-preferred if possible.
+Returns the notification sequence number if the event is approved.
 
-:param service_name: UPnP service name
-:param ip: Subscribed client IP
+:param event: UPnP event instance
+:param sid: UPnP SID
 
-:return: (bool) True if at least one subscription has been canceled.
-:since:  v0.1.00
+:return: (int) Sequence number
+:since:  v0.1.03
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.cancel(service_name, {1})- (#echo(__LINE__)#)", self, ip, context = "pas_upnp")
-		_return = False
+		_return = None
 
-		with self.lock:
+		if (not isinstance(event, AbstractEvent)): raise TypeException("Given event is invalid")
+
+		is_approved = False
+
+		moderated_changes = (event.get_moderated_changes()
+		                     if (hasattr(event, "get_moderated_changes")) else
+		                     0
+		                    )
+
+		moderated_delay = (event.get_moderated_delay()
+		                   if (hasattr(event, "get_moderated_delay")) else
+		                   0
+		                  )
+
+		usn = event.get_usn()
+
+		if (usn in self.subscriptions):
 		#
-			if (service_name == None): subscriptions = self.subscriptions.copy()
-			elif (service_name in self.subscriptions): subscriptions = { service_name: self.subscriptions[service_name].copy() }
-			else: subscriptions = None
-
-			if (subscriptions != None):
-			#
-				for service_name in subscriptions:
+			with self.lock:
+			# Thread safety
+				if (usn in self.subscriptions and sid in self.subscriptions[usn]):
 				#
-					for callback_url in subscriptions[service_name]:
-					#
-						if (ip in subscriptions[service_name][callback_url]['ips']):
-						#
-							del(self.subscriptions[service_name][callback_url])
-							_return = True
+					moderated_subscription_changes = 0
+					subscription = self.subscriptions[usn][sid]
+					_time = time()
 
-							for position in range(len(self.timeouts) - 1, -1, -1):
-							#
-								timeout_entry = self.timeouts[position]
-								if (timeout_entry['callback_url'] == callback_url and timeout_entry['service_name'] == service_name): self.timeouts.pop(position)
-							#
-						#
+					is_approved = (moderated_delay == 0 or subscription.get("time_updated", 0) + moderated_delay < _time)
+
+					if (is_approved and moderated_changes > 0):
+					#
+						moderated_subscription_changes = subscription.get("moderated_changes", 0)
+						moderated_subscription_changes += 1
+
+						is_approved = (moderated_changes == 0 or subscription.get("moderated_changes", 0) >= moderated_changes)
+						subscription['moderated_changes'] = moderated_subscription_changes
 					#
 
-					if (len(self.subscriptions[service_name]) < 1): del(self.subscriptions[service_name])
+					if (is_approved):
+					#
+						_return = subscription['seq']
+
+						subscription['seq'] += 1
+						if (subscription['seq'] > Gena.SEQ_NUMBER_MAX): subscription['seq'] = 1
+
+						subscription['time_updated'] = _time
+					#
 				#
 			#
 		#
@@ -145,51 +173,82 @@ preferred if possible.
 		return _return
 	#
 
-	def deregister(self, service_name, sid):
+	def cancel(self, usn, ip):
+	#
+		"""
+Cancels all subscriptions based on the given IP. "deregister()" should be
+preferred if possible.
+
+:param usn: UPnP USN
+:param ip: Subscribed client IP
+
+:return: (bool) True if at least one subscription has been canceled.
+:since:  v0.1.00
+		"""
+
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.cancel({1})- (#echo(__LINE__)#)", self, ip, context = "pas_upnp")
+		_return = False
+
+		with self.lock:
+		#
+			if (usn == None): subscriptions = self.subscriptions.copy()
+			elif (usn in self.subscriptions): subscriptions = { usn: self.subscriptions[usn].copy() }
+			else: subscriptions = None
+
+			if (subscriptions != None):
+			#
+				for usn_subscribed in subscriptions:
+				#
+					for sid in subscriptions[usn_subscribed]:
+					#
+						if (ip in subscriptions[usn_subscribed][sid]['ips']): self.deregister(usn_subscribed, sid)
+						_return = True
+					#
+				#
+			#
+		#
+
+		return _return
+	#
+
+	def deregister(self, usn, sid):
 	#
 		"""
 Removes the subscription identified by the given SID.
 
-:param service_name: UPnP service name
+:param usn: UPnP USN
 :param sid: UPnP SID
 
 :return: (bool) True if successful
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.deregister({1}, {2})- (#echo(__LINE__)#)", self, service_name, sid, context = "pas_upnp")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.deregister({1}, {2})- (#echo(__LINE__)#)", self, usn, sid, context = "pas_upnp")
 		_return = False
 
-		with self.lock:
+		if (usn in self.subscriptions):
 		#
-			sid_callback_url = None
-
-			if (service_name in self.subscriptions):
-			#
-				subscriptions = self.subscriptions[service_name].copy()
-
-				for callback_url in subscriptions:
+			with self.lock:
+			# Thread safety
+				if (usn in self.subscriptions and sid in self.subscriptions[usn]):
 				#
-					if (subscriptions[callback_url]['sid'] == sid):
+					del(self.subscriptions[usn][sid])
+					if (len(self.subscriptions[usn]) < 1): del(self.subscriptions[usn])
+
+					for position in range(len(self.timeouts) - 1, -1, -1):
 					#
-						sid_callback_url = callback_url
-						_return = True
-
-						del(self.subscriptions[service_name][callback_url])
-						break
+						timeout_entry = self.timeouts[position]
+						if (timeout_entry['sid'] == sid): self.timeouts.pop(position)
 					#
-				#
 
-				if (len(self.subscriptions[service_name]) < 1): del(self.subscriptions[service_name])
+					_return = True
+				#
 			#
 
-			if (sid_callback_url != None):
+			if (_return):
 			#
-				for position in range(len(self.timeouts) - 1, -1, -1):
-				#
-					timeout_entry = self.timeouts[position]
-					if (timeout_entry['callback_url'] == sid_callback_url and timeout_entry['service_name'] == service_name): self.timeouts.pop(position)
-				#
+				if (self.log_handler != None): self.log_handler.debug("{0!r} removes subscription '{1}' for '{2}'", self, sid, usn, context = "pas_upnp")
+				Hook.call("dNG.pas.upnp.Gena.onUnregistered", usn = usn, sid = sid)
 			#
 		#
 
@@ -206,23 +265,72 @@ Get the implementation specific next "run()" UNIX timestamp.
 :since:  v0.1.00
 		"""
 
-		with self.lock:
-		#
-			if (len(self.timeouts) > 0): _return = self.timeouts[0]['timestamp']
-			else: _return = -1
+		_return = -1
+
+		if (len(self.timeouts) > 0):
+		# Thread safety
+			with self.lock:
+			#
+				if (len(self.timeouts) > 0): _return = self.timeouts[0]['timestamp']
+			#
 		#
 
 		return _return
 	#
 
-	def register(self, service_name, callback_url, timeout):
+	def get_subscriber(self, sid):
+	#
+		"""
+Returns the subscription identified by the given SID.
+
+:param sid: UPnP SID
+
+:return: (dict) Subscription information as dict; None if not subscribed
+:since:  v0.1.03
+		"""
+
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_subscriber({1})- (#echo(__LINE__)#)", self, sid, context = "pas_upnp")
+		_return = None
+
+		subscriptions = self.subscriptions.copy()
+
+		for usn_subscribed in subscriptions:
+		#
+			if (sid in subscriptions[usn_subscribed]):
+			#
+				_return = subscriptions[usn_subscribed][sid]
+				break
+			#
+		#
+
+		return _return
+	#
+
+	def get_subscribers(self, usn):
+	#
+		"""
+Returns a list of subscriptions identified by the given USN.
+
+:param usn: UPnP USN
+
+:return: (dict) Dictionary with SID as key and subscription information
+:since:  v0.1.03
+		"""
+
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_subscribers({1}, {2})- (#echo(__LINE__)#)", self, usn, context = "pas_upnp")
+
+		subscriptions = self.subscriptions.copy()
+		return subscriptions.get(usn, { })
+	#
+
+	def register(self, usn, callback_value, timeout):
 	#
 		"""
 Registers a callback URL endpoint for notifications for the given service
 name.
 
-:param service_name: UPnP service name
-:param callback_url: Endpoint for notification messages
+:param usn: UPnP USN
+:param callback_value: Endpoint for notification messages
 :param timeout: Timeout in seconds for the subscription
 
 :return: (bool) True if successful
@@ -234,27 +342,54 @@ name.
 		index = 1
 		timestamp = -1
 
+		callback_urls = Gena.RE_CALLBACK_URL_ELEMENTS.findall(callback_value)
+
+		if (len(callback_urls) > 1):
+		#
+			sorted_callback_urls = (callback_urls.copy() if (hasattr(callback_urls, "copy")) else copy(callback_urls))
+			sorted_callback_urls.sort()
+
+			sid = "uuid:{0}".format(uuid(NAMESPACE_URL, "upnp-gena://{0}/{1}".format(socket.getfqdn(), Md5.hash(" ".join(sorted_callback_urls)))))
+		#
+		else: sid = "uuid:{0}".format(uuid(NAMESPACE_URL, "upnp-gena://{0}/{1}".format(socket.getfqdn(), Md5.hash(callback_value))))
+
 		with self.lock:
 		#
-			if (service_name not in self.subscriptions or callback_url not in self.subscriptions[service_name]):
+			if (usn not in self.subscriptions): self.subscriptions[usn] = { }
+
+			if (sid not in self.subscriptions[usn]):
 			#
-				_return = "uuid:{0}".format(uuid(NAMESPACE_URL, "upnp-gena://{0}/{1}".format(socket.getfqdn(), Md5.hash(callback_url))))
-				if (service_name not in self.subscriptions): self.subscriptions[service_name] = { }
+				self.subscriptions[usn][sid] = { "callback_urls": callback_urls, "ips": [ ], "seq": 0 }
 
-				self.subscriptions[service_name][callback_url] = { "seq": 0, "sid": _return }
-				url_elements = urlsplit(callback_url)
-				ip_address_list = socket.getaddrinfo(url_elements.hostname, url_elements.port, socket.AF_UNSPEC, 0, socket.IPPROTO_TCP)
-
-				if (len(ip_address_list) > 0):
+				for callback_url in callback_urls:
 				#
-					ips = [ ]
+					url_elements = urlsplit(callback_url)
 
-					for ip_address_data in ip_address_list:
+					try:
 					#
-						if (ip_address_data[0] == socket.AF_INET or ip_address_data[0] == socket.AF_INET6): ips.append(ip_address_data[4][0])
-					#
+						ip_address_list = socket.getaddrinfo(url_elements.hostname,
+						                                     url_elements.port,
+						                                     socket.AF_UNSPEC,
+						                                     0,
+						                                     socket.IPPROTO_TCP
+						                                    )
 
-					if (len(ips) > 0): self.subscriptions[service_name][callback_url]['ips'] = ips
+						if (len(ip_address_list) > 0):
+						#
+							ips = [ ]
+
+							for ip_address_data in ip_address_list:
+							#
+								if (ip_address_data[0] == socket.AF_INET or ip_address_data[0] == socket.AF_INET6): ips.append(ip_address_data[4][0])
+							#
+
+							if (len(ips) > 0): self.subscriptions[usn][sid]['ips'] += ips
+						#
+					#
+					except socket.error as handled_exception:
+					#
+						if (self.log_handler != None): self.log_handler.error(handled_exception)
+					#
 				#
 
 				index = len(self.timeouts)
@@ -272,21 +407,25 @@ name.
 					#
 				#
 
-				self.timeouts.insert(index, { "timestamp": timestamp, "service_name": service_name, "callback_url": callback_url })
-				if (self.log_handler != None): self.log_handler.debug("{0!r} adds subscription '{1}' with URL '{2}' and timeout '{3:d}'", self, service_name, callback_url, timeout, context = "pas_upnp")
+				self.timeouts.insert(index, { "timestamp": timestamp, "usn": usn, "sid": sid })
+				if (self.log_handler != None): self.log_handler.debug("{0!r} adds subscription '{1}' for '{2}' with callback URL value '{3}' and timeout '{4:d}'", self, sid, usn, " ".join(callback_urls), timeout, context = "pas_upnp")
+
+				_return = sid
 			#
 		#
 
 		if (index < 1): self.update_timestamp(timestamp)
+		if (_return != None): Hook.call("dNG.pas.upnp.Gena.onRegistered", usn = usn, sid = _return)
+
 		return _return
 	#
 
-	def reregister(self, service_name, sid, timeout):
+	def reregister(self, usn, sid, timeout):
 	#
 		"""
 Renews an subscription identified by the given SID.
 
-:param service_name: UPnP service name
+:param usn: UPnP USN
 :param sid: UPnP SID
 :param timeout: Timeout in seconds for the subscription
 
@@ -294,45 +433,34 @@ Renews an subscription identified by the given SID.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.reregister({1}, {2}, {3:d})- (#echo(__LINE__)#)", self, service_name, sid, timeout, context = "pas_upnp")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.reregister({1}, {2}, {3:d})- (#echo(__LINE__)#)", self, usn, sid, timeout, context = "pas_upnp")
 		_return = False
 
 		index = 1
 		timestamp = -1
 
-		with self.lock:
+		if (usn in self.subscriptions):
 		#
-			sid_callback_url = None
-
-			if (service_name in self.subscriptions):
-			#
-				for callback_url in self.subscriptions[service_name]:
+			with self.lock:
+			# Thread safety
+				if (usn in self.subscriptions and sid in self.subscriptions[usn]):
 				#
-					if (self.subscriptions[service_name][callback_url]['sid'] == sid):
+					index = None
+					timestamp = int(time() + timeout + 1)
+
+					for position in range(len(self.timeouts) - 1, -1, -1):
 					#
-						sid_callback_url = callback_url
-						_return = True
+						timeout_entry = self.timeouts[position]
 
-						break
+						if (timeout_entry['sid'] == sid): self.timeouts.pop(position)
+						elif (index == None and timestamp > timeout_entry['timestamp']): index = position
 					#
+
+					if (index == None): index = len(self.timeouts)
+					self.timeouts.insert(index, { "timestamp": timestamp, "usn": usn, "sid": sid })
+
+					_return = True
 				#
-			#
-
-			if (sid_callback_url != None):
-			#
-				index = None
-				timestamp = int(time() + timeout + 1)
-
-				for position in range(len(self.timeouts) - 1, -1, -1):
-				#
-					timeout_entry = self.timeouts[position]
-
-					if (timeout_entry['callback_url'] == sid_callback_url and timeout_entry['service_name'] == service_name): self.timeouts.pop(position)
-					elif (index == None and timestamp > timeout_entry['timestamp']): index = position
-				#
-
-				if (index == None): index = len(self.timeouts)
-				self.timeouts.insert(index, { "timestamp": timestamp, "service_name": service_name, "callback_url": sid_callback_url })
 			#
 		#
 
@@ -353,19 +481,17 @@ Timed task execution
 		if (self.timer_active):
 		#
 			with self.lock:
-			#
-				if (len(self.timeouts) > 0 and int(self.timeouts[0]['timestamp']) <= time()): timeout_entry = self.timeouts.pop(0)
+			# Thread safety
+				if (self.timer_active
+				    and len(self.timeouts) > 0
+				    and int(self.timeouts[0]['timestamp']) <= time()
+				   ): timeout_entry = self.timeouts.pop(0)
+
 				AbstractTimed.run(self)
 			#
 		#
 
-		if (timeout_entry != None and self.subscriptions != None and timeout_entry['service_name'] in self.subscriptions and timeout_entry['callback_url'] in self.subscriptions[timeout_entry['service_name']]):
-		#
-			if (self.log_handler != None): self.log_handler.debug("{0!r} removes subscription '{1}'", self, timeout_entry['service_name'], context = "pas_upnp")
-
-			del(self.subscriptions[timeout_entry['service_name']][timeout_entry['callback_url']])
-			if (len(self.subscriptions[timeout_entry['service_name']]) < 1): del(self.subscriptions[timeout_entry['service_name']])
-		#
+		if (timeout_entry != None): self.deregister(timeout_entry['usn'], timeout_entry['sid'])
 	#
 
 	def start(self, params = None, last_return = None):
@@ -381,31 +507,9 @@ Starts the GENA manager.
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.start()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
-		AbstractTimed.start(self)
 		self.subscriptions = { }
 
-		return last_return
-	#
-
-	def stop(self, params = None, last_return = None):
-	#
-		"""
-Stops the GENA manager.
-
-:param params: Parameter specified
-:param last_return: The return value from the last hook called.
-
-:since: v0.1.00
-		"""
-
-		AbstractTimed.stop(self)
-
-		with self.lock:
-		#
-			if (self.subscriptions != None): self.subscriptions = None
-		#
-
-		return last_return
+		return AbstractTimed.start(self)
 	#
 
 	@staticmethod

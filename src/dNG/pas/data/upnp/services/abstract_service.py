@@ -381,6 +381,19 @@ Returns the UPnP SCPD.
 		return xml_resource
 	#
 
+	def _handle_gena_registration(self, sid):
+	#
+		"""
+Handles the registration of an UPnP device at GENA with the given SID.
+
+:param sid: UPnP SID
+
+:since: v0.1.03
+		"""
+
+		pass
+	#
+
 	def handle_soap_call(self, action, arguments_given = None):
 	#
 		"""
@@ -513,6 +526,7 @@ Initializes a host service.
 		self._init_host_variables(device)
 
 		Hook.call("dNG.pas.upnp.Service.initHost", device = device, service = self)
+		Hook.register_weakref("dNG.pas.upnp.Gena.onRegistered", self._on_gena_registration)
 
 		return ((len(self.actions) + len(self.variables)) > 0)
 	#
@@ -553,6 +567,23 @@ True if the host manages the service.
 		"""
 
 		return self.host_service
+	#
+
+	def _on_gena_registration(self, params, last_return = None):
+	#
+		"""
+Called after an UPnP device registered for GENA.
+
+:return: (mixed) Return value
+:since:  v0.1.03
+		"""
+
+		if (self.host_service
+		    and params.get("usn") == self.get_usn()
+		    and "sid" in params
+		   ): self._handle_gena_registration(params['sid'])
+
+		return last_return
 	#
 
 	def remove_host_action(self, action):

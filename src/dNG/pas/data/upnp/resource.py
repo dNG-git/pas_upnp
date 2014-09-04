@@ -1157,8 +1157,8 @@ Sets the UPnP ContainerUpdateIDValue or increments it.
 :since: v0.1.01
 		"""
 
-		UpdateIdRegistry.set(self.get_id(), update_id)
-		#TODO: Gena.fire_update_id_event(self.get_id())
+		if (update_id == "--"): UpdateIdRegistry.unset(self.get_id())
+		else: UpdateIdRegistry.set(self.get_id(), update_id)
 	#
 
 	def _supports_search_content(self):

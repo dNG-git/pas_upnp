@@ -34,6 +34,7 @@ https://www.direct-netware.de/redirect?licenses;gpl
 import re
 
 from dNG.net.http.raw_client import RawClient as HttpClient
+from dNG.pas.data.binary import Binary
 from dNG.pas.data.upnp.client import Client
 from dNG.pas.module.named_loader import NamedLoader
 from dNG.pas.plugins.hook import Hook
@@ -53,6 +54,10 @@ Class for handling a received SSDP message.
              GNU General Public License 2
 	"""
 
+	BINARY_HTTP_HEADER_SEPARATOR = Binary.bytes("\r\n\r\n")
+	"""
+Newline bytes used in raw HTTP data
+	"""
 	RE_HEADER_MAX_AGE = re.compile("(^|[ ,]+)max\\-age=(\\d+)([, ]+|$)")
 	"""
 RegEx to extract the "Max-Age" header value
@@ -68,7 +73,7 @@ Active conversation
 
 		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._thread_run()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
-		ssdp_data = self.get_data(512)
+		ssdp_data = self.get_data(65535)
 
 		headers = (None if (ssdp_data == "") else HttpClient.get_headers(ssdp_data))
 		ssdp_request = None

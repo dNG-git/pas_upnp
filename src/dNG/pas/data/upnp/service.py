@@ -45,10 +45,12 @@ from dNG.net.http.client import Client as HttpClient
 from dNG.pas.data.binary import Binary
 from dNG.pas.module.named_loader import NamedLoader
 from dNG.pas.runtime.value_exception import ValueException
+from .identifier_mixin import IdentifierMixin
 from .service_proxy import ServiceProxy
+from .spec_mixin import SpecMixin
 from .variable import Variable
 
-class Service(object):
+class Service(IdentifierMixin, SpecMixin):
 #
 	"""
 The UPnP common service implementation.
@@ -70,10 +72,6 @@ CamelCase RegExp
 	"""
 serviceId URN RegExp
 	"""
-	RE_USN_URN = re.compile("^urn:(.+):(.+):(.*):(.*)$", re.I)
-	"""
-URN RegExp
-	"""
 
 	def __init__(self):
 	#
@@ -83,13 +81,12 @@ Constructor __init__(Service)
 :since: v0.1.00
 		"""
 
+		IdentifierMixin.__init__(self)
+		SpecMixin.__init__(self)
+
 		self.actions = None
 		"""
 Service actions defined in the SCPD
-		"""
-		self.identifier = None
-		"""
-Parsed UPnP identifier
 		"""
 		self.log_handler = NamedLoader.get_singleton("dNG.pas.data.logging.LogHandler", False)
 		"""
@@ -103,14 +100,6 @@ UPnP service name
 		self.service_id = None
 		"""
 UPnP serviceId value
-		"""
-		self.spec_major = None
-		"""
-UPnP specVersion major number
-		"""
-		self.spec_minor = None
-		"""
-UPnP specVersion minor number
 		"""
 		self.url_base = None
 		"""
@@ -181,7 +170,7 @@ Returns a callable proxy object for UPnP actions and variables.
 		"""
 Returns the UPnP serviceId value.
 
-:return: (dict) Dict containing the URN, the specification domain and the ID
+:return: (str) UPnP serviceId value
 :since:  v0.1.00
 		"""
 
@@ -193,59 +182,11 @@ Returns the UPnP serviceId value.
 		"""
 Returns the UPnP serviceId value.
 
-:return: (dict) Dict containing the URN, the specification domain and the ID
+:return: (str) UPnP serviceId URN
 :since:  v0.1.00
 		"""
 
 		return self.service_id['urn']
-	#
-
-	def get_spec_version(self):
-	#
-		"""
-Returns the UPnP specVersion number.
-
-:return: (tuple) UPnP Device Architecture version: Major and minor number
-:since:  v0.1.00
-		"""
-
-		return ( self.spec_major, self.spec_minor )
-	#
-
-	def get_type(self):
-	#
-		"""
-Returns the UPnP service type.
-
-:return: (str) Service type
-:since:  v0.1.00
-		"""
-
-		return self.identifier['type']
-	#
-
-	def get_udn(self):
-	#
-		"""
-Returns the UPnP UDN value.
-
-:return: (str) UPnP service UDN
-:since:  v0.1.00
-		"""
-
-		return self.identifier['uuid']
-	#
-
-	def get_upnp_domain(self):
-	#
-		"""
-Returns the UPnP service specification domain.
-
-:return: (str) UPnP service specification domain
-:since:  v0.1.00
-		"""
-
-		return self.identifier['domain']
 	#
 
 	def get_url_base(self):
@@ -296,30 +237,6 @@ Returns the UPnP SCPDURL value.
 		return self.url_scpd
 	#
 
-	def get_urn(self):
-	#
-		"""
-Returns the UPnP serviceType value.
-
-:return: (str) UPnP URN
-:since:  v0.1.00
-		"""
-
-		return self.identifier['urn']
-	#
-
-	def get_version(self):
-	#
-		"""
-Returns the UPnP service type version.
-
-:return: (str) Service type version
-:since:  v0.1.00
-		"""
-
-		return self.identifier['version']
-	#
-
 	def init_metadata_xml_tree(self, device_identifier, url_base, xml_tree):
 	#
 		"""
@@ -351,17 +268,17 @@ Initialize the service metadata from a UPnP description.
 				self.name = "{0}:service:{1}".format(re_result.group(1), re_result.group(3))
 				urn = "{0}:{1}".format(self.name, re_result.group(4))
 
-				self.identifier = { "device": device_identifier['device'],
-				                    "bootid": device_identifier['bootid'],
-				                    "configid": device_identifier['configid'],
-				                    "uuid": device_identifier['uuid'],
-				                    "class": "service",
-				                    "usn": "uuid:{0}::{1}".format(device_identifier['uuid'], value),
-				                    "urn": urn,
-				                    "domain": re_result.group(1),
-				                    "type": re_result.group(3),
-				                    "version": re_result.group(4)
-				                  }
+				self._set_identifier({ "device": device_identifier['device'],
+				                       "bootid": device_identifier['bootid'],
+				                       "configid": device_identifier['configid'],
+				                       "uuid": device_identifier['uuid'],
+				                       "class": "service",
+				                       "usn": "uuid:{0}::{1}".format(device_identifier['uuid'], value),
+				                       "urn": urn,
+				                       "domain": re_result.group(1),
+				                       "type": re_result.group(3),
+				                       "version": re_result.group(4)
+				                     })
 			#
 		#
 
@@ -400,7 +317,7 @@ Initialize actions from the SCPD URL.
 		os_uname = uname()
 
 		http_client = HttpClient(self.url_scpd, event_handler = self.log_handler)
-		http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
+		http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 HTTP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
 		http_response = http_client.request_get()
 
 		if (http_response.is_readable()): _return = self.init_xml_scpd(Binary.str(http_response.read()))
@@ -599,7 +516,7 @@ device.
 		_return = False
 
 		os_uname = uname()
-		urn = "urn:{0}".format(self.identifier['urn'])
+		urn = "urn:{0}".format(self.get_urn())
 
 		xml_resource = self._init_xml_resource()
 
@@ -617,7 +534,7 @@ device.
 		http_client = HttpClient(self.url_control, event_handler = self.log_handler)
 		http_client.set_header("Content-Type", "text/xml; charset=UTF-8")
 		http_client.set_header("SoapAction", "{0}#{1}".format(urn, action))
-		http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
+		http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 HTTP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
 
 		http_response = http_client.request_post(xml_resource.export_cache(True))
 
