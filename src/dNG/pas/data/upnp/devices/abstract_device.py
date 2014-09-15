@@ -109,6 +109,23 @@ Returns the UPnP device description URL.
 		return (self.desc_url if (self.host_device) else None)
 	#
 
+	def get_service(self, _id):
+	#
+		"""
+Returns a UPnP service for the given UPnP service ID.
+
+:param _id: UPnP serviceId value
+
+:return: (object) UPnP service; None if unknown
+:since:  v0.1.00
+		"""
+
+		_return = Device.get_service(self, _id)
+		if (_return != None and _return.is_managed()): _return.set_client_user_agent(self.client_user_agent)
+
+		return _return
+	#
+
 	def get_type(self):
 	#
 		"""
@@ -154,7 +171,10 @@ Returns the UPnP deviceType value.
 :since:  v0.1.00
 		"""
 
-		return ("{0}:device:{1}:{2}".format(self.upnp_domain, self.type, self.version) if (self.host_device) else Device.get_urn(self))
+		return ("{0}:device:{1}:{2}".format(self.get_upnp_domain(), self.get_type(), self.get_version())
+		        if (self.host_device) else
+		        Device.get_urn(self)
+		       )
 	#
 
 	def get_version(self):
@@ -204,7 +224,13 @@ Returns the UPnP device description for encoding.
 		xml_resource.add_node("root", attributes = attributes)
 		xml_resource.set_cached_node("root")
 
-		spec_version = self.get_spec_version()
+		client = Client.load_user_agent(self.client_user_agent)
+
+		spec_version = (self.get_spec_version()
+		                if (client.get("upnp_spec_versioning_supported", True)) else
+		                ( 1, 0 )
+		               )
+
 		xml_resource.add_node("root specVersion major", str(spec_version[0]))
 		xml_resource.add_node("root specVersion minor", str(spec_version[1]))
 
@@ -477,23 +503,6 @@ Sets the UPnP presentationURL value.
 		"""
 
 		self.presentation_url = presentation_url
-	#
-
-	def set_spec_version(self, version):
-	#
-		"""
-Sets the UPnP specVersion number.
-
-:param version: (tuple) UPnP Device Architecture version
-
-:since: v0.1.00
-		"""
-
-		if (type(version) == tuple and len(version) == 2):
-		#
-			self.spec_major = version[0]
-			self.spec_minor = version[1]
-		#
 	#
 #
 

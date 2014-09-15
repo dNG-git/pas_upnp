@@ -133,8 +133,8 @@ Active conversation
 			wait_timeout = (int(headers['MX']) if ("MX" in headers) else 1)
 			if (wait_timeout > 5): wait_timeout = 5
 
-			control_point = NamedLoader.get_singleton("dNG.pas.net.upnp.ControlPoint")
-			control_point.search(self.address, wait_timeout, headers['ST'], headers)
+			ssdp_search_class = NamedLoader.get_class("dNG.pas.net.upnp.SsdpSearch")
+			ssdp_search_class.handle_request(self.address, wait_timeout, headers['ST'], headers)
 		#
 	#
 #

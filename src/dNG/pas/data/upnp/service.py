@@ -317,7 +317,7 @@ Initialize actions from the SCPD URL.
 		os_uname = uname()
 
 		http_client = HttpClient(self.url_scpd, event_handler = self.log_handler)
-		http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 HTTP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
+		http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
 		http_response = http_client.request_get()
 
 		if (http_response.is_readable()): _return = self.init_xml_scpd(Binary.str(http_response.read()))
@@ -366,8 +366,9 @@ Initialize the list of service actions from a UPnP SCPD description.
 
 			if (_return):
 			#
-				self.spec_major = int(xml_resource.get_node_value("scpd:scpd scpd:specVersion scpd:major"))
-				self.spec_minor = int(xml_resource.get_node_value("scpd:scpd scpd:specVersion scpd:minor"))
+				self._set_spec_major(xml_resource.get_node_value("scpd:scpd scpd:specVersion scpd:major"),
+				                     xml_resource.get_node_value("scpd:scpd scpd:specVersion scpd:minor")
+				                    )
 			#
 
 			variables_count = (xml_resource.count_node("scpd:scpd scpd:serviceStateTable scpd:stateVariable") if (_return) else 0)
@@ -534,7 +535,7 @@ device.
 		http_client = HttpClient(self.url_control, event_handler = self.log_handler)
 		http_client.set_header("Content-Type", "text/xml; charset=UTF-8")
 		http_client.set_header("SoapAction", "{0}#{1}".format(urn, action))
-		http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 HTTP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
+		http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
 
 		http_response = http_client.request_post(xml_resource.export_cache(True))
 

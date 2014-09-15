@@ -124,15 +124,20 @@ Returns the notification sequence number if the event is approved.
 
 		is_approved = False
 
-		moderated_changes = (event.get_moderated_changes()
-		                     if (hasattr(event, "get_moderated_changes")) else
-		                     0
-		                    )
-
-		moderated_delay = (event.get_moderated_delay()
-		                   if (hasattr(event, "get_moderated_delay")) else
+		moderated_delta = (event.get_moderated_delta()
+		                   if (hasattr(event, "get_moderated_delta")) else
 		                   0
 		                  )
+
+		moderated_interval = (event.get_moderated_interval()
+		                   if (hasattr(event, "get_moderated_interval")) else
+		                   0
+		                  )
+
+		variables_evented = (event.get_variables()
+		                     if (hasattr(event, "get_variables")) else
+		                     None
+		                    )
 
 		usn = event.get_usn()
 
@@ -142,19 +147,40 @@ Returns the notification sequence number if the event is approved.
 			# Thread safety
 				if (usn in self.subscriptions and sid in self.subscriptions[usn]):
 				#
-					moderated_subscription_changes = 0
+					moderated_subscription_delta = 0
 					subscription = self.subscriptions[usn][sid]
 					_time = time()
 
-					is_approved = (moderated_delay == 0 or subscription.get("time_updated", 0) + moderated_delay < _time)
+					is_approved = (moderated_interval == 0 or subscription.get("time_updated", 0) + moderated_interval < _time)
 
-					if (is_approved and moderated_changes > 0):
+					variables_subscribed = subscription.get("variables_subscribed")
+
+					if (is_approved
+					    and variables_evented != None
+					    and variables_subscribed != "*"
+					   ):
 					#
-						moderated_subscription_changes = subscription.get("moderated_changes", 0)
-						moderated_subscription_changes += 1
+						is_variable_subscribed = False
 
-						is_approved = (moderated_changes == 0 or subscription.get("moderated_changes", 0) >= moderated_changes)
-						subscription['moderated_changes'] = moderated_subscription_changes
+						for variable_name in variables_evented:
+						#
+							if (variable_name in variables_subscribed):
+							#
+								is_variable_subscribed = True
+								break
+							#
+						#
+
+						if (not is_variable_subscribed): is_approved = False
+					#
+
+					if (is_approved and moderated_delta > 0):
+					#
+						moderated_subscription_delta = subscription.get("moderated_delta", 0)
+						moderated_subscription_delta += 1
+
+						is_approved = (moderated_delta == 0 or subscription.get("moderated_delta", 0) >= moderated_delta)
+						subscription['moderated_delta'] = moderated_subscription_delta
 					#
 
 					if (is_approved):
@@ -317,21 +343,22 @@ Returns a list of subscriptions identified by the given USN.
 :since:  v0.1.03
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_subscribers({1}, {2})- (#echo(__LINE__)#)", self, usn, context = "pas_upnp")
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_subscribers({1})- (#echo(__LINE__)#)", self, usn, context = "pas_upnp")
 
 		subscriptions = self.subscriptions.copy()
 		return subscriptions.get(usn, { })
 	#
 
-	def register(self, usn, callback_value, timeout):
+	def register(self, usn, callback_value, timeout, variables = None):
 	#
 		"""
 Registers a callback URL endpoint for notifications for the given service
 name.
 
 :param usn: UPnP USN
-:param callback_value: Endpoint for notification messages
+:param callback_value: Endpoint URL(s) for notification messages
 :param timeout: Timeout in seconds for the subscription
+:param variables: CSV of UPnP state variables interested in
 
 :return: (bool) True if successful
 :since:  v0.1.00
@@ -341,6 +368,7 @@ name.
 
 		index = 1
 		timestamp = -1
+		variables = ("" if (variables == None) else variables.strip())
 
 		callback_urls = Gena.RE_CALLBACK_URL_ELEMENTS.findall(callback_value)
 
@@ -353,13 +381,25 @@ name.
 		#
 		else: sid = "uuid:{0}".format(uuid(NAMESPACE_URL, "upnp-gena://{0}/{1}".format(socket.getfqdn(), Md5.hash(callback_value))))
 
+		variables_subscribed = "*"
+
+		if (variables != ""):
+		#
+			# TODO: Implementation missing
+			pass
+		#
+
 		with self.lock:
 		#
 			if (usn not in self.subscriptions): self.subscriptions[usn] = { }
 
 			if (sid not in self.subscriptions[usn]):
 			#
-				self.subscriptions[usn][sid] = { "callback_urls": callback_urls, "ips": [ ], "seq": 0 }
+				self.subscriptions[usn][sid] = { "callback_urls": callback_urls,
+				                                 "ips": [ ],
+				                                 "seq": 0,
+				                                 "variables_subscribed": variables_subscribed
+				                               }
 
 				for callback_url in callback_urls:
 				#

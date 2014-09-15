@@ -108,11 +108,11 @@ SSDP target host
 
 		RawClient.__init__(self, "ssdp://{0}:{1:d}/*".format(target, port))
 
-		self.ipv4_udp_ttl = int(Settings.get("pas_upnp_ssdp_ipv4_udp_ttl", 1))
+		self.ipv4_udp_ttl = int(Settings.get("pas_upnp_ssdp_ipv4_udp_ttl", 2))
 		"""
 IPv4 TTL for SSDP messages.
 		"""
-		self.ipv6_udp_hops = int(Settings.get("pas_upnp_ssdp_ipv6_udp_hops", 1))
+		self.ipv6_udp_hops = int(Settings.get("pas_upnp_ssdp_ipv6_udp_hops", 2))
 		"""
 IPv6 hops for SSDP messages.
 		"""
@@ -213,7 +213,7 @@ Invoke a given SSDP method on the unicast or multicast recipient.
 
 		headers = self.headers.copy()
 
-		server_name = "{0}/{1} {2} HTTP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50"
+		server_name = "{0}/{1} {2} pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.51 HTTP/1.1"
 
 		headers['SERVER'] = server_name.format(AbstractSsdp._get_os_name(),
 		                                       AbstractSsdp._get_os_version(),
@@ -338,7 +338,10 @@ active quirks mode.
 :since:  v0.1.00
 		"""
 
-		return ("UPnP/1.1 UPnP/1.0" if (AbstractSsdp.quirks_mode & AbstractSsdp.QUIRK_UPNP_1_0 == AbstractSsdp.QUIRK_UPNP_1_0) else "UPnP/1.1")
+		return ("UPnP/2.0 UPnP/1.0"
+		        if (AbstractSsdp.quirks_mode & AbstractSsdp.QUIRK_UPNP_1_0 == AbstractSsdp.QUIRK_UPNP_1_0) else
+		        "UPnP/2.0"
+		       )
 	#
 
 	@staticmethod

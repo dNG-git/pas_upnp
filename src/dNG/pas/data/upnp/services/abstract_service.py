@@ -75,14 +75,6 @@ UPnP configId value
 		"""
 UPnP service is managed by host
 		"""
-		self.spec_major = None
-		"""
-UPnP specVersion major number
-		"""
-		self.spec_minor = None
-		"""
-UPnP specVersion minor number
-		"""
 		self.type = None
 		"""
 UPnP service type
@@ -165,9 +157,9 @@ Returns the UPnP service name (URN without version).
 	def get_service_id(self):
 	#
 		"""
-Returns the UPnP service ID.
+Returns the UPnP serviceId value.
 
-:return: (dict) UPnP service ID
+:return: (str) UPnP serviceId value
 :since:  v0.1.00
 		"""
 
@@ -179,23 +171,11 @@ Returns the UPnP service ID.
 		"""
 Returns the UPnP serviceId value.
 
-:return: (dict) UPnP serviceId URN
+:return: (str) UPnP serviceId URN
 :since:  v0.1.00
 		"""
 
 		return ("{0}:serviceId:{1}".format(self.upnp_domain, self.service_id) if (self.host_service) else Service.get_service_id_urn(self))
-	#
-
-	def get_spec_version(self):
-	#
-		"""
-Returns the UPnP specVersion number.
-
-:return: (tuple) UPnP Device Architecture version: Major and minor number
-:since:  v0.1.00
-		"""
-
-		return ( self.spec_major, self.spec_minor )
 	#
 
 	def get_type(self):
@@ -243,7 +223,10 @@ Returns the UPnP serviceType value.
 :since:  v0.1.00
 		"""
 
-		return ("{0}:service:{1}:{2}".format(self.upnp_domain, self.type, self.version) if (self.host_service) else Service.get_urn(self))
+		return ("{0}:service:{1}:{2}".format(self.get_upnp_domain(), self.get_type(), self.get_version())
+		        if (self.host_service) else
+		        Service.get_urn(self)
+		       )
 	#
 
 	def get_version(self):
@@ -293,7 +276,13 @@ Returns the UPnP SCPD.
 		xml_resource.add_node("scpd", attributes = attributes)
 		xml_resource.set_cached_node("scpd")
 
-		spec_version = self.get_spec_version()
+		client = Client.load_user_agent(self.client_user_agent)
+
+		spec_version = (self.get_spec_version()
+		                if (client.get("upnp_spec_versioning_supported", True)) else
+		                ( 1, 0 )
+		               )
+
 		xml_resource.add_node("scpd specVersion major", str(spec_version[0]))
 		xml_resource.add_node("scpd specVersion minor", str(spec_version[1]))
 

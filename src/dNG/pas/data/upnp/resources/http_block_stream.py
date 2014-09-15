@@ -85,9 +85,17 @@ Initialize a UPnP resource by CDS ID.
 		#
 			url_elements = urlsplit(self.id)
 
-			streamer = (None if (url_elements.scheme == "") else NamedLoader.get_instance("dNG.pas.data.streamer.{0}".format(url_elements.scheme.capitalize()), False))
+			streamer_class = (None
+			                  if (url_elements.scheme == "") else
+			                  "".join([ word.capitalize() for word in url_elements.scheme.split("-") ])
+			                 )
 
-			if (streamer.is_url_supported(self.id)):
+			streamer = (None
+			            if (streamer_class == "") else
+			            NamedLoader.get_instance("dNG.pas.data.streamer.{0}".format(streamer_class), False)
+			           )
+
+			if (streamer != None and streamer.is_url_supported(self.id)):
 			#
 				self.name = path.basename(unquote(url_elements.path))
 				self.type = HttpBlockStream.TYPE_CDS_RESOURCE
@@ -130,7 +138,7 @@ Initializes the content of a container.
 		if (self.type != None):
 		#
 			_id = self.get_parent_id()
-			if (id == None): _id = self.get_id()
+			if (_id == None): _id = self.get_id()
 
 			self.content.append("{0}upnp/stream/{1}".format(Link().build_url(Link.TYPE_ABSOLUTE | Link.TYPE_BASE_PATH),
 			                                                quote(Binary.str(b64encode(Binary.utf8_bytes(_id))))

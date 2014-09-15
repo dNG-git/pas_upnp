@@ -366,7 +366,7 @@ Returns a UPnP service for the given UPnP service ID.
 						os_uname = uname()
 
 						http_client = HttpClient(scpd_url, event_handler = NamedLoader.get_singleton("dNG.pas.data.logging.LogHandler", False))
-						http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 HTTP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
+						http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
 						http_client.set_ipv6_link_local_interface(Settings.get("pas_global_ipv6_link_local_interface"))
 						http_response = http_client.request_get()
 
@@ -652,8 +652,9 @@ Initialize the device structure from a UPnP description.
 
 			if (_return):
 			#
-				self.spec_major = int(xml_resource.get_node_value("upnp:root upnp:specVersion upnp:major"))
-				self.spec_minor = int(xml_resource.get_node_value("upnp:root upnp:specVersion upnp:minor"))
+				self._set_spec_major(xml_resource.get_node_value("upnp:root upnp:specVersion upnp:major"),
+				                     xml_resource.get_node_value("upnp:root upnp:specVersion upnp:minor")
+				                    )
 
 				value = xml_resource.get_node_value("upnp:root upnp:URLBase")
 				self.url_base = (usn_data['url_base'] if (value == None) else value)

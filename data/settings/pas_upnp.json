@@ -31,8 +31,8 @@
   "LG Smart TV": "LG_Smart_TV",
   "LGE WebOS TV/Version ": "LGE_WebOS_TV/",
   "LGE WebOS TV": "LGE_WebOS_TV",
-  "Microsoft-Windows": "Windows",
-  "Microsoft-Windows-NT": "Windows",
+  "Microsoft-Windows/": "Windows/",
+  "Microsoft-Windows-NT/": "Windows/",
   "Reciva UPnP": "Reciva_UPnP",
   "SEC_HHP_BD-C": "SEC_HHP_BD_C",
   "SEC_HHP_[BD]D": "SEC_HHP_BD_D",
@@ -45,7 +45,12 @@
   "Teleal-Cling": "Teleal_Cling",
   "TwonkyMedia-NMC": "TwonkyMedia_NMC/0",
   "UPnP/1,0": "UPnP/1.0",
-  "Windows/Vista": "Windows/5.1"
+  "UPnP-Device-Host/": "UPnP_Device_Host/",
+  "Windows 9x": "Windows_9x/1.0",
+  "Windows NT/": "Windows_NT/",
+  "Windows/Vista": "Windows/6.0",
+  "Windows-Media-Player/": "WMP/",
+  "Windows-Media-Player-DMS/": "WMP_DMS/"
  },
 
  # Misleading HTTP client names blacklisted

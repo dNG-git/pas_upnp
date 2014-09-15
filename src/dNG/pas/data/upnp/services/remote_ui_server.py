@@ -76,8 +76,6 @@ Initializes a host service.
 :since:  v0.1.00
 		"""
 
-		self.spec_major = 1
-		self.spec_minor = 1
 		self.type = "RemoteUIServer"
 		self.upnp_domain = "schemas-upnp-org"
 		self.version = "1"

@@ -70,7 +70,7 @@ Action for "request"
 
 		self.response.init()
 		self.response.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
-		self.response.set_header("Server", "{0}/{1} UPnP/1.1 HTTP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2]))
+		self.response.set_header("Server", "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.51 HTTP/1.1".format(os_uname[0], os_uname[2]))
 
 		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
 		upnp_service = self.request.get_upnp_service()
@@ -102,19 +102,20 @@ Action for "request"
 
 		if (gena_sid == None):
 		#
-			gena_sid = gena.register(usn, callback_value, timeout)
+			gena_variables = self.request.get_header("StateVar")
 
-			if (gena_sid == False): raise UpnpException("pas_http_core_404", 412)
+			gena_sid = gena.register(usn, callback_value, timeout, variables = gena_variables)
+			if (gena_sid == None): raise UpnpException("pas_http_core_404", 412)
 
 			self.response.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
 			self.response.set_header("SID", gena_sid)
 			self.response.set_header("Timeout", "Second-{0:d}".format(timeout))
+			if (gena_variables != ""): self.response.set_header("Accepted-StateVar", gena_variables)
 			self.response.set_raw_data("")
 		#
 		else:
 		#
 			result = gena.reregister(usn, gena_sid, timeout)
-
 			if (result == False): raise UpnpException("pas_http_core_404", 412)
 
 			self.response.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
@@ -136,7 +137,7 @@ Action for "request"
 
 		self.response.init()
 		self.response.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
-		self.response.set_header("Server", "{0}/{1} UPnP/1.1 HTTP/1.1 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.50".format(os_uname[0], os_uname[2]))
+		self.response.set_header("Server", "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.51 HTTP/1.1".format(os_uname[0], os_uname[2]))
 
 		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
 		upnp_service = self.request.get_upnp_service()

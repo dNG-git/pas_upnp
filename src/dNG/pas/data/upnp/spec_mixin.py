@@ -53,11 +53,11 @@ Constructor __init__(SpecMixin)
 :since: v0.1.03
 		"""
 
-		self.spec_major = None
+		self.spec_major = 2
 		"""
 UPnP specVersion major number
 		"""
-		self.spec_minor = None
+		self.spec_minor = 0
 		"""
 UPnP specVersion minor number
 		"""
@@ -73,6 +73,23 @@ Returns the UPnP specVersion number.
 		"""
 
 		return ( self.spec_major, self.spec_minor )
+	#
+
+	def _set_spec_version(self, version):
+	#
+		"""
+Sets the UPnP specVersion number.
+
+:param version: (tuple) UPnP Device Architecture version
+
+:since: v0.1.00
+		"""
+
+		if (type(version) == tuple and len(version) == 2):
+		#
+			self.spec_major = int(version[0])
+			self.spec_minor = int(version[1])
+		#
 	#
 #
 

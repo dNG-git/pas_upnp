@@ -51,6 +51,7 @@ from dNG.pas.plugins.hook import Hook
 from dNG.pas.runtime.thread_lock import ThreadLock
 from dNG.pas.runtime.value_exception import ValueException
 from .client import Client
+from .variable import Variable
 from .xml_rewrite_parser import XmlRewriteParser
 
 _TOP_LEVEL_OBJECTS = [ "container", "item" ]
@@ -228,29 +229,32 @@ Uses the given XML resource to add the DIDL metadata of this UPnP resource.
 		"""
 
 		attributes = None
-		# TODO: Replace with get_parent_id()
-		if (parent_id == None): parent_id = self.get_id()
-		resource_searchable = self.get_searchable()
 		resource_type = self.get_type()
-		resource_updatable = self.get_updatable()
 		value = ""
 
-		if (resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
+		is_resource_container = (resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER)
+		is_resource_item = (resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM)
+		is_resource_searchable = self.get_searchable()
+		is_resource_updatable = self.get_updatable()
+
+		if (parent_id == None): parent_id = self.get_parent_id()
+
+		if (is_resource_container):
 		#
 			attributes = { "id": self.get_id(),
 			               "parentID": parent_id,
-			               "restricted": ("0" if (resource_updatable) else "1"),
-			               "searchable": ("0" if (resource_searchable) else "1")
+			               "restricted": (Variable.BOOL_FALSE if (is_resource_updatable) else Variable.BOOL_TRUE),
+			               "searchable": (Variable.BOOL_FALSE if (is_resource_searchable) else Variable.BOOL_TRUE)
 			             }
 
 			didl_fields = self.get_didl_fields()
 			if (len(didl_fields) < 1 or "@childCount" in didl_fields): attributes['childCount'] = str(self.get_total())
 		#
-		elif (resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM):
+		elif (is_resource_item):
 		#
 			attributes = { "id": self.get_id(),
 			               "parentID": parent_id,
-			               "restricted": ("0" if (resource_updatable) else "1")
+			               "restricted": (Variable.BOOL_FALSE if (is_resource_updatable) else Variable.BOOL_TRUE)
 			             }
 		#
 		elif (resource_type & Resource.TYPE_CDS_RESOURCE == Resource.TYPE_CDS_RESOURCE):
@@ -272,20 +276,34 @@ Uses the given XML resource to add the DIDL metadata of this UPnP resource.
 		#
 			xml_resource.add_node(xml_node_path, value, attributes)
 
-			if (resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER or resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM):
+			if (is_resource_container or is_resource_item):
 			#
 				type_name = self.get_type_name()
 				type_attributes = (None if (type_name == None) else { "name": type_name })
 
 				xml_resource.add_node("{0} dc:title".format(xml_node_path), self.get_name())
 				xml_resource.add_node("{0} upnp:class".format(xml_node_path), self.get_type_class(), type_attributes)
-				if (resource_searchable): xml_resource.add_node("{0} upnp:searchClass".format(xml_node_path), "object.item", { "includeDerived": True })
+
+				update_id_node_path = ("{0} upnp:containerUpdateID"
+				                       if (is_resource_container) else
+				                       "{0} upnp:objectUpdateID"
+				                      )
+
+				xml_resource.add_node(update_id_node_path.format(xml_node_path), self.get_update_id())
+
+				if (is_resource_container and is_resource_searchable):
+				#
+					xml_resource.add_node("{0} upnp:searchClass".format(xml_node_path),
+					                      "object.item",
+					                      { "includeDerived": Variable.BOOL_TRUE }
+					                     )
+				#
 
 				timestamp = self.get_timestamp()
 				if (timestamp > -1): xml_resource.add_node("{0} dc:date".format(xml_node_path), Basics.get_iso8601_datetime(timestamp))
-				xml_resource.add_node("{0} upnp:writeStatus".format(xml_node_path), ("WRITABLE" if (resource_updatable) else "NOT_WRITABLE"))
+				xml_resource.add_node("{0} upnp:writeStatus".format(xml_node_path), ("WRITABLE" if (is_resource_updatable) else "NOT_WRITABLE"))
 
-				if (resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): Resource._append_content_didl_xml_nodes(xml_resource, xml_node_path, self.get_content_list(), self.get_id())
+				if (is_resource_item): Resource._append_content_didl_xml_nodes(xml_resource, xml_node_path, self.get_content_list(), self.get_id())
 			#
 		#
 	#
@@ -417,7 +435,7 @@ resources.
 		if (self.type != None and self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
 		#
 			xml_resource = self._init_xml_resource()
-			xml_resource.add_node("DIDL-Lite", attributes = { "xmlns": "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/", "xmlns:dc": "http://purl.org/dc/elements/1.1/", "xmlns:upnp": "urn:schemas-upnp-org:metadata-1-0/upnp/" })
+			xml_resource.add_node("DIDL-Lite", attributes = Resource._get_didl_xmlns_attributes())
 
 			content_count = Resource._append_content_didl_xml_nodes(xml_resource, "DIDL-Lite", self.get_content_list(), self.get_id())
 
@@ -569,7 +587,7 @@ Returns an UPnP DIDL result of generated XML for this UPnP resource.
 		if (self.type != None):
 		#
 			xml_resource = self._init_xml_resource()
-			xml_resource.add_node("DIDL-Lite", attributes = { "xmlns": "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/", "xmlns:dc": "http://purl.org/dc/elements/1.1/", "xmlns:upnp": "urn:schemas-upnp-org:metadata-1-0/upnp/" })
+			xml_resource.add_node("DIDL-Lite", attributes = Resource._get_didl_xmlns_attributes())
 
 			if (self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER): xml_node_path = "DIDL-Lite container"
 			elif (self.type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): xml_node_path = "DIDL-Lite item"
@@ -804,9 +822,9 @@ Returns if the UPnP resource can be changed.
 	def get_update_id(self):
 	#
 		"""
-Returns the UPnP ContainerUpdateIDValue.
+Returns the UPnP UpdateID value.
 
-:return: (int) UPnP ContainerUpdateIDValue
+:return: (int) UPnP UpdateID value
 :since:  v0.1.02
 		"""
 
@@ -854,7 +872,7 @@ Initialize a UPnP resource by CDS ID.
 
 :param _id: UPnP CDS ID
 :param client_user_agent: Client user agent
-:param update_id: UPnP ContainerUpdateIDValue
+:param update_id: UPnP UpdateID value
 :param deleted: True to include deleted resources
 
 :return: (bool) Returns true if initialization was successful.
@@ -928,12 +946,13 @@ slash. We define both notations just in case.
 		"""
 
 		_return = XmlResource(node_type = OrderedDict)
-		_return.register_ns("dc", "http://purl.org/dc/elements/1.1")
 		_return.register_ns("dc", "http://purl.org/dc/elements/1.1/")
-		_return.register_ns("didl", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite")
+		_return.register_ns("dc", "http://purl.org/dc/elements/1.1")
 		_return.register_ns("didl", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/")
-		_return.register_ns("upnp", "urn:schemas-upnp-org:metadata-1-0/upnp")
+		_return.register_ns("didl", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite")
 		_return.register_ns("upnp", "urn:schemas-upnp-org:metadata-1-0/upnp/")
+		_return.register_ns("upnp", "urn:schemas-upnp-org:metadata-1-0/upnp")
+
 		return _return
 	#
 
@@ -1001,8 +1020,12 @@ Uses the given XML resource to manipulate DIDL metadata for the client.
 		#
 			client = Client.load_user_agent(self.client_user_agent)
 
-			if (resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER): title_format = client.get("upnp_didl_title_default_container_format")
-			if (resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): title_format = client.get("upnp_didl_title_default_item_format")
+			title_format_resource_name = "upnp_didl_title_{0}_format".format(NamedLoader.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", self.__class__.__name__).lower())
+
+			if (title_format_resource_name in client): title_format = client.get(title_format_resource_name)
+			elif (resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER): title_format = client.get("upnp_didl_title_default_container_format")
+			elif (resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): title_format = client.get("upnp_didl_title_default_item_format")
+
 			if (title_format == None): title_format = client.get("upnp_didl_title_default_format")
 		#
 
@@ -1047,7 +1070,7 @@ matching the given UPnP search criteria.
 		if (self.type != None and self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
 		#
 			xml_resource = self._init_xml_resource()
-			xml_resource.add_node("DIDL-Lite", attributes = { "xmlns": "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/", "xmlns:dc": "http://purl.org/dc/elements/1.1/", "xmlns:upnp": "urn:schemas-upnp-org:metadata-1-0/upnp/" })
+			xml_resource.add_node("DIDL-Lite", attributes = Resource._get_didl_xmlns_attributes())
 
 			content_matched = self.search_content(search_criteria)
 			content_matched_count = len(content_matched)
@@ -1150,9 +1173,9 @@ Sets the DIDL fields to be returned.
 	def set_update_id(self, update_id):
 	#
 		"""
-Sets the UPnP ContainerUpdateIDValue or increments it.
+Sets the UPnP UpdateID value or increments it.
 
-:param update_id: UPnP ContainerUpdateIDValue or "++" to increment it
+:param update_id: UPnP UpdateID value or "++" to increment it; "--" for deletion
 
 :since: v0.1.01
 		"""
@@ -1228,6 +1251,24 @@ resource.
 	#
 
 	@staticmethod
+	def _get_didl_xmlns_attributes():
+	#
+		"""
+Returns a dictionary with all DIDL-Lite XML NS attributes.
+
+:return: (dict) DIDL-Lite XML NS attributes
+:since:  v0.1.03
+		"""
+
+		return { "xmlns": "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/",
+		         "xmlns:dc": "http://purl.org/dc/elements/1.1/",
+		         "xmlns:upnp": "urn:schemas-upnp-org:metadata-1-0/upnp/",
+		         "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+		         "xsi:schemaLocation": "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/ http://www.upnp.org/schemas/av/didl-lite.xsd urn:schemas-upnp-org:metadata-1-0/upnp/ http://www.upnp.org/schemas/av/upnp.xsd"
+		       }
+	#
+
+	@staticmethod
 	def load_cds_id(_id, client_user_agent = None, cds = None, deleted = False):
 	#
 		"""
@@ -1255,7 +1296,9 @@ Load a UPnP resource by CDS ID.
 
 			if (url_elements.scheme != ""):
 			#
-				resource = NamedLoader.get_instance("dNG.pas.data.upnp.resources.{0}".format("".join([word.capitalize() for word in url_elements.scheme.split("-")])), False)
+				resource_class_name = "".join([ word.capitalize() for word in url_elements.scheme.split("-") ])
+				resource = NamedLoader.get_instance("dNG.pas.data.upnp.resources.{0}".format(resource_class_name), False)
+
 				if (isinstance(resource, Resource) and resource.init_cds_id(_id, client_user_agent, deleted)): _return = resource
 			#
 		#

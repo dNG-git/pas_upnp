@@ -81,8 +81,6 @@ Initializes a host service.
 		"""
 
 		self.service_id = service_id
-		self.spec_major = 1
-		self.spec_minor = 1
 		self.type = "CallableService"
 		self.upnp_domain = "schemas-direct-netware-de"
 		self.version = "1"

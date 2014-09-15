@@ -61,6 +61,14 @@ and the UPnP format.
              GNU General Public License 2
 	"""
 
+	BOOL_TRUE = "1"
+	"""
+String representation for True
+	"""
+	BOOL_FALSE = "0"
+	"""
+String representation for false
+	"""
 	RE_NODE_NAME_XMLNS = re.compile("^(.+):(\\w+)$")
 	"""
 RegEx for "*:*" node attributes
@@ -125,7 +133,8 @@ variable definition.
 			elif (variable['type'] == "bin.hex"): _return = ( str, "hex" )
 			elif (variable['type'] == "i1"): _return = ( int, "b" )
 			elif (variable['type'] == "i2"): _return = ( int, "h" )
-			elif (variable['type'] == "i4" or variable['type'] == "int"): _return = int
+			elif (variable['type'] == "i4"): _return = int
+			elif (variable['type'] == "i8" or variable['type'] == "int"): _return = ( int, "q" )
 			elif (variable['type'] == "r4"): _return = ( float, "f" )
 			elif (variable['type'] == "r8" or variable['type'] == "float" or variable['type'] == "number"): _return = float
 			elif (variable['type'] == "fixed.14.4"): _return = ( float, "f14.4" )
@@ -139,6 +148,7 @@ variable definition.
 			elif (variable['type'] == "ui1"): _return = ( int, "B" )
 			elif (variable['type'] == "ui2"): _return = ( int, "H" )
 			elif (variable['type'] == "ui4"): _return = ( int, "I" )
+			elif (variable['type'] == "ui8"): _return = ( int, "Q" )
 			elif (variable['type'] == "uri"): _return = ( str, "uri" )
 			elif (variable['type'] == "uuid"): _return = ( str, "uuid" )
 			elif (variable['type'] == "xmlns" and "type_xmlns" in variable): _return = ( str, "xmlns", variable['type_xmlns'] )

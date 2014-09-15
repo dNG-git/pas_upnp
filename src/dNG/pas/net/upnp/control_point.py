@@ -55,7 +55,6 @@ from dNG.pas.data.settings import Settings
 from dNG.pas.data.http.translatable_exception import TranslatableException
 from dNG.pas.data.http.virtual_config import VirtualConfig
 from dNG.pas.data.text.l10n import L10n
-from dNG.pas.data.upnp.client import Client
 from dNG.pas.data.upnp.control_point_event import ControlPointEvent
 from dNG.pas.data.upnp.device import Device
 from dNG.pas.module.named_loader import NamedLoader
@@ -781,6 +780,18 @@ Get the implementation specific next "run()" UNIX timestamp.
 		return _return
 	#
 
+	def get_managed_devices(self):
+	#
+		"""
+Returns all UPnP devices managed by this ControlPoint instance.
+
+:return: (dict) Dict with UUID as key and device instance as value
+:since:  v0.1.03
+		"""
+
+		return self.managed_devices.copy()
+	#
+
 	def get_rootdevice(self, identifier):
 	#
 		"""
@@ -1086,7 +1097,7 @@ Parse unread UPnP descriptions.
 
 			http_client = HttpClient(url, event_handler = self.log_handler)
 			http_client.set_header("Accept-Language", self.http_language)
-			http_client.set_header("User-Agent", "{0}/{1} UPnP/1.1 HTTP/1.1 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
+			http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
 			http_client.set_ipv6_link_local_interface(Settings.get("pas_global_ipv6_link_local_interface"))
 
 			http_response = http_client.request_get()
@@ -1267,168 +1278,6 @@ Timed task execution
 				elif (task['type'] == "remove_rootdevice"): self.remove_rootdevice(task['usn'])
 
 				if (thread != None): thread.start()
-			#
-		#
-	#
-
-	def search(self, source_data, source_wait_timeout, search_target, additional_data = None):
-	#
-		"""
-Searches for hosted devices matching the given UPnP search target.
-
-:param source_data: UPnP client address data
-:param source_wait_timeout: UPnP MX value
-:param search_target: UPnP search target
-:param additional_data: Additional data received
-
-:since: v0.1.00
-		"""
-
-		condition_identifier = None
-
-		if (search_target == "ssdp:all" or search_target == "upnp:rootdevice" or search_target.startswith("uuid:")): condition = search_target
-		elif (search_target.startswith("urn:")):
-		#
-			condition = search_target
-			condition_identifier = Device.get_identifier("uuid:00000000-0000-0000-0000-000000000000::{0}".format(search_target), None, None)
-		#
-		elif (len(search_target) > 41):
-		#
-			condition = search_target
-			condition_identifier = Device.get_identifier(search_target, None, None)
-		#
-		else: condition = False
-
-		results = [ ]
-
-		if (condition != False):
-		#
-			with self.lock:
-			#
-				if (condition_identifier == None and condition == "upnp:rootdevice"):
-				#
-					for uuid in self.managed_devices:
-					#
-						device_id = uuid.lower().replace("-", "")
-
-						if (device_id in self.rootdevices):
-						#
-							device = self.managed_devices[uuid]
-							results.append({ "usn": "uuid:{0}::upnp:rootdevice".format(uuid), "location": device.get_desc_url(), "search_target": condition })
-						#
-					#
-				#
-				else:
-				#
-					for uuid in self.managed_devices:
-					#
-						device = self.managed_devices[uuid]
-						device_matched = False
-
-						if (condition_identifier != None):
-						#
-							if (condition_identifier['class'] == "device" and device.get_upnp_domain() == condition_identifier['domain'] and device.get_type() == condition_identifier['type'] and int(device.get_version()) >= int(condition_identifier['version'])): device_matched = True
-						#
-						elif (condition == "ssdp:all" or condition == "uuid:{0}".format(uuid)): device_matched = True
-
-						if (device_matched):
-						#
-							results.append({ "usn": "uuid:{0}::urn:{1}".format(device.get_udn(), device.get_urn()), "location": device.get_desc_url(), "search_target": ("urn:{0}".format(device.get_urn()) if (condition == "ssdp:all") else condition) })
-
-							if (condition == "ssdp:all"):
-							#
-								results.append({ "usn": "uuid:{0}".format(device.get_udn()), "location": device.get_desc_url(), "search_target": "uuid:{0}".format(device.get_udn()) })
-								if (self.is_rootdevice_known(uuid = uuid)): results.append({ "usn": "uuid:{0}::upnp:rootdevice".format(device.get_udn()), "location": device.get_desc_url(), "search_target": "upnp:rootdevice" })
-							#
-						#
-
-						embedded_devices = self.managed_devices[uuid].get_embedded_device_uuids()
-
-						for embedded_uuid in embedded_devices:
-						#
-							embedded_device = self.managed_devices[uuid].get_embedded_device(embedded_uuid)
-							embedded_device_matched = False
-
-							if (condition_identifier != None and condition_identifier['class'] == "device" and embedded_device.get_upnp_domain() == condition_identifier['domain'] and embedded_device.get_type() == condition_identifier['type'] and int(embedded_device.get_version()) >= int(condition_identifier['version'])): embedded_device_matched = True
-							elif (condition == "ssdp:all" or condition_identifier != None):
-							#
-								if (condition == "ssdp:all"): embedded_device_matched = True
-
-								if (condition_identifier != None and condition_identifier['class'] == "service"):
-								#
-									services = embedded_device.get_service_ids()
-
-									for service_id in services:
-									#
-										service = embedded_device.get_service(service_id)
-										service_matched = False
-
-										if (condition == "ssdp:all"): service_matched = True
-										elif (service.get_upnp_domain() == condition_identifier['domain'] and service.get_type() == condition_identifier['type'] and int(service.get_version()) >= int(condition_identifier['version'])): service_matched = True
-
-										if (service_matched): results.append({ "usn": "uuid:{0}::urn:{1}".format(service.get_udn(), service.get_urn()), "location": embedded_device.get_desc_url(), "search_target": ("urn:{0}".format(device.get_urn()) if (condition == "ssdp:all") else condition) })
-									#
-								#
-							#
-							elif ("uuid:{0}".format(uuid) == condition): embedded_device_matched = True
-
-							if (embedded_device_matched):
-							#
-								results.append({ "usn": "uuid:{0}::urn:{1}".format(embedded_device.get_udn(), embedded_device.get_urn()), "location": embedded_device.get_desc_url(), "search_target": ("urn:{0}".format(device.get_urn()) if (condition == "ssdp:all") else condition) })
-								if (condition == "ssdp:all"): results.append({ "usn": "uuid:{0}".format(device.get_udn()), "location": device.get_desc_url(), "search_target": "uuid:{0}".format(device.get_udn()) })
-							#
-						#
-
-						if (condition == "ssdp:all" or (condition_identifier != None and condition_identifier['class'] == "service")):
-						#
-							services = self.managed_devices[uuid].get_service_ids()
-
-							for service_id in services:
-							#
-								service = device.get_service(service_id)
-								service_matched = False
-
-								if (condition == "ssdp:all"): service_matched = True
-								elif (service.get_upnp_domain() == condition_identifier['domain'] and service.get_type() == condition_identifier['type'] and int(service.get_version()) >= int(condition_identifier['version'])): service_matched = True
-
-								if (service_matched): results.append({ "usn": "uuid:{0}::urn:{1}".format(service.get_udn(), service.get_urn()), "location": device.get_desc_url(), "search_target": ("urn:{0}".format(device.get_urn()) if (condition == "ssdp:all") else condition) })
-							#
-						#
-					#
-				#
-			#
-
-			if (len(results) > 0):
-			#
-				if (additional_data != None):
-				#
-					if ('USER-AGENT' in additional_data):
-					#
-						client = Client.load_user_agent(additional_data['USER-AGENT'])
-						source_wait_timeout = client.get("ssdp_upnp_search_wait_timeout", source_wait_timeout)
-					#
-					elif (source_wait_timeout < 4):
-					# Expect broken clients if no user-agent is given and MX is too small
-						source_wait_timeout = 0
-					#
-				#
-
-				if (source_wait_timeout > 0): wait_seconds = randfloat(0, (source_wait_timeout if (source_wait_timeout < 10) else 10) / len(results))
-				else: wait_seconds = 0
-
-				for result in results:
-				#
-					event = ControlPointEvent(ControlPointEvent.TYPE_SEARCH_RESULT, control_point = self)
-					event.set_usn(result['usn'])
-					event.set_location(result['location'])
-					event.set_search_target(result['search_target'])
-
-					event.set_response_target(("[{0}]".format(source_data[0]) if (":" in source_data[0]) else source_data[0]),
-					                          source_data[1]
-					                         )
-
-					event.schedule(wait_seconds)
-				#
 			#
 		#
 	#

@@ -80,8 +80,6 @@ Initialize a host device.
 		self.device_model_version = "#echo(pasUPnPVersion)#"
 		self.manufacturer = "direct Netware Group"
 		self.manufacturer_url = "http://www.direct-netware.de"
-		self.spec_major = 1
-		self.spec_minor = 1
 
 		service = RemoteUiServer()
 		if (service.init_host(self, configid = self.configid)): self.add_service(service)
