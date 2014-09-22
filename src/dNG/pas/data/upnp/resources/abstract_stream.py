@@ -141,6 +141,19 @@ Sets the UPnP resource mime type.
 
 		self.mimetype = mimetype
 	#
+
+	def set_size(self, size):
+	#
+		"""
+Sets the UPnP resource size.
+
+:param size: (int) UPnP resource size
+
+:since: v0.1.03
+		"""
+
+		self.size = size
+	#
 #
 
 ##j## EOF

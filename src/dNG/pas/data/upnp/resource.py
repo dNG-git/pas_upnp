@@ -76,9 +76,33 @@ class Resource(SupportsMixin):
 	"""
 UPnP CDS container type
 	"""
+	TYPE_CDS_CONTAINER_AUDIO = 8
+	"""
+UPnP CDS audio container type
+	"""
+	TYPE_CDS_CONTAINER_IMAGE = 16
+	"""
+UPnP CDS image container type
+	"""
+	TYPE_CDS_CONTAINER_VIDEO = 32
+	"""
+UPnP CDS video container type
+	"""
 	TYPE_CDS_ITEM = 2
 	"""
 UPnP CDS item type
+	"""
+	TYPE_CDS_ITEM_AUDIO = 64
+	"""
+UPnP CDS audio item type
+	"""
+	TYPE_CDS_ITEM_IMAGE = 128
+	"""
+UPnP CDS image item type
+	"""
+	TYPE_CDS_ITEM_VIDEO = 256
+	"""
+UPnP CDS video item type
 	"""
 	TYPE_CDS_RESOURCE = 4
 	"""
@@ -411,7 +435,7 @@ offset and limit.
 
 			for entry in self.get_content_list():
 			#
-				if (entry.get_type() == _type): _return.append(entry)
+				if (entry.get_type() & _type == _type): _return.append(entry)
 			#
 		#
 
@@ -1100,19 +1124,6 @@ Sets the UPnP client user agent.
 		self.client_user_agent = user_agent
 	#
 
-	def set_content_offset(self, content_offset):
-	#
-		"""
-Sets the UPnP resource content offset.
-
-:param content_offset: UPnP resource content offset
-
-:since: v0.1.01
-		"""
-
-		self.content_offset = content_offset
-	#
-
 	def set_content_limit(self, content_limit):
 	#
 		"""
@@ -1123,7 +1134,22 @@ Sets the UPnP resource content limit.
 :since: v0.1.01
 		"""
 
+		self.flush_content_cache()
 		self.content_limit = content_limit
+	#
+
+	def set_content_offset(self, content_offset):
+	#
+		"""
+Sets the UPnP resource content offset.
+
+:param content_offset: UPnP resource content offset
+
+:since: v0.1.01
+		"""
+
+		self.flush_content_cache()
+		self.content_offset = content_offset
 	#
 
 	def set_didl_fields(self, fields):

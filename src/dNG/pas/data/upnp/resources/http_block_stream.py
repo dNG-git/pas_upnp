@@ -140,10 +140,8 @@ Initializes the content of a container.
 			_id = self.get_parent_id()
 			if (_id == None): _id = self.get_id()
 
-			self.content.append("{0}upnp/stream/{1}".format(Link().build_url(Link.TYPE_ABSOLUTE | Link.TYPE_BASE_PATH),
-			                                                quote(Binary.str(b64encode(Binary.utf8_bytes(_id))))
-			                                               )
-			                   )
+			parameters = { "__virtual__": "/upnp/stream/{0}".format(quote(Binary.str(b64encode(Binary.utf8_bytes(_id))))) }
+			self.content.append(Link.get_preferred("upnp").build_url(Link.TYPE_VIRTUAL_PATH, parameters))
 
 			_return = True
 		#

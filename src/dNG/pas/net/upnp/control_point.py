@@ -1329,6 +1329,13 @@ Starts all UPnP listeners and announces itself.
 
 		if (self.http_host == None or self.http_port == None): raise ValueException("HTTP server must provide the hostname and port for the UPnP ControlPoint")
 
+		if (not Settings.is_defined("pas_http_site_preferred_url_base_upnp")):
+		#
+			Settings.set("pas_http_site_preferred_url_base_upnp",
+			             "http://{0}:{1:d}".format(self.http_host, self.http_port)
+			            )
+		#
+
 		Hook.load("upnp")
 
 		with self.lock:

@@ -27,6 +27,7 @@
  # user agent identifiers to match the specified syntax.
  "pas_upnp_client_replacement_list": {
   "AVM UPnP": "AVM_UPnP",
+  "AVM UPnP/1.0 Client 1.0": "AVM_UPnP/1.0 Client/1.0",
   "Large Screen WebAppManager Safari": "Large_Screen_WebAppManager_Safari",
   "LG Smart TV": "LG_Smart_TV",
   "LGE WebOS TV/Version ": "LGE_WebOS_TV/",
