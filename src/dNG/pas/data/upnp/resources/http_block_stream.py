@@ -131,6 +131,7 @@ Initializes the content of a container.
 :since:  v0.1.00
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._init_content()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 		_return = False
 
 		self.content = [ ]

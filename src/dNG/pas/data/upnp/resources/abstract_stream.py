@@ -113,6 +113,7 @@ Sets metadata used for "_add_metadata_to_didl_xml_node()".
 :since: v0.1.00
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_metadata({1})- (#echo(__LINE__)#)", self, kwargs, context = "pas_upnp")
 		self.metadata.update(kwargs)
 	#
 
@@ -126,6 +127,7 @@ Sets the UPnP resource mime class.
 :since: v0.1.01
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_mimeclass({1})- (#echo(__LINE__)#)", self, mimeclass, context = "pas_upnp")
 		self.mimeclass = mimeclass
 	#
 
@@ -139,6 +141,7 @@ Sets the UPnP resource mime type.
 :since: v0.1.01
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_mimetype({1})- (#echo(__LINE__)#)", self, mimetype, context = "pas_upnp")
 		self.mimetype = mimetype
 	#
 
@@ -152,6 +155,7 @@ Sets the UPnP resource size.
 :since: v0.1.03
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_size({1:d})- (#echo(__LINE__)#)", self, size, context = "pas_upnp")
 		self.size = size
 	#
 #

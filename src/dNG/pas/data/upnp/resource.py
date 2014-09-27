@@ -155,6 +155,11 @@ UPnP resource ID
 		"""
 Thread safety lock
 		"""
+		self.log_handler = NamedLoader.get_singleton("dNG.pas.data.logging.LogHandler", False)
+		"""
+The LogHandler is called whenever debug messages should be logged or errors
+happened.
+		"""
 		self.mimeclass = None
 		"""
 UPnP resource mime class
@@ -222,18 +227,22 @@ Add the given resource to the content list.
 :since:  v0.1.01
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.add_content()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 		_return = False
 
 		if (isinstance(resource, Resource) and resource.get_type() != None):
 		#
 			with self._lock:
 			#
-				self._init_content()
+				if (self.content == None): self._init_content()
 
-				self.content.append(resource)
-				self.set_update_id("++")
+				if (self.content != None):
+				#
+					self.content.append(resource)
+					self.set_update_id("++")
 
-				_return = True
+					_return = True
+				#
 			#
 		#
 
@@ -364,6 +373,8 @@ Flushes the content cache.
 :since: v0.1.01
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.flush_content_cache()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+
 		with self._lock: self.content = None
 	#
 
@@ -390,6 +401,8 @@ Returns the UPnP content resource at the given position.
 :since:  v0.1.01
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_content({1:d})- (#echo(__LINE__)#)", self, position, context = "pas_upnp")
+
 		position -= self.content_offset
 		self._init_content()
 
@@ -404,6 +417,8 @@ Returns the UPnP content resources between offset and limit.
 :return: (list) List of UPnP resources
 :since:  v0.1.01
 		"""
+
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_content_list()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
 		_return = [ ]
 
@@ -431,6 +446,8 @@ offset and limit.
 
 		if (_return == None):
 		#
+			if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_content_list_of_type()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+
 			_return = [ ]
 
 			for entry in self.get_content_list():
@@ -453,6 +470,8 @@ resources.
          all DIDL nodes and the current UPnP update ID.
 :since:  v0.1.01
 		"""
+
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_content_didl_xml()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
 		_return = None
 
@@ -606,6 +625,8 @@ Returns an UPnP DIDL result of generated XML for this UPnP resource.
 :since:  v0.1.01
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_metadata_didl_xml()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+
 		_return = None
 
 		if (self.type != None):
@@ -751,6 +772,8 @@ Returns the UPnP stream resource.
 :since:  v0.1.01
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._get_stream_resource()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+
 		mimeclass = self.get_mimeclass()
 		mimetype = self.get_mimetype()
 
@@ -771,7 +794,7 @@ Returns the number of UPnP content resources.
 		"""
 
 		self._init_content()
-		return len(self.content)
+		return (0 if (self.content == None) else len(self.content))
 	#
 
 	def get_timestamp(self):
@@ -804,19 +827,42 @@ Returns the UPnP resource type.
 Returns the UPnP resource type class.
 
 :return: (str) UPnP resource type class; None if unknown
-:since:  v0.1.01
+:since:  v0.1.00
 		"""
 
-		if (self.type == None): _return = None
-		else:
-		#
-			if (self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER): _return = "object.container"
-			elif (self.type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): _return = "object.item"
+		is_cds1_container_supported = False
+		is_cds1_object_supported = False
+		_type = self.get_type()
+		type_class = None
 
-			_return = self._get_custom_type_class(_return)
+		if (_type != None):
+		#
+			client = Client.load_user_agent(self.client_user_agent)
+			is_cds1_container_supported = client.get("upnp_didl_cds1_container_classes_supported", True)
+			is_cds1_object_supported = client.get("upnp_didl_cds1_object_classes_supported", True)
 		#
 
-		return _return
+		if (is_cds1_container_supported):
+		#
+			if (_type & Resource.TYPE_CDS_CONTAINER_AUDIO == Resource.TYPE_CDS_CONTAINER_AUDIO): type_class = "object.container.genre.musicGenre"
+			elif (_type & Resource.TYPE_CDS_CONTAINER_IMAGE == Resource.TYPE_CDS_CONTAINER_IMAGE): type_class = "object.container.album.photoAlbum"
+			elif (_type & Resource.TYPE_CDS_CONTAINER_VIDEO == Resource.TYPE_CDS_CONTAINER_VIDEO): type_class = "object.container.genre.movieGenre"
+		#
+
+		if (is_cds1_object_supported):
+		#
+			if (_type & Resource.TYPE_CDS_ITEM_AUDIO == Resource.TYPE_CDS_ITEM_AUDIO): type_class = "object.item.audioItem.musicTrack"
+			elif (_type & Resource.TYPE_CDS_ITEM_IMAGE == Resource.TYPE_CDS_ITEM_IMAGE): type_class = "object.item.imageItem.photo"
+			elif (_type & Resource.TYPE_CDS_ITEM_VIDEO == Resource.TYPE_CDS_ITEM_VIDEO): type_class = "object.item.videoItem.movie"
+		#
+
+		if (type_class == None):
+		#
+			if (self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER): type_class = "object.container"
+			elif (self.type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): type_class = "object.item"
+		#
+
+		return self._get_custom_type_class(type_class)
 	#
 
 	def get_type_name(self):
@@ -866,22 +912,32 @@ Initializes a new resource with the data given.
 :since:  v0.1.01
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.init()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 		_return = False
 
-		if ("id" in data and "name" in data and "type" in data):
+		is_id_defined = ("id" in data)
+
+		if ((self.id != None or is_id_defined)
+		    and "name" in data
+		    and "type" in data
+		   ):
 		#
-			if (data['id'] == "0"): raise ValueException("Special UPnP resource ID '0' is not supported")
-			self.id = data['id']
+			if (is_id_defined):
+			#
+				if (data['id'] == "0"): raise ValueException("Special UPnP resource ID '0' is not supported")
+				self.id = data['id']
+			#
+
 			self.name = data['name']
 			self.type = data['type']
 
 			if ("parent_id" in data): self.parent_id = data['parent_id']
 			if ("searchable" in data): self.searchable = data['searchable']
-			if ("source" in data): self.parent_id = data['source']
-			if ("symlink_target_id" in data): self.parent_id = data['symlink_target_id']
+			if ("source" in data): self.source = data['source']
+			if ("symlink_target_id" in data): self.symlink_target_id = data['symlink_target_id']
 			if ("type_name" in data): self.type_name = data['type_name']
 			if ("update_id" in data): self.set_update_id(data['update_id'])
-			if ("updatable" in data): self.parent_id = data['updatable']
+			if ("updatable" in data): self.updatable = data['updatable']
 
 			_return = True
 		#
@@ -903,6 +959,7 @@ Initialize a UPnP resource by CDS ID.
 :since:  v0.1.01
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.init_cds_id({1})- (#echo(__LINE__)#)", self, _id, context = "pas_upnp")
 		_return = False
 
 		self.id = _id
@@ -932,6 +989,7 @@ Initializes the content of a container.
 :since:  v0.1.01
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._init_content()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 		_return = False
 
 		if (self.content == None):
@@ -1003,12 +1061,15 @@ Removes the given resource from the content list.
 :since:  v0.1.01
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.remove_content()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 		_return = False
 
-		if (self.content != None):
-		# Thread safety
+		if (isinstance(resource, Resource) and resource.get_type() != None):
+		#
 			with self._lock:
 			#
+				if (self.content == None): self._init_content()
+
 				if (self.content != None):
 				#
 					if (resource in self.content):
@@ -1089,6 +1150,7 @@ matching the given UPnP search criteria.
 :since:  v0.1.01
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.search_content_didl_xml()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 		_return = None
 
 		if (self.type != None and self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
@@ -1121,6 +1183,7 @@ Sets the UPnP client user agent.
 :since: v0.1.00
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_client_user_agent({1})- (#echo(__LINE__)#)", self, user_agent, context = "pas_upnp")
 		self.client_user_agent = user_agent
 	#
 
@@ -1133,6 +1196,8 @@ Sets the UPnP resource content limit.
 
 :since: v0.1.01
 		"""
+
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_content_limit()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
 		self.flush_content_cache()
 		self.content_limit = content_limit
@@ -1148,6 +1213,8 @@ Sets the UPnP resource content offset.
 :since: v0.1.01
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_content_offset()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+
 		self.flush_content_cache()
 		self.content_offset = content_offset
 	#
@@ -1162,6 +1229,7 @@ Sets the DIDL fields to be returned.
 :since: v0.1.01
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_didl_fields()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 		if (type(fields) == list): self.didl_fields = fields
 	#
 
@@ -1175,6 +1243,7 @@ Sets the UPnP resource parent ID.
 :since: v0.1.01
 		"""
 
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_parent_id()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 		self.parent_id = _id
 	#
 
@@ -1187,6 +1256,8 @@ Sets the DIDL fields to be returned.
 
 :since: v0.1.01
 		"""
+
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_sort_criteria()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
 		if (type(sort_criteria) == list): self.sort_criteria = sort_criteria
 		else:
@@ -1205,6 +1276,8 @@ Sets the UPnP UpdateID value or increments it.
 
 :since: v0.1.01
 		"""
+
+		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_update_id()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
 		if (update_id == "--"): UpdateIdRegistry.unset(self.get_id())
 		else: UpdateIdRegistry.set(self.get_id(), update_id)
