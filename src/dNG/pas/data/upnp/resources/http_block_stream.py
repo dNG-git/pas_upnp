@@ -163,32 +163,6 @@ Sets the UPnP resource mime type.
 		AbstractStream.set_mimetype(self, mimetype)
 		if (self.didl_res_protocol == None): self.didl_res_protocol = "http-get:*:{0}:*".format(self.get_mimetype())
 	#
-
-	@staticmethod
-	def handle_http_request(params = None, last_return = None):
-	#
-		"""
-Handles a valid HTTP task request.
-
-:param params: Parameter specified
-:param last_return: The return value from the last hook called.
-
-:since: v0.1.00
-		"""
-
-		_return = last_return
-
-		if (_return == None):
-		#
-			_return = PredefinedHttpRequest()
-			_return.set_module("output")
-			_return.set_service("throttled")
-			_return.set_action("stream")
-			_return.set_dsd("url", params['url'])
-		#
-
-		return _return
-	#
 #
 
 ##j## EOF
