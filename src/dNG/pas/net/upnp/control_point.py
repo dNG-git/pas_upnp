@@ -47,13 +47,8 @@ try: from urllib.parse import urlsplit
 except ImportError: from urlparse import urlsplit
 
 from dNG.net.http.client import Client as HttpClient
-from dNG.pas.controller.abstract_http_request import AbstractHttpRequest
-from dNG.pas.controller.http_upnp_request import HttpUpnpRequest
-from dNG.pas.controller.predefined_http_request import PredefinedHttpRequest
 from dNG.pas.data.binary import Binary
 from dNG.pas.data.settings import Settings
-from dNG.pas.data.http.translatable_exception import TranslatableException
-from dNG.pas.data.http.virtual_config import VirtualConfig
 from dNG.pas.data.text.l10n import L10n
 from dNG.pas.data.upnp.control_point_event import ControlPointEvent
 from dNG.pas.data.upnp.device import Device
@@ -179,10 +174,10 @@ List of devices with its services
 
 		self.log_handler = NamedLoader.get_singleton("dNG.pas.data.logging.LogHandler", False)
 
-		if (self.http_language == None):
+		if (self.http_language is None):
 		#
 			system_language = getlocale()[0]
-			http_language = re.sub("\\W", "", (Settings.get("core_lang", "en_US") if (system_language == None or system_language == "c") else system_language))
+			http_language = re.sub("\\W", "", (Settings.get("core_lang", "en_US") if (system_language is None or system_language == "c") else system_language))
 		#
 		else: http_language = self.http_language.replace("_", "")
 
@@ -208,7 +203,7 @@ Activates all relevant multicast listeners based on the IP address given.
 :since: v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._activate_multicast_listener({1})- (#echo(__LINE__)#)", self, ip, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._activate_multicast_listener({1})- (#echo(__LINE__)#)", self, ip, context = "pas_upnp")
 
 		with self.lock:
 		#
@@ -248,7 +243,7 @@ supported and must be handled separately.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.add_device()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.add_device()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 		_return = True
 
 		if (isinstance(device, Device) and device.is_managed()):
@@ -257,9 +252,9 @@ supported and must be handled separately.
 			#
 				device_identifier = Device.get_identifier(device.get_usn(), self.bootid, self.configid)
 
-				if (device_identifier != None and device_identifier['usn'] not in self.usns):
+				if (device_identifier is not None and device_identifier['usn'] not in self.usns):
 				#
-					if (self.log_handler != None): self.log_handler.info("pas.upnp.ControlPoint adds UPnP device USN '{0}'", device_identifier['usn'], context = "pas_upnp")
+					if (self.log_handler is not None): self.log_handler.info("pas.upnp.ControlPoint adds UPnP device USN '{0}'", device_identifier['usn'], context = "pas_upnp")
 
 					if (device_identifier['device'] not in self.rootdevices): self.rootdevices.append(device_identifier['device'])
 					device_identifier['url_desc'] = device.get_desc_url()
@@ -286,7 +281,7 @@ supported and must be handled separately.
 					#
 						embedded_device = device.get_embedded_device(uuid)
 						embedded_device_identifier = Device.get_identifier(embedded_device.get_usn(), self.bootid, self.configid)
-						if (self.log_handler != None): self.log_handler.info("pas.upnp.ControlPoint adds UPnP device USN '{0}'", embedded_device_identifier['usn'], context = "pas_upnp")
+						if (self.log_handler is not None): self.log_handler.info("pas.upnp.ControlPoint adds UPnP device USN '{0}'", embedded_device_identifier['usn'], context = "pas_upnp")
 
 						embedded_device_identifier['url_desc'] = embedded_device.get_desc_url()
 						self.managed_devices[embedded_device_identifier['uuid']] = embedded_device
@@ -302,7 +297,7 @@ supported and must be handled separately.
 						Hook.call("dNG.pas.upnp.ControlPoint.onHostDeviceAdded", identifier = embedded_device_identifier)
 					#
 
-					if (self.gena == None):
+					if (self.gena is None):
 					#
 						self.gena = Gena.get_instance()
 						self.gena.start()
@@ -328,7 +323,7 @@ ones. Keep track of them after their first query.
 :since: v0.1.01
 		"""
 
-		if (user_agent != None and user_agent != ""):
+		if (user_agent is not None and user_agent != ""):
 		#
 			with self.lock:
 			#
@@ -357,17 +352,17 @@ removed if the timeout expires.
 
 			if (identifier['device'] in self.rootdevices):
 			#
-				if (self.log_handler != None): self.log_handler.debug("{0!r} renews TTL for UPnP root device USN '{1}' (TTL '{2:d}')", self, usn, timeout, context = "pas_upnp")
+				if (self.log_handler is not None): self.log_handler.debug("{0!r} renews TTL for UPnP root device USN '{1}' (TTL '{2:d}')", self, usn, timeout, context = "pas_upnp")
 
 				self._remove_task(usn, "remove_rootdevice")
-				self._add_task(timeout, "remove_rootdevice", usn = usn)
+				self._add_task(1 + timeout, "remove_rootdevice", usn = usn)
 			#
 			else:
 			#
-				if (self.log_handler != None): self.log_handler.debug("{0!r} adds UPnP root device USN '{1}' (TTL '{2:d}')", self, usn, timeout, context = "pas_upnp")
+				if (self.log_handler is not None): self.log_handler.debug("{0!r} adds UPnP root device USN '{1}' (TTL '{2:d}')", self, usn, timeout, context = "pas_upnp")
 
 				self.rootdevices.append(identifier['device'])
-				self._add_task(timeout, "remove_rootdevice", usn = usn)
+				self._add_task(1 + timeout, "remove_rootdevice", usn = usn)
 			#
 		#
 	#
@@ -383,7 +378,7 @@ Update the list with the given parsed UPnP identifier.
 :since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._add_task({1:.2f}, {2})- (#echo(__LINE__)#)", self, wait_seconds, _type, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._add_task({1:.2f}, {2})- (#echo(__LINE__)#)", self, wait_seconds, _type, context = "pas_upnp")
 
 		timestamp = int(time() + wait_seconds)
 
@@ -439,7 +434,7 @@ Deactivates all relevant multicast listeners based on the IP address given.
 :since: v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._deactivate_multicast_listener({1})- (#echo(__LINE__)#)", self, ip, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._deactivate_multicast_listener({1})- (#echo(__LINE__)#)", self, ip, context = "pas_upnp")
 
 		with self.lock:
 		#
@@ -465,15 +460,15 @@ Delete the parsed UPnP identifier from the ControlPoint list.
 :since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._delete()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._delete()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
 		with self.lock:
 		#
-			if (identifier['usn'] in self.usns and (identifier['bootid'] == None or self.usns[identifier['usn']]['bootid'] <= identifier['bootid'])):
+			if (identifier['usn'] in self.usns and (identifier['bootid'] is None or self.usns[identifier['usn']]['bootid'] <= identifier['bootid'])):
 			#
 				usn_data = self.usns[identifier['usn']]
 
-				if (self.log_handler != None): self.log_handler.info("pas.upnp.ControlPoint deletes USN '{0}'", identifier['usn'], context = "pas_upnp")
+				if (self.log_handler is not None): self.log_handler.info("pas.upnp.ControlPoint deletes USN '{0}'", identifier['usn'], context = "pas_upnp")
 
 				if (usn_data['uuid'] in self.managed_devices):
 				#
@@ -488,11 +483,19 @@ Delete the parsed UPnP identifier from the ControlPoint list.
 					self._remove_task(identifier['usn'], "deliver_event")
 					del(self.managed_devices[usn_data['uuid']])
 				#
-				elif ("url_desc_read" in usn_data):
+				elif ("url_desc" in usn_data and usn_data['url_desc'] in self.upnp_desc):
 				#
-					if (self.gena != None and "ips" in usn_data):
+					if (self.gena is not None and "ips" in usn_data):
 					#
-						for ip in usn_data['ips']: self.gena.cancel(("{0}:{1}:{2}".format(usn_data['domain'], usn_data['class'], usn_data['type']) if ("urn" in usn_data) else None), ip)
+						for ip in usn_data['ips']:
+						#
+							usn = ("{0}:{1}:{2}".format(usn_data['domain'], usn_data['class'], usn_data['type'])
+							       if ("urn" in usn_data) else
+							       None
+							      )
+
+							self.gena.cancel(usn, ip)
+						#
 					#
 
 					if (usn_data['class'] == "device"): Hook.call("dNG.pas.upnp.ControlPoint.onDeviceRemoved", identifier = usn_data)
@@ -535,11 +538,11 @@ Delete the USN from the list of UPnP descriptions.
 :since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._delete_upnp_desc()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._delete_upnp_desc()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
-		upnp_desc = self.upnp_desc.copy()
+		upnp_desc_iterable = self.upnp_desc.copy()
 
-		for url in upnp_desc:
+		for url in upnp_desc_iterable:
 		#
 			if (identifier['usn'] in self.upnp_desc[url]['usns']): self.upnp_desc[url]['usns'].remove(identifier['usn'])
 			if (len(self.upnp_desc[url]['usns']) < 1): del(self.upnp_desc[url])
@@ -560,13 +563,13 @@ Delete the USN from the ControlPoint list.
 :since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.delete_usn({1})- (#echo(__LINE__)#)", self, usn, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.delete_usn({1})- (#echo(__LINE__)#)", self, usn, context = "pas_upnp")
 
 		if (len(usn) > 41):
 		#
 			identifier = Device.get_identifier(usn, bootid, configid)
 
-			if (identifier != None):
+			if (identifier is not None):
 			#
 				with self.lock:
 				#
@@ -586,7 +589,7 @@ Delete all USNs from the given list.
 :since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._delete_usns()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._delete_usns()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
 		with self.lock:
 		#
@@ -636,8 +639,7 @@ Returns the raw XML UPnP description for the given identifier.
 
 		with self.lock:
 		#
-			if ("url_desc_read" in identifier and identifier['url_desc_read'] in self.upnp_desc): _return = self.upnp_desc[identifier['url_desc_read']]['xml_data']
-			elif ("url_desc" in identifier and identifier['url_desc'] in self.upnp_desc): _return = self.upnp_desc[identifier['url_desc']]['xml_data']
+			if ("url_desc" in identifier and identifier['url_desc'] in self.upnp_desc): _return = self.upnp_desc[identifier['url_desc']]['xml_data']
 			else:
 			#
 				for url in self.upnp_desc:
@@ -671,12 +673,12 @@ Returns a UPnP device for the given identifier.
 
 		device = self.get_rootdevice(identifier)
 
-		if (device != None):
+		if (device is not None):
 		#
 			if (device.get_udn() == identifier['uuid']): _return = device
 			else: _return = device.get_embedded_device(identifier['uuid'])
 
-			if (_return != None and _return.is_managed()): _return.set_configid(self.configid)
+			if (_return is not None and _return.is_managed()): _return.set_configid(self.configid)
 		#
 
 		return _return
@@ -733,34 +735,6 @@ Returns the UPnP HTTP server port.
 		return self.http_port
 	#
 
-	def get_http_server_name_of_ip(self, ip):
-	#
-		"""
-Returns the known "Server" HTTP header value for the given IP.
-
-:param ip: IP to look up
-
-:return: (str) "Server" HTTP header value if known; None otherwise
-:since:  v0.1.01
-		"""
-
-		_return = None
-
-		with self.lock:
-		#
-			for usn in self.usns:
-			#
-				if (ip in self.usns[usn].get("ips", [ ])):
-				#
-					if ("http_server_name" in self.usns[usn]): _return = self.usns[usn]['http_server_name']
-					break
-				#
-			#
-		#
-
-		return _return
-	#
-
 	def _get_next_update_timestamp(self):
 	#
 		"""
@@ -811,16 +785,16 @@ Returns a UPnP rootdevice for the given identifier.
 			#
 				if (identifier['uuid'] in self.managed_devices):
 				#
-					if (self.log_handler != None): self.log_handler.debug("{0!r} got request to return the hosted device '{1}'", self, identifier['usn'], context = "pas_upnp")
+					if (self.log_handler is not None): self.log_handler.debug("{0!r} got request to return the hosted device '{1}'", self, identifier['usn'], context = "pas_upnp")
 					_return = self.managed_devices[identifier['uuid']]
 					_return.set_configid(self.configid)
 				#
 				else:
 				#
-					if (self.log_handler != None): self.log_handler.debug("{0!r} got request to create an object for device '{1}'", self, identifier['usn'], context = "pas_upnp")
+					if (self.log_handler is not None): self.log_handler.debug("{0!r} got request to create an object for device '{1}'", self, identifier['usn'], context = "pas_upnp")
 
 					_return = (NamedLoader.get_instance("dNG.pas.data.upnp.devices.{0}".format(identifier['type']), False) if (identifier['class'] == "device") else None)
-					if (_return == None): _return = Device()
+					if (_return is None): _return = Device()
 					if (_return.init_xml_desc(self.usns[identifier['usn']], self.get_desc_xml(identifier)) == False): _return = None
 				#
 			#
@@ -863,7 +837,7 @@ Returns a UPnP rootdevice for the given identifier.
 				#
 			#
 
-			if (_return != None): break
+			if (_return is not None): break
 		#
 
 		return _return
@@ -897,86 +871,6 @@ Returns the known "Server" SSDP header value for the given IP.
 		return _return
 	#
 
-	def handle_soap_request(self, http_request, virtual_config):
-	#
-		"""
-Returns the raw XML UPnP description for the given identifier.
-
-:param identifier: Parsed UPnP identifier
-
-:return: (dict) Parsed UPnP identifier; False on error
-:since:  v0.1.00
-		"""
-
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.handle_soap_request()- (#echo(__LINE__)#)", self, context = "pas_upnp")
-
-		if (not isinstance(http_request, AbstractHttpRequest)): raise TranslatableException("pas_http_core_400", 400)
-
-		client_host = http_request.get_client_host()
-		is_allowed = False
-		is_valid = False
-
-		if (client_host == None): is_allowed = True
-		else:
-		#
-			ip_address_list = socket.getaddrinfo(client_host, http_request.get_client_port(), socket.AF_UNSPEC, 0, socket.IPPROTO_TCP)
-			is_allowed = (False if (len(ip_address_list) < 1) else self.is_ip_allowed(ip_address_list[0][4][0]))
-		#
-
-		if (is_allowed):
-		#
-			virtual_path = http_request.get_dsd("upnp_path")
-
-			if (virtual_path != None):
-			#
-				with self.lock:
-				#
-					device = None
-					request_data = virtual_path.split("/", 2)
-					request_data_length = len(request_data)
-
-					if (request_data_length == 2 and request_data[0] == "stream"): is_valid = True
-					elif (request_data[0] in self.managed_devices):
-					#
-						device = self.managed_devices[request_data[0]]
-
-						if (request_data_length == 1): is_valid = True
-						elif (request_data_length == 2 and request_data[1] == "desc"): is_valid = True
-						elif (request_data_length > 2 and (request_data[2] == "control" or request_data[2] == "eventsub" or request_data[2] == "xml") and device.get_service(request_data[1]) != None): is_valid = True
-					#
-				#
-			#
-		#
-
-		if (not is_allowed):
-		#
-			if (self.log_handler != None): self.log_handler.warning("pas.upnp.ControlPoint refused client '{0}'", client_host, context = "pas_upnp")
-
-			_return = PredefinedHttpRequest()
-			_return.set_output_handler("http_upnp")
-			_return.set_module("output")
-			_return.set_service("http")
-			_return.set_action("error")
-			_return.set_dsd("code", "403")
-		#
-		elif (not is_valid):
-		#
-			_return = PredefinedHttpRequest()
-			_return.set_output_handler("http_upnp")
-			_return.set_module("output")
-			_return.set_service("http")
-			_return.set_action("error")
-			_return.set_dsd("code", "400")
-		#
-		else:
-		#
-			_return = HttpUpnpRequest()
-			_return.set_request(http_request, self, device, request_data)
-		#
-
-		return _return
-	#
-
 	def is_ip_allowed(self, ip):
 	#
 		"""
@@ -992,7 +886,7 @@ Returns true if the given IP is a allowed to send UPnP control requests.
 		_return = False
 
 		if (not Settings.get("pas_upnp_allowed_networks_only", True)): _return = True
-		elif (allowed_networks == None):
+		elif (allowed_networks is None):
 		#
 			with self.lock:
 			#
@@ -1079,19 +973,14 @@ Parse unread UPnP descriptions.
 
 		# pylint: disable=broad-except
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._read_upnp_descs()- (#echo(__LINE__)#)", self, context = "pas_upnp")
-
-		with self.lock:
-		#
-			upnp_desc_unread = self.upnp_desc_unread.copy()
-			self.upnp_desc_unread.clear()
-		#
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._read_upnp_descs()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
 		os_uname = uname()
+		upnp_desc_unread = self.upnp_desc_unread.copy()
 
 		for url in upnp_desc_unread:
 		#
-			if (self.log_handler != None): self.log_handler.debug("{0!r} reads UPnP device description from '{1}'", self, url, context = "pas_upnp")
+			if (self.log_handler is not None): self.log_handler.debug("{0!r} reads UPnP device description from '{1}'", self, url, context = "pas_upnp")
 
 			usns = upnp_desc_unread[url]
 
@@ -1109,13 +998,12 @@ Parse unread UPnP descriptions.
 					if (url in self.upnp_desc): self.upnp_desc[url]['xml_data'] = Binary.raw_str(http_response.read())
 					else: self.upnp_desc[url] = { "xml_data": Binary.raw_str(http_response.read()), "usns": [ ] }
 
+					if (url in self.upnp_desc_unread): del(self.upnp_desc_unread[url])
+
 					for usn in usns:
 					#
 						if (usn in self.usns and usn not in self.upnp_desc[url]['usns']):
 						#
-							self.usns[usn]['url_desc_read'] = url
-							self.usns[usn]['http_server_name'] = http_response.get_header("Server")
-
 							self.upnp_desc[url]['usns'].append(usn)
 
 							Hook.call("dNG.pas.upnp.ControlPoint.onUsnAdded", identifier = self.usns[usn])
@@ -1126,9 +1014,20 @@ Parse unread UPnP descriptions.
 			#
 			else:
 			#
-				if (self.log_handler != None): self.log_handler.error(http_response.get_error_message(), context = "pas_upnp")
+				if (self.log_handler is not None): self.log_handler.error(http_response.get_error_message(), context = "pas_upnp")
+
+				with self.lock:
+				#
+					if (url in self.upnp_desc_unread): del(self.upnp_desc_unread[url])
+				#
+
 				self._delete_usns(usns)
 			#
+		#
+
+		with self.lock:
+		#
+			if (len(self.upnp_desc_unread) > 0): self._add_task(0, "read_upnp_descs")
 		#
 	#
 
@@ -1143,7 +1042,7 @@ Remove a device from the managed list and announce the change.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.remove_device()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.remove_device()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 		_return = False
 
 		if (isinstance(device, Device) and device.is_managed()):
@@ -1152,7 +1051,7 @@ Remove a device from the managed list and announce the change.
 			#
 				device_identifier = Device.get_identifier(device.get_usn(), self.bootid, self.configid)
 
-				if (device_identifier != None and device_identifier['usn'] in self.usns):
+				if (device_identifier is not None and device_identifier['usn'] in self.usns):
 				#
 					self._delete(device_identifier)
 
@@ -1174,7 +1073,7 @@ Remove a device from the managed list and announce the change.
 						#
 					#
 
-					if (len(self.managed_devices) < 1 and self.gena != None): self.gena = None
+					if (len(self.managed_devices) < 1 and self.gena is not None): self.gena = None
 					_return = True
 				#
 			#
@@ -1197,7 +1096,7 @@ Remove a rootdevice from the list of known root devices.
 		#
 			if (identifier['device'] in self.rootdevices):
 			#
-				if (self.log_handler != None): self.log_handler.debug("{0!r} removes UPnP root device USN '{1}'", self, usn, context = "pas_upnp")
+				if (self.log_handler is not None): self.log_handler.debug("{0!r} removes UPnP root device USN '{1}'", self, usn, context = "pas_upnp")
 
 				self.rootdevices.remove(identifier['device'])
 				self._remove_task(usn, "remove_rootdevice")
@@ -1218,7 +1117,7 @@ Delete the USN from the list of UPnP descriptions.
 
 		# pylint: disable=no-member
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._remove_task({1})- (#echo(__LINE__)#)", self, usn, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._remove_task({1})- (#echo(__LINE__)#)", self, usn, context = "pas_upnp")
 
 		with self.lock:
 		#
@@ -1233,7 +1132,7 @@ Delete the USN from the list of UPnP descriptions.
 				#
 					index -= 1
 
-					if (_type == None or task['type'] == _type):
+					if (_type is None or task['type'] == _type):
 					#
 						if ("identifier" in task and usn == task['identifier']['usn']): self.tasks.pop(index)
 						elif (usn == task.get("usn")): self.tasks.pop(index)
@@ -1264,11 +1163,11 @@ Timed task execution
 			#
 		#
 
-		if (task != None):
+		if (task is not None):
 		#
 			with ExceptionLogTrap("pas_upnp"):
 			#
-				if (self.log_handler != None): self.log_handler.debug("{0!r} runs task type '{1}'", self, task['type'], context = "pas_upnp")
+				if (self.log_handler is not None): self.log_handler.debug("{0!r} runs task type '{1}'", self, task['type'], context = "pas_upnp")
 
 				thread = None
 
@@ -1277,7 +1176,7 @@ Timed task execution
 				elif (task['type'] == "read_upnp_descs"): thread = Thread(target = self._read_upnp_descs)
 				elif (task['type'] == "remove_rootdevice"): self.remove_rootdevice(task['usn'])
 
-				if (thread != None): thread.start()
+				if (thread is not None): thread.start()
 			#
 		#
 	#
@@ -1295,7 +1194,7 @@ Starts all UPnP listeners and announces itself.
 
 		# pylint: disable=broad-except
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.start()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.start()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
 		# Set bootid and configid to a value between 0 and 16777215
 		startupid = int(time()) % 16777216
@@ -1307,7 +1206,7 @@ Starts all UPnP listeners and announces itself.
 		preferred_port = Settings.get("pas_upnp_server_preferred_port")
 
 		upnp_http_host = (Hook.call("dNG.pas.http.Server.getHost")
-		                  if (preferred_host == None) else
+		                  if (preferred_host is None) else
 		                  preferred_host
 		                 )
 
@@ -1316,18 +1215,18 @@ Starts all UPnP listeners and announces itself.
 			try: upnp_http_host = socket.gethostbyname(upnp_http_host)
 			except socket.error as handled_exception:
 			#
-				if (self.log_handler != None): self.log_handler.debug(handled_exception)
+				if (self.log_handler is not None): self.log_handler.debug(handled_exception)
 			#
 		#
 
 		self.http_host = upnp_http_host
 
 		self.http_port = (Hook.call("dNG.pas.http.Server.getPort")
-		                  if (preferred_port == None) else
+		                  if (preferred_port is None) else
 		                  preferred_port
 		                 )
 
-		if (self.http_host == None or self.http_port == None): raise ValueException("HTTP server must provide the hostname and port for the UPnP ControlPoint")
+		if (self.http_host is None or self.http_port is None): raise ValueException("HTTP server must provide the hostname and port for the UPnP ControlPoint")
 
 		if (not Settings.is_defined("pas_http_site_preferred_url_base_upnp")):
 		#
@@ -1343,7 +1242,7 @@ Starts all UPnP listeners and announces itself.
 			self.bootid += 1
 
 			ip_addresses = Settings.get("pas_upnp_bind_network_addresses", [ ])
-			if (type(ip_addresses) != list): ip_addresses = [ ]
+			if (type(ip_addresses) is not list): ip_addresses = [ ]
 
 			listener_addresses = 0
 
@@ -1361,7 +1260,7 @@ Starts all UPnP listeners and announces itself.
 					   ): ip_addresses.append(ip_address_data[4][0])
 				#
 
-				if (self.log_handler != None and len(ip_addresses) < 1): self.log_handler.warning("pas.upnp.ControlPoint was unable to find available networks", context = "pas_upnp")
+				if (self.log_handler is not None and len(ip_addresses) < 1): self.log_handler.warning("pas.upnp.ControlPoint was unable to find available networks", context = "pas_upnp")
 			#
 
 			for ip_address in ip_addresses:
@@ -1379,18 +1278,16 @@ Starts all UPnP listeners and announces itself.
 
 			if (listener_addresses < 1):
 			#
-				if (self.log_handler != None): self.log_handler.debug("{0!r} will bind to all interfaces", self, context = "pas_upnp")
+				if (self.log_handler is not None): self.log_handler.debug("{0!r} will bind to all interfaces", self, context = "pas_upnp")
 
 				self._activate_multicast_listener("0.0.0.0")
 				if (socket.has_ipv6): self._activate_multicast_listener("::0")
 			#
-
-			VirtualConfig.set_virtual_path("/upnp/", { "path": "upnp_path" }, self.handle_soap_request)
 		#
 
 		AbstractTimed.start(self)
 		Hook.call("dNG.pas.upnp.ControlPoint.onStartup")
-		if (self.log_handler != None): self.log_handler.info("pas.upnp.ControlPoint starts with bootId '{0:d}' and configId '{1:d}'", self.bootid, self.configid, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.info("pas.upnp.ControlPoint starts with bootId '{0:d}' and configId '{1:d}'", self.bootid, self.configid, context = "pas_upnp")
 
 		return last_return
 	#
@@ -1414,8 +1311,6 @@ Stops all UPnP listeners and deregisters itself.
 		#
 			self._delete_usns(self.usns.copy())
 			self.usns = { }
-
-			VirtualConfig.unset_virtual_path("/upnp/")
 
 			listeners_multicast = self.listeners_multicast.copy()
 			for ip in listeners_multicast: self._deactivate_multicast_listener(ip)
@@ -1443,7 +1338,7 @@ Update the list with the given parsed UPnP identifier.
 :since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._update({1}, {2:d}, {3:.1f}, {4})- (#echo(__LINE__)#)", self, servername, timeout, http_version, location_url, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._update({1}, {2:d}, {3:.1f}, {4})- (#echo(__LINE__)#)", self, servername, timeout, http_version, location_url, context = "pas_upnp")
 
 		url_base = location_url.rsplit("/", 1)[0]
 		usn_data = identifier.copy()
@@ -1482,7 +1377,7 @@ Update the list with the given parsed UPnP identifier.
 
 		with self.lock:
 		#
-			if (self.log_handler != None): self.log_handler.info("pas.upnp.ControlPoint updates USN '{0}'", identifier['usn'], context = "pas_upnp")
+			if (self.log_handler is not None): self.log_handler.info("pas.upnp.ControlPoint updates USN '{0}'", identifier['usn'], context = "pas_upnp")
 
 			is_update = False
 			read_config = True
@@ -1491,7 +1386,7 @@ Update the list with the given parsed UPnP identifier.
 			#
 				is_update = True
 
-				if (bootid != None and bootid_old != None):
+				if (bootid is not None and bootid_old is not None):
 				#
 					"""
 Three possibilities:
@@ -1509,19 +1404,9 @@ Three possibilities:
 						self.usns[identifier['usn']]['bootid'] = bootid
 					#
 				#
-				elif (is_url_desc_available and self.get_desc_xml(usn_data) == None):
-				#
-					for desc_url in self.upnp_desc_unread:
-					#
-						if (identifier['usn'] in self.upnp_desc_unread[desc_url]):
-						#
-							read_config = False
-							break
-						#
-					#
-				#
 				else: read_config = False
 			#
+			elif (self.get_desc_xml(usn_data) is not None): read_config = False
 
 			if ("urn" in identifier):
 			#
@@ -1539,27 +1424,29 @@ Three possibilities:
 				#
 					self.usns[identifier['usn']].update(usn_data)
 					self._remove_task(identifier['usn'], "delete")
-					self._add_task(timeout, "delete", identifier = identifier)
+					self._add_task(1 + timeout, "delete", identifier = identifier)
 				#
 				else: self._delete(identifier)
 			#
 			else:
 			#
 				self.usns[identifier['usn']] = usn_data
-				self._add_task(timeout, "delete", identifier = identifier)
+				self._add_task(1 + timeout, "delete", identifier = identifier)
 			#
 
-			if (not is_url_desc_available):
+			if (is_url_desc_available and read_config):
 			#
-				Hook.call("dNG.pas.upnp.ControlPoint.onUsnAdded", identifier = identifier)
-				if (identifier['class'] == "device"): Hook.call("dNG.pas.upnp.ControlPoint.onDeviceAdded", identifier = identifier)
-			#
-			elif (read_config):
-			#
+				is_task_scheduled = (len(self.upnp_desc_unread) > 0)
+
 				if (location_url not in self.upnp_desc_unread): self.upnp_desc_unread[location_url] = [ identifier['usn'] ]
 				elif (identifier['usn'] not in self.upnp_desc_unread[location_url]): self.upnp_desc_unread[location_url].append(identifier['usn'])
 
-				self._add_task(0, "read_upnp_descs")
+				if (not is_task_scheduled): self._add_task(0, "read_upnp_descs")
+			#
+			elif (not is_update):
+			#
+				Hook.call("dNG.pas.upnp.ControlPoint.onUsnAdded", identifier = identifier)
+				if (identifier['class'] == "device"): Hook.call("dNG.pas.upnp.ControlPoint.onDeviceAdded", identifier = identifier)
 			#
 		#
 	#
@@ -1587,7 +1474,7 @@ Update the list with the given USN.
 		#
 			identifier = Device.get_identifier(usn, bootid, configid)
 
-			if (identifier != None):
+			if (identifier is not None):
 			#
 				with self.lock:
 				#
@@ -1615,9 +1502,9 @@ Get the control_point singleton.
 
 		with ControlPoint._instance_lock:
 		#
-			if (ControlPoint._weakref_instance != None): _return = ControlPoint._weakref_instance()
+			if (ControlPoint._weakref_instance is not None): _return = ControlPoint._weakref_instance()
 
-			if (_return == None):
+			if (_return is None):
 			#
 				_return = ControlPoint()
 				ControlPoint._weakref_instance = ref(_return)

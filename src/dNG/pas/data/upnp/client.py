@@ -83,26 +83,26 @@ user agent.
 
 		settings = Client.get_settings_file("{0}/upnp/user_agents/{1}.json".format(Settings.get("path_data"), identifier))
 
-		if (type(settings) == dict): self.update(settings)
+		if (type(settings) is dict): self.update(settings)
 		else: LogLine.debug("#echo(__FILEPATH__)# -{0!r}._load_user_agent_file()- reporting: No client file for user agent '{1}' with identifier '{2}'", self, user_agent, identifier, context = "pas_upnp")
 	#
 
 	@staticmethod
-	def get_settings_file(file_pathname):
+	def get_settings_file(file_path_name):
 	#
 		"""
 Returns the client settings from the given file or a client file specified
 in it.
 
-:param file_pathname: Settings file path
+:param file_path_name: Settings file path
 
 :return: (dict) UPnP client settings; None on error
 :since:  v0.1.00
 		"""
 
-		_return = JsonFileContent.read(path.normpath(file_pathname))
+		_return = JsonFileContent.read(path.normpath(file_path_name))
 
-		if (type(_return) == dict and "client_file" in _return):
+		if (type(_return) is dict and "client_file" in _return):
 		#
 			_return = JsonFileContent.read(path.join(Settings.get("path_data"), "upnp", "user_agents", InputFilter.filter_file_path(_return['client_file'])))
 		#
@@ -127,7 +127,7 @@ Returns a UPnP client based on the given HTTP or SSDP user agent value.
 		if (not Settings.is_defined("pas_upnp_client_replacement_list")): Settings.read_file("{0}/settings/pas_upnp.json".format(Settings.get("path_data")))
 		replacement_list = Settings.get("pas_upnp_client_replacement_list", None)
 
-		if (type(replacement_list) == dict):
+		if (type(replacement_list) is dict):
 		#
 			replacement_list_keys = sorted(replacement_list.keys(), reverse = True)
 			for upnp_value in replacement_list_keys: user_agent = user_agent.replace(upnp_value, replacement_list[upnp_value])
@@ -161,11 +161,11 @@ Returns a UPnP client based on the given HTTP or SSDP user agent value.
 
 		_return = Client()
 
-		if (type(user_agent) == str):
+		if (type(user_agent) is str):
 		#
 			external_client = Hook.call("dNG.pas.upnp.Client.getUserAgent", user_agent = user_agent)
 
-			if (external_client == None): _return._load_user_agent_file(user_agent)
+			if (external_client is None): _return._load_user_agent_file(user_agent)
 			else: _return = external_client
 		#
 

@@ -108,6 +108,10 @@ SSDP target host
 
 		RawClient.__init__(self, "ssdp://{0}:{1:d}/*".format(target, port))
 
+		self.ipv4_broadcast_interface = Settings.get("pas_upnp_ssdp_ipv4_broadcast_interface", None)
+		"""
+IPv4 TTL for SSDP messages.
+		"""
 		self.ipv4_udp_ttl = int(Settings.get("pas_upnp_ssdp_ipv4_udp_ttl", 2))
 		"""
 IPv4 TTL for SSDP messages.
@@ -121,12 +125,12 @@ IPv6 hops for SSDP messages.
 The LogHandler is called whenever debug messages should be logged or errors
 happened.
 		"""
-		self.source_port = (0 if (source_port == None) else source_port)
+		self.source_port = (0 if (source_port is None) else source_port)
 		"""
 Sets a specific source port for messages sent.
 		"""
 
-		if (self.log_handler != None): self.set_event_handler(self.log_handler)
+		if (self.log_handler is not None): self.set_event_handler(self.log_handler)
 		if (self.path == "/*"): self.path = "*"
 	#
 
@@ -138,7 +142,7 @@ Destructor __del__(AbstractSsdp)
 :since: v0.1.00
 		"""
 
-		if (self.connection != None): self.connection.close()
+		if (self.connection is not None): self.connection.close()
 	#
 
 	def _configure(self, url):
@@ -168,7 +172,7 @@ Returns a connection to the configured UDP address.
 :since:  v0.1.00
 		"""
 
-		if (self.connection == None):
+		if (self.connection is None):
 		#
 			if (self.ssdp_family == socket.AF_INET):
 			#
@@ -176,6 +180,10 @@ Returns a connection to the configured UDP address.
 				self.connection.bind(( "", self.source_port ))
 				if (hasattr(socket, "IP_MULTICAST_LOOP")): self.connection.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 0)
 				if (hasattr(socket, "IP_MULTICAST_TTL")): self.connection.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, self.ipv4_udp_ttl)
+
+				if (self.ipv4_broadcast_interface is not None
+				    and hasattr(socket, "SO_BINDTODEVICE")
+				   ): self.connection.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, Binary.bytes(self.ipv4_broadcast_interface))
 
 				self.connection.connect(( self.ssdp_host, self.port ))
 			#
@@ -209,7 +217,7 @@ Invoke a given SSDP method on the unicast or multicast recipient.
 :since:  v0.1.00
 		"""
 
-		if (data != None): data = Binary.utf8_bytes(data)
+		if (data is not None): data = Binary.utf8_bytes(data)
 
 		headers = self.headers.copy()
 
@@ -221,13 +229,13 @@ Invoke a given SSDP method on the unicast or multicast recipient.
 		                                      )
 
 		headers['HOST'] = "{0}:{1:d}".format(self.host, self.port)
-		headers['CONTENT-LENGTH'] = (0 if (data == None) else len(data))
+		headers['CONTENT-LENGTH'] = (0 if (data is None) else len(data))
 
 		ssdp_header = "{0} {1} HTTP/1.1\r\n".format(method.upper(), self.path)
 
 		for header_name in headers:
 		#
-			if (type(headers[header_name]) == list):
+			if (type(headers[header_name]) is list):
 			#
 				for header_value in headers[header_name]: ssdp_header += "{0}: {1}\r\n".format(header_name, header_value)
 			#
@@ -236,7 +244,7 @@ Invoke a given SSDP method on the unicast or multicast recipient.
 
 		ssdp_header = Binary.utf8_bytes("{0}\r\n".format(ssdp_header))
 
-		data = (ssdp_header if (data == None) else ssdp_header + data)
+		data = (ssdp_header if (data is None) else ssdp_header + data)
 		return self._write_data(data)
 	#
 
@@ -258,7 +266,7 @@ Send the given data to the defined recipient.
 		try: self._get_connection().sendto(data, ( self.ssdp_host, self.port ))
 		except Exception as handled_exception:
 		#
-			if (self.log_handler != None): self.log_handler.error(handled_exception, context = "pas_upnp")
+			if (self.log_handler is not None): self.log_handler.error(handled_exception, context = "pas_upnp")
 			_return = False
 		#
 
@@ -274,7 +282,7 @@ Adds the defined quirks mode to the already activated ones.
 :since: v0.1.00
 		"""
 
-		if (type(mode) == str): mode = AbstractSsdp.get_quirks_mode(mode)
+		if (type(mode) is str): mode = AbstractSsdp.get_quirks_mode(mode)
 		with AbstractSsdp._lock: AbstractSsdp.quirks_mode |= mode
 	#
 

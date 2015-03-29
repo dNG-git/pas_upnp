@@ -31,12 +31,8 @@ https://www.direct-netware.de/redirect?licenses;gpl
 #echo(__FILEPATH__)#
 """
 
-from base64 import b64decode
-
 from dNG.data.xml_resource import XmlResource
 from dNG.pas.data.binary import Binary
-from dNG.pas.data.upnp.client import Client
-from dNG.pas.plugins.hook import Hook
 from .abstract_inner_http_request import AbstractInnerHttpRequest
 
 class HttpUpnpRequest(AbstractInnerHttpRequest):
@@ -96,9 +92,9 @@ Parses the SOAP request to identify the contained request.
 		_return = None
 
 		soap_action = self.get_header("SoapAction")
-		if (soap_action != None): soap_action = soap_action.strip("\"").split("#", 1)
+		if (soap_action is not None): soap_action = soap_action.strip("\"").split("#", 1)
 
-		if (self.body_instance != None and soap_action != None):
+		if (self.body_instance is not None and soap_action is not None):
 		#
 			urn = soap_action[0]
 			soap_action = soap_action[1]
@@ -110,12 +106,12 @@ Parses the SOAP request to identify the contained request.
 			xml_resource.register_ns("soap", "http://schemas.xmlsoap.org/soap/envelope/")
 			xml_resource.register_ns("upnpsns", urn)
 
-			if (xml_resource.xml_to_dict(xml_data) != None):
+			if (xml_resource.xml_to_dict(xml_data) is not None):
 			#
 				soap_arguments = { }
 				xml_node = xml_resource.get_node("soap:Envelope soap:Body upnpsns:{0}".format(soap_action))
 
-				if (xml_node != None):
+				if (xml_node is not None):
 				#
 					for position in xml_node:
 					#
@@ -185,58 +181,32 @@ Sets the requested action.
 		self.upnp_control_point = control_point
 		self.upnp_device = device
 
-		request_data_length = len(request_data)
-
-		if (request_data_length == 1):
+		if (request_data[0] == ""):
 		#
 			self.service = "identity"
 			self.action = "device"
 		#
-		elif (request_data_length == 2):
+		elif (request_data[0] == "desc"):
 		#
-			if (request_data[0] == "stream"):
-			#
-				self.service = "stream"
-				self.action = "source"
+			self.service = "xml"
+			self.action = "get_device"
+		#
+		elif (device is not None):
+		#
+			self.upnp_service = device.get_service(request_data[0])
 
-				stream_url = None
-				user_agent = http_request.get_header("User-Agent")
-
-				client = Client.load_user_agent(user_agent)
-
-				if (client.get("upnp_stream_url_use_filter", False)):
-				#
-					stream_url_filtered = Hook.call("dNG.pas.http.HttpUpnpRequest.filterStreamUrl", encoded_url = request_data[1], user_agent = user_agent)
-					if (stream_url_filtered != None): stream_url = stream_url_filtered
-				#
-
-				if (stream_url == None): stream_url = Binary.str(b64decode(Binary.utf8_bytes(request_data[1])))
-				self.set_dsd("src", stream_url)
+			if (request_data[1] == ""):
 			#
-			elif (request_data[1] == "desc"):
-			#
-				self.service = "xml"
-				self.action = "get_device"
-			#
-			elif (device != None):
-			#
-				self.upnp_service = device.get_service(request_data[1])
-
 				self.service = "identity"
 				self.action = "service"
 			#
-		#
-		elif (device != None):
-		#
-			self.upnp_service = device.get_service(request_data[1])
-
-			if (request_data[2] == "control"):
+			elif (request_data[1] == "control"):
 			#
 				self.service = "control"
 				self.action = "request"
 				self.output_handler = "http_upnp"
 			#
-			elif (request_data[2] == "eventsub"):
+			elif (request_data[1] == "eventsub"):
 			#
 				self.service = "events"
 				self.action = http_request.get_type().lower()

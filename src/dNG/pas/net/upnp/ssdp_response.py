@@ -94,18 +94,18 @@ Invoke an SSDP M-SEARCH method on the unicast or multicast recipient.
 :since:  v0.1.00
 		"""
 
-		if (data != None): data = Binary.utf8_bytes(data)
+		if (data is not None): data = Binary.utf8_bytes(data)
 		os_uname = uname()
 
 		headers = self.headers.copy()
 		headers['SERVER'] = "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.51 HTTP/1.1".format(os_uname[0], os_uname[2])
-		headers['CONTENT-LENGTH'] = (0 if (data == None) else len(data))
+		headers['CONTENT-LENGTH'] = (0 if (data is None) else len(data))
 
 		ssdp_header = "HTTP/1.1 {0}\r\n".format(self.http_status)
 
 		for header_name in headers:
 		#
-			if (type(headers[header_name]) == list):
+			if (type(headers[header_name]) is list):
 			#
 				for header_value in headers[header_name]: ssdp_header += "{0}: {1}\r\n".format(header_name, header_value)
 			#
@@ -114,7 +114,7 @@ Invoke an SSDP M-SEARCH method on the unicast or multicast recipient.
 
 		ssdp_header = Binary.utf8_bytes("{0}\r\n".format(ssdp_header))
 
-		data = (ssdp_header if (data == None) else ssdp_header + data)
+		data = (ssdp_header if (data is None) else ssdp_header + data)
 		return self._write_data(data)
 	#
 #

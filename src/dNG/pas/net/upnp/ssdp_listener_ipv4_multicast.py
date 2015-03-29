@@ -110,11 +110,11 @@ Run the main loop for this server instance.
 
 				self.listener_active = True
 
-				if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.run()- reporting: Started listening on '{1}'", self, self.listener_ip, context = "pas_upnp")
+				if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.run()- reporting: Started listening on '{1}'", self, self.listener_ip, context = "pas_upnp")
 			#
 			except Exception as handled_exception:
 			#
-				if (self.log_handler != None): self.log_handler.debug(handled_exception, context = "pas_upnp")
+				if (self.log_handler is not None): self.log_handler.debug(handled_exception, context = "pas_upnp")
 			#
 		#
 
@@ -136,7 +136,7 @@ Stops the listener and unqueues all running sockets.
 			try: self.listener_socket.setsockopt(socket.IPPROTO_IP, socket.IP_DROP_MEMBERSHIP, socket.inet_pton(socket.AF_INET, "239.255.255.250") + socket.inet_pton(socket.AF_INET, self.listener_ip))
 			except Exception as handled_exception:
 			#
-				if (self.log_handler != None): self.log_handler.debug(handled_exception, context = "pas_upnp")
+				if (self.log_handler is not None): self.log_handler.debug(handled_exception, context = "pas_upnp")
 			#
 
 			self.listener_active = False

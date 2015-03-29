@@ -85,7 +85,7 @@ compression setting and information about P3P.
 :since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.init()- (#echo(__LINE__)#)", self, context = "pas_http_site")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.init()- (#echo(__LINE__)#)", self, context = "pas_http_site")
 
 		client = Client.load_user_agent(self.client_user_agent)
 
@@ -141,7 +141,7 @@ Sends the prepared response.
 :since: v0.1.00
 		"""
 
-		if (self.data != None):
+		if (self.data is not None):
 		#
 			if (not self.initialized): self.init()
 			self.send_headers()
@@ -153,7 +153,7 @@ Sends the prepared response.
 		#
 			self.set_header("HTTP/1.1", "HTTP/1.1 500 Internal Server Error", True)
 
-			if (self.errors == None): self.send_error(501, L10n.get("errors_core_unknown_error"))
+			if (self.errors is None): self.send_error(501, L10n.get("errors_core_unknown_error"))
 			else: self.send_error(self.errors[0].get("code", 501), self.errors[0]['message'])
 		#
 	#
@@ -180,7 +180,7 @@ Returns a UPNP response for the requested SOAP action.
 		xml_resource.add_node("s:Envelope s:Body s:Fault detail UPnPError", attributes = { "xmlns": "urn:schemas-upnp-org:control-1.0" })
 		xml_resource.set_cached_node("s:Envelope s:Body s:Fault detail UPnPError")
 
-		xml_resource.add_node("s:Envelope s:Body s:Fault detail UPnPError errorCode", str(code))
+		xml_resource.add_node("s:Envelope s:Body s:Fault detail UPnPError errorCode", code)
 		xml_resource.add_node("s:Envelope s:Body s:Fault detail UPnPError errorDescription", description)
 
 		self.data = Binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_resource.export_cache(True)))

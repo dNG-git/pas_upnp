@@ -77,13 +77,14 @@ Returns the UPnP UpdateID for the ID given.
 	#
 
 	@staticmethod
-	def set(_id, value):
+	def set(_id, value, resource = None):
 	#
 		"""
 Sets the UPnP UpdateID for the ID given.
 
 :param _id: Registry ID
 :param value: UPnP UpdateID value
+:param resource: UPnP resource of the UpdateID if applicable
 
 :since: v0.1.03
 		"""
@@ -106,21 +107,27 @@ Sets the UPnP UpdateID for the ID given.
 			UpdateIdRegistry._ids[_id] = value
 		#
 
-		Hook.call("dNG.pas.upnp.Resource.onUpdateIdChanged", id = _id, value = value)
+		if (resource is not None): Hook.call("dNG.pas.upnp.Resource.onUpdateIdChanged", id = _id, resource = resource, value = value)
 	#
 
 	@staticmethod
-	def unset(_id):
+	def unset(_id, resource = None):
 	#
 		"""
 Unsets the UPnP UpdateID for the ID given.
 
 :param _id: Registry ID
+:param resource: UPnP resource of the UpdateID if applicable
 
 :since: v0.1.03
 		"""
 
-		pass
+		with UpdateIdRegistry._lock:
+		#
+			if (_id in UpdateIdRegistry._ids): del(UpdateIdRegistry._ids[_id])
+		#
+
+		if (resource is not None): Hook.call("dNG.pas.upnp.Resource.onUpdateIdChanged", id = _id, resource = resource, value = None)
 	#
 #
 

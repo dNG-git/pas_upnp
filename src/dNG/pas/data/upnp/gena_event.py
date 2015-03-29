@@ -136,15 +136,15 @@ Returns a dictionary of subscribers interested in this event.
 :since:  v0.1.03
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._get_subscribers()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._get_subscribers()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
-		if (self.sid == None): _return = self.gena.get_subscribers(self.usn)
+		if (self.sid is None): _return = self.gena.get_subscribers(self.usn)
 		else:
 		#
 			_return = { }
 
 			subscriber = self.gena.get_subscriber(self.sid)
-			if (subscriber != None): _return[self.sid] = subscriber
+			if (subscriber is not None): _return[self.sid] = subscriber
 		#
 
 		return _return
@@ -160,9 +160,9 @@ Send event.
 
 		# pylint: disable=protected-access
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._send()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._send()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
-		if (self.usn == None): raise ValueException("UPnP USN is required for GENA events")
+		if (self.usn is None): raise ValueException("UPnP USN is required for GENA events")
 
 		subscribers = self._get_subscribers()
 
@@ -179,14 +179,14 @@ Send event.
 			xml_resource.add_node(xml_base_path)
 			xml_resource.set_cached_node(xml_base_path)
 
-			for key in self.variables: xml_resource.add_node("{0} {1}".format(xml_base_path, key), str(self.variables[key]))
+			for key in self.variables: xml_resource.add_node("{0} {1}".format(xml_base_path, key), self.variables[key])
 
 			xml_data = "<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_resource.export_cache(True))
 
 			for subscriber_sid in subscribers:
 			#
 				seq = self.gena._approve_seq_for_event(self, subscriber_sid)
-				if (seq != None): self._send_propchange(subscriber_sid, subscribers[subscriber_sid], seq, xml_data)
+				if (seq is not None): self._send_propchange(subscriber_sid, subscribers[subscriber_sid], seq, xml_data)
 			#
 		#
 		#
@@ -205,7 +205,7 @@ Sends the upnp:propchange event to the given subscriber.
 :since: v0.1.03
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._send_propchange({1:d})- (#echo(__LINE__)#)", self, seq, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._send_propchange({1:d})- (#echo(__LINE__)#)", self, seq, context = "pas_upnp")
 
 		for callback_url in subscriber['callback_urls']:
 		#

@@ -31,43 +31,33 @@ https://www.direct-netware.de/redirect?licenses;gpl
 #echo(__FILEPATH__)#
 """
 
-class SearchCriteriaParser(object):
+from dNG.pas.runtime.not_implemented_exception import NotImplementedException
+
+class ThumbnailMixin(object):
 #
 	"""
-UPnP "SearchCriteria" is defined in the UPnP ContentDirectory specification.
+"ThumbnailMixin" provides basic functionality and interfaces for resources
+supporting thumbnails.
 
 :author:     direct Netware Group
 :copyright:  direct Netware Group - All rights reserved
 :package:    pas
 :subpackage: upnp
-:since:      v0.1.01
+:since:      v0.1.03
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
 	"""
 
-	def __init__(self):
+	def get_thumbnail_file_path_name(self):
 	#
 		"""
-Constructor __init__(SearchCriteriaParser)
+Returns the thumbnail file path and name if applicable.
 
-:since: v0.1.01
+:return: (str) File path and name; None if no thumbnail file exist
+:since:  v0.1.02
 		"""
 
-		pass
-	#
-
-	def parse(self, criteria):
-	#
-		"""
-Parse the given search criteria string.
-
-:return: (list) Tuples of "and" criteria in lists of "or" criteria
-:since:  v0.1.01
-		"""
-
-		_return = [ ]
-
-		return _return
+		raise NotImplementedException()
 	#
 #
 

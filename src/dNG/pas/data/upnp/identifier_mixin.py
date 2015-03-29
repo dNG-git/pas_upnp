@@ -200,7 +200,7 @@ Parses the given UPnP USN string.
 			            "usn": usn
 			          }
 
-			if (bootid != None and configid != None):
+			if (bootid is not None and configid is not None):
 			#
 				_return['bootid'] = bootid
 				_return['configid'] = configid
@@ -208,7 +208,7 @@ Parses the given UPnP USN string.
 
 			re_result = (IdentifierMixin.RE_USN_URN.match(usn_data[1]) if (len(usn_data) > 1) else None)
 
-			if (re_result != None):
+			if (re_result is not None):
 			#
 				_return['urn'] = usn_data[1][4:]
 

@@ -38,10 +38,12 @@ from uuid import NAMESPACE_URL
 from uuid import uuid3 as uuid_of_namespace
 
 from dNG.pas.data.logging.log_line import LogLine
+from dNG.pas.data.media.image import Image
 from dNG.pas.data.text.link import Link
 from dNG.pas.data.upnp.client import Client
 from dNG.pas.data.upnp.device import Device
 from dNG.pas.data.upnp.services.abstract_service import AbstractService
+from dNG.pas.runtime.not_implemented_class import NotImplementedClass
 
 class AbstractDevice(Device):
 #
@@ -79,6 +81,10 @@ UPnP device description URL
 		"""
 UPnP device is managed by host
 		"""
+		self.icon_file_path_name = None
+		"""
+Icon path and file name
+		"""
 		self.type = None
 		"""
 UPnP device type
@@ -109,6 +115,18 @@ Returns the UPnP device description URL.
 		return (self.desc_url if (self.host_device) else None)
 	#
 
+	def get_icon_file_path_name(self):
+	#
+		"""
+Returns the UPnP device icon file path and name.
+
+:return: (str) Device icon file path and name
+:since:  v0.1.03
+		"""
+
+		return self.icon_file_path_name
+	#
+
 	def get_service(self, _id):
 	#
 		"""
@@ -121,7 +139,7 @@ Returns a UPnP service for the given UPnP service ID.
 		"""
 
 		_return = Device.get_service(self, _id)
-		if (_return != None and _return.is_managed()): _return.set_client_user_agent(self.client_user_agent)
+		if (_return is not None and _return.is_managed()): _return.set_client_user_agent(self.client_user_agent)
 
 		return _return
 	#
@@ -219,7 +237,7 @@ Returns the UPnP device description for encoding.
 		if (not client.get("upnp_xml_cdata_encoded", False)): xml_resource.set_cdata_encoding(False)
 
 		attributes = { "xmlns": "urn:schemas-upnp-org:device-1-0" }
-		if (self.configid != None): attributes['configId'] = self.configid
+		if (self.configid is not None): attributes['configId'] = self.configid
 
 		xml_resource.add_node("root", attributes = attributes)
 		xml_resource.set_cached_node("root")
@@ -231,8 +249,59 @@ Returns the UPnP device description for encoding.
 		                ( 1, 0 )
 		               )
 
-		xml_resource.add_node("root specVersion major", str(spec_version[0]))
-		xml_resource.add_node("root specVersion minor", str(spec_version[1]))
+		xml_resource.add_node("root specVersion major", spec_version[0])
+		xml_resource.add_node("root specVersion minor", spec_version[1])
+
+		xml_resource.add_node("root device")
+		xml_resource.set_cached_node("root device")
+
+		icon_file_path_name = self.get_icon_file_path_name()
+
+		if ((not issubclass(Image, NotImplementedClass)) and icon_file_path_name is not None):
+		#
+			xml_resource.add_node("root device iconList")
+
+			icon_position = 0
+
+			icon_mimetypes = ( "image/png", "image/jpeg", "image/bmp" )
+			icon_sizes = ( 512, 260, 256, 128, 120, 64, 32, 24, 16 )
+			icon_depths = ( 32, 24, 16, 8 )
+
+			for icon_mimetype in icon_mimetypes:
+			#
+				for icon_size in icon_sizes:
+				#
+					for icon_depth in icon_depths:
+					#
+						colormap = Image.get_colormap_for_depth(icon_mimetype, icon_depth)
+
+						if (colormap is not None):
+						#
+							icon_parameters = { "__virtual__": "/upnp/image",
+							                    "a": "device_icon",
+							                    "dsd": { "uusn": self.get_usn(),
+							                             "umimetype": icon_mimetype,
+							                             "uwidth": icon_size,
+							                             "uheight": icon_size,
+							                             "udepth": icon_depth
+							                           }
+							                  }
+
+							icon_url = Link.get_preferred("upnp").build_url(Link.TYPE_VIRTUAL_PATH, icon_parameters)
+
+							xml_resource.add_node("root device iconList icon#{0:d}".format(icon_position))
+							xml_resource.add_node("root device iconList icon mimetype", icon_mimetype)
+							xml_resource.add_node("root device iconList icon width", icon_size)
+							xml_resource.add_node("root device iconList icon height", icon_size)
+							xml_resource.add_node("root device iconList icon depth", icon_depth)
+							xml_resource.add_node("root device iconList icon url", icon_url)
+
+							icon_position += 1
+						#
+					#
+				#
+			#
+		#
 
 		self._get_xml_walker(xml_resource, "root device")
 		return xml_resource
@@ -261,28 +330,28 @@ XML node path.
 		xml_resource.add_node("{0} manufacturer".format(xml_base_path), self.get_manufacturer())
 
 		value = self.get_manufacturer_url()
-		if (value != None): xml_resource.add_node("{0} manufacturerURL".format(xml_base_path), value)
+		if (value is not None): xml_resource.add_node("{0} manufacturerURL".format(xml_base_path), value)
 
 		value = self.get_device_model()
-		if (value != None): xml_resource.add_node("{0} modelName".format(xml_base_path), value)
+		if (value is not None): xml_resource.add_node("{0} modelName".format(xml_base_path), value)
 
 		value = self.get_device_model_desc()
-		if (value != None): xml_resource.add_node("{0} modelDescription".format(xml_base_path), value)
+		if (value is not None): xml_resource.add_node("{0} modelDescription".format(xml_base_path), value)
 
 		value = self.get_device_model_version()
-		if (value != None): xml_resource.add_node("{0} modelNumber".format(xml_base_path), value)
+		if (value is not None): xml_resource.add_node("{0} modelNumber".format(xml_base_path), value)
 
 		value = self.get_device_model_url()
-		if (value != None): xml_resource.add_node("{0} modelURL".format(xml_base_path), value)
+		if (value is not None): xml_resource.add_node("{0} modelURL".format(xml_base_path), value)
 
 		value = self.get_device_model_upc()
-		if (value != None): xml_resource.add_node("{0} UPC".format(xml_base_path), value)
+		if (value is not None): xml_resource.add_node("{0} UPC".format(xml_base_path), value)
 
 		value = self.get_device_serial_number()
-		if (value != None): xml_resource.add_node("{0} serialNumber".format(xml_base_path), value)
+		if (value is not None): xml_resource.add_node("{0} serialNumber".format(xml_base_path), value)
 
 		value = self.get_presentation_url()
-		if (value != None): xml_resource.add_node("{0} presentationURL".format(xml_base_path), value)
+		if (value is not None): xml_resource.add_node("{0} presentationURL".format(xml_base_path), value)
 
 		if (len(self.services) > 0):
 		#
@@ -340,8 +409,11 @@ Initialize a host device.
 
 		self.configid = configid
 		self.host_device = True
-		if (self.name == None): self.name = "{0} {1}".format(gethostname(), self.type)
-		self.udn = (str(uuid_of_namespace(NAMESPACE_URL, "upnp://{0}:{1:d}/{2}".format(control_point.get_http_host(), control_point.get_http_port(), hexlify(urandom(10))))) if (udn == None) else udn)
+		if (self.name is None): self.name = "{0} {1}".format(gethostname(), self.type)
+
+		self.udn = (str(uuid_of_namespace(NAMESPACE_URL, "upnp://{0}:{1:d}/{2}".format(control_point.get_http_host(), control_point.get_http_port(), hexlify(urandom(10)))))
+		            if (udn is None) else udn
+		           )
 
 		url = "http://{0}:{1:d}/upnp/{2}".format(control_point.get_http_host(), control_point.get_http_port(), Link.encode_query_value(self.udn))
 		self.desc_url = "{0}/desc".format(url)

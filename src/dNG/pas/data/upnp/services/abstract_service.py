@@ -37,6 +37,7 @@ from dNG.pas.data.upnp.upnp_exception import UpnpException
 from dNG.pas.data.upnp.service import Service
 from dNG.pas.data.upnp.variable import Variable
 from dNG.pas.plugins.hook import Hook
+from dNG.pas.runtime.not_implemented_exception import NotImplementedException
 from dNG.pas.runtime.type_exception import TypeException
 
 class AbstractService(Service):
@@ -108,14 +109,14 @@ Adds the given host service action.
 
 		if (action not in self.actions):
 		#
-			if (argument_variables == None): argument_variables = [ ]
-			elif (type(argument_variables) != list): raise TypeException("Given argument variables definition is invalid")
+			if (argument_variables is None): argument_variables = [ ]
+			elif (type(argument_variables) is not list): raise TypeException("Given argument variables definition is invalid")
 
-			if (return_variable == None): return_variable = { }
-			elif (type(return_variable) != dict): raise TypeException("Given return variables definition is invalid")
+			if (return_variable is None): return_variable = { }
+			elif (type(return_variable) is not dict): raise TypeException("Given return variables definition is invalid")
 
-			if (result_variables == None): result_variables = [ ]
-			elif (type(result_variables) != list): raise TypeException("Given result variables definition is invalid")
+			if (result_variables is None): result_variables = [ ]
+			elif (type(result_variables) is not list): raise TypeException("Given result variables definition is invalid")
 
 			self.actions[action] = { "argument_variables": argument_variables,
 			                         "return_variable": return_variable,
@@ -137,7 +138,7 @@ Adds the given host service variable.
 
 		if (name not in self.variables):
 		#
-			if (type(definition) != dict): raise TypeException("Given variable definition is invalid")
+			if (type(definition) is not dict): raise TypeException("Given variable definition is invalid")
 			self.variables[name] = definition
 		#
 	#
@@ -265,13 +266,13 @@ Returns the UPnP SCPD.
 :since:  v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._get_xml()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._get_xml()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
 		client = Client.load_user_agent(self.client_user_agent)
 		if (not client.get("upnp_xml_cdata_encoded", False)): xml_resource.set_cdata_encoding(False)
 
 		attributes = { "xmlns": "urn:schemas-upnp-org:service-1-0" }
-		if (self.configid != None): attributes['configId'] = self.configid
+		if (self.configid is not None): attributes['configId'] = self.configid
 
 		xml_resource.add_node("scpd", attributes = attributes)
 		xml_resource.set_cached_node("scpd")
@@ -283,8 +284,8 @@ Returns the UPnP SCPD.
 		                ( 1, 0 )
 		               )
 
-		xml_resource.add_node("scpd specVersion major", str(spec_version[0]))
-		xml_resource.add_node("scpd specVersion minor", str(spec_version[1]))
+		xml_resource.add_node("scpd specVersion major", spec_version[0])
+		xml_resource.add_node("scpd specVersion minor", spec_version[1])
 
 		if (len(self.actions) > 0):
 		#
@@ -308,7 +309,7 @@ Returns the UPnP SCPD.
 					variables.append(variable)
 				#
 
-				if (action['return_variable'] != None):
+				if (action['return_variable'] is not None):
 				#
 					variable = action['return_variable'].copy()
 					variable['direction'] = "out"
@@ -397,22 +398,47 @@ Executes the given SOAP action.
 
 		# pylint: disable=broad-except,star-args
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.handle_soap_call({1})- (#echo(__LINE__)#)", self, action, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.handle_soap_call({1})- (#echo(__LINE__)#)", self, action, context = "pas_upnp")
 		_return = UpnpException("pas_http_core_500")
 
 		action_definition = None
 		action_method = AbstractService.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", action).lower()
 		arguments = { }
-		if (arguments_given == None): arguments_given = [ ]
-		is_request_valid = (action in self.actions)
+		if (arguments_given is None): arguments_given = [ ]
+		is_request_valid = False
 
-		if (is_request_valid):
+		if (action == "QueryStateVariable"):
+		#
+			action_definition =  { "argument_variables": [ { "name": "varName", "variable": "A_ARG_TYPE_VarName" } ],
+			                       "return_variable": { "name": "return", "variable": "A_ARG_TYPE_VarValue" },
+			                       "result_variables": [ ]
+			                     }
+
+			variables = { "A_ARG_TYPE_VarName": { "is_sending_events": False,
+			                                      "is_multicasting_events": False,
+			                                      "type": "string"
+			                                    },
+			              "A_ARG_TYPE_VarValue": { "is_sending_events": False,
+			                                       "is_multicasting_events": False,
+			                                       "type": "string"
+			                                     }
+			            }
+
+			if (len(arguments_given) == 1): arguments_given = { "varName": arguments_given.popitem()[1] }
+		#
+		elif (action in self.actions):
 		#
 			action_definition = self.actions[action]
+			variables = self.variables
+		#
+
+		if (action_definition is not None):
+		#
+			is_request_valid = True
 
 			for argument in action_definition['argument_variables']:
 			#
-				if (argument['variable'] not in self.variables):
+				if (argument['variable'] not in variables):
 				#
 					is_request_valid = False
 					_return = UpnpException("pas_http_core_500")
@@ -420,7 +446,7 @@ Executes the given SOAP action.
 					break
 				#
 				elif (argument['name'] in arguments_given): argument_given = arguments_given[argument['name']]
-				elif ("value" in self.variables[argument['variable']]): argument_given = self.variables[argument['variable']]['value']
+				elif ("value" in variables[argument['variable']]): argument_given = variables[argument['variable']]['value']
 				else:
 				#
 					is_request_valid = False
@@ -432,7 +458,7 @@ Executes the given SOAP action.
 				if (is_request_valid):
 				#
 					argument_name = AbstractService.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", argument['name']).lower()
-					arguments[argument_name] = Variable.get_native(Variable.get_native_type(self.variables[argument['variable']]), argument_given)
+					arguments[argument_name] = Variable.get_native(Variable.get_native_type(variables[argument['variable']]), argument_given)
 				#
 			#
 		#
@@ -452,35 +478,35 @@ Executes the given SOAP action.
 		#
 		except Exception as handled_exception:
 		#
-			if (self.log_handler != None): self.log_handler.error(handled_exception, context = "pas_upnp")
+			if (self.log_handler is not None): self.log_handler.error(handled_exception, context = "pas_upnp")
 			_return = UpnpException("pas_http_core_500")
 		#
 
 		if (isinstance(result, Exception)): _return = result
-		elif (result != None):
+		elif (result is not None):
 		#
-			return_values = ([ ] if (action_definition['return_variable'] == None) else [ action_definition['return_variable'] ])
+			return_values = ([ ] if (action_definition['return_variable'] is None) else [ action_definition['return_variable'] ])
 			return_values += action_definition['result_variables']
 
 			_return = [ ]
-			_type = type(result)
+			is_dict_result = (type(result) is dict)
 
-			if (_type != dict and len(return_values) != 1): _return = UpnpException("pas_http_core_500")
+			if ((not is_dict_result) and len(return_values) != 1): _return = UpnpException("pas_http_core_500")
 			else:
 			#
 				for return_value in return_values:
 				#
 					return_value_name = AbstractService.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", return_value['name']).lower()
 
-					if (_type == dict): result_value = (result[return_value_name] if (return_value_name in result) else None)
+					if (is_dict_result): result_value = (result[return_value_name] if (return_value_name in result) else None)
 					else: result_value = result
 
-					if (return_value['variable'] not in self.variables or result_value == None):
+					if (return_value['variable'] not in variables or result_value is None):
 					#
 						_return = UpnpException("pas_http_core_500")
 						break
 					#
-					else: _return.append({ "name": return_value['name'], "value": Variable.get_upnp_value(self.variables[return_value['variable']], result_value) })
+					else: _return.append({ "name": return_value['name'], "value": Variable.get_upnp_value(variables[return_value['variable']], result_value) })
 				#
 			#
 		#
@@ -573,6 +599,20 @@ Called after an UPnP device registered for GENA.
 		   ): self._handle_gena_registration(params['sid'])
 
 		return last_return
+	#
+
+	def query_state_variable(self, var_name):
+	#
+		"""
+UPnP call for "QueryStateVariable".
+
+:param var_name: Variable to be returned
+
+:return: (mixed) Variable value
+:since:  v0.1.03
+		"""
+
+		raise NotImplementedException()
 	#
 
 	def remove_host_action(self, action):

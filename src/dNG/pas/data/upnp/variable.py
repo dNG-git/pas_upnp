@@ -92,7 +92,7 @@ value.
 :since:  v0.1.01
 		"""
 
-		if (type(native_type) == tuple):
+		if (type(native_type) is tuple):
 		#
 			if (native_type[1] == "xmlns"): _return = value
 			elif (native_type[1] == "base64"): _return = Binary.raw_str(b64decode(Binary.utf8_bytes(value)))
@@ -102,11 +102,11 @@ value.
 			elif (native_type[1] == "hex"): _return = Binary.raw_str(unhexlify(Binary.utf8_bytes(value)))
 			elif (native_type[1] == "time"): _return = RfcBasics.get_iso8601_timestamp(value, False, has_timezone = False)
 			elif (native_type[1] == "time.tz"): _return = RfcBasics.get_iso8601_timestamp(value, False)
-			elif (native_type[1] == "uri" and re.match("^\\w+\\:\\w", value) == None): raise ValueException("Given value mismatches defined format for URIs")
+			elif (native_type[1] == "uri" and re.match("^\\w+\\:\\w", value) is None): raise ValueException("Given value mismatches defined format for URIs")
 			elif (native_type[1] == "uuid" and (not value.startswith("uuid:"))): raise ValueException("Given value mismatches defined format for UUIDs")
-			elif (native_type[0] != str): _return = native_type[0](value)
+			elif (native_type[0] is not str): _return = native_type[0](value)
 		#
-		elif (native_type != str): _return = native_type(value)
+		elif (native_type is not str): _return = native_type(value)
 		else: _return = value
 
 		return _return
@@ -184,7 +184,7 @@ XML node.
 					re_result = Variable.RE_NODE_NAME_XMLNS.match(xml_node['attributes']['type'])
 					uri = xml_parser.get_ns_uri(xml_node['attributes']['type'])
 
-					if (re_result != None and uri != ""): _return = _return = Variable.get_native_type({ "type": "xmlns", "type_xmlns": "{0}:{1}".format(uri, re_result.group(2)) })
+					if (re_result is not None and uri != ""): _return = _return = Variable.get_native_type({ "type": "xmlns", "type_xmlns": "{0}:{1}".format(uri, re_result.group(2)) })
 				#
 			#
 			else: _return = Variable.get_native_type({ "type": xml_node['value'] })
@@ -235,12 +235,12 @@ value.
 
 		native_type = Variable.get_native_type(variable)
 
-		if (type(native_type) == tuple):
+		if (type(native_type) is tuple):
 		#
 			value_normalized = (Binary.str(value) if (native_type[0] == str) else value)
-			_type = type(value_normalized)
+			value_normalized_type = type(value_normalized)
 
-			if (_type != native_type[0]): raise ValueException("Given value mismatches defined format")
+			if (value_normalized_type != native_type[0]): raise ValueException("Given value mismatches defined format")
 			elif (len(native_type) > 2):
 			#
 				if (native_type[1] != "xmlns"): raise ValueException("Invalid native type definition")
@@ -257,25 +257,29 @@ value.
 				elif (native_type[1] == "time"): _return = strftime("%H:%M:%S", localtime(value))
 				elif (native_type[1] == "time.tz"): _return = strftime("%H:%M:%S%Z", localtime(value))
 				elif (native_type[1] == "uri" and len(urlsplit(value).scheme.strip()) < 1): raise ValueException("Given value is not a valid URI")
-				elif (native_type[1] == "uuid" and Variable.RE_UUID.match(value_normalized) == None): raise ValueException("Given value is not a valid UUID")
+				elif (native_type[1] == "uuid" and Variable.RE_UUID.match(value_normalized) is None): raise ValueException("Given value is not a valid UUID")
 				else: _return = value_normalized
 			#
 			else:
 			#
-				pack("={0}".format(native_type[1]), (Binary.utf8_bytes(value) if (_type == str and value == value_normalized) else value))
+				pack("={0}".format(native_type[1]),
+				                   (Binary.utf8_bytes(value)
+				                    if (value_normalized_type == str and value == value_normalized) else
+				                    value
+				                   )
+				                  )
+
 				_return = "{0}".format(value_normalized)
 			#
 		#
 		else:
 		#
-			if (native_type == str): value = Binary.str(value)
-			_type = type(value)
+			if (native_type is str): value = Binary.str(value)
+			if (type(value) is not native_type): raise ValueException("Given value mismatches defined format")
 
-			if (_type != native_type): raise ValueException("Given value mismatches defined format")
-
-			if (native_type == bool): _return = "{0:b}".format(value)
-			elif (native_type == int): _return = str(value)
-			elif (native_type == float): _return = "{0:f}".format(value)
+			if (native_type is bool): _return = "{0:b}".format(value)
+			elif (native_type is int): _return = str(value)
+			elif (native_type is float): _return = "{0:f}".format(value)
 			else: _return = value
 		#
 

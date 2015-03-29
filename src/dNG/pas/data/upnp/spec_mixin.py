@@ -85,7 +85,7 @@ Sets the UPnP specVersion number.
 :since: v0.1.00
 		"""
 
-		if (type(version) == tuple and len(version) == 2):
+		if (type(version) is tuple and len(version) == 2):
 		#
 			self.spec_major = int(version[0])
 			self.spec_minor = int(version[1])

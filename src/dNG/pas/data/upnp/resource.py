@@ -45,14 +45,16 @@ from dNG.pas.data.binary import Binary
 from dNG.pas.data.supports_mixin import SupportsMixin
 from dNG.pas.data.text.input_filter import InputFilter
 from dNG.pas.data.text.l10n import L10n
-from dNG.pas.data.upnp.update_id_registry import UpdateIdRegistry
 from dNG.pas.module.named_loader import NamedLoader
 from dNG.pas.plugins.hook import Hook
 from dNG.pas.runtime.thread_lock import ThreadLock
 from dNG.pas.runtime.value_exception import ValueException
 from .client import Client
+from .update_id_registry import UpdateIdRegistry
 from .variable import Variable
 from .xml_rewrite_parser import XmlRewriteParser
+from .search.criteria_parser import CriteriaParser
+from .search.resources import Resources as SearchResources
 
 _TOP_LEVEL_OBJECTS = [ "container", "item" ]
 
@@ -127,13 +129,13 @@ Client user agent
 		"""
 UPnP resource content cache
 		"""
-		self.content_offset = 0
-		"""
-UPnP resource content offset
-		"""
 		self.content_limit = None
 		"""
 UPnP resource content limit
+		"""
+		self.content_offset = 0
+		"""
+UPnP resource content offset
 		"""
 		self.deleted = False
 		"""
@@ -146,10 +148,6 @@ UPnP resource DIDL fields to be returned
 		self.didl_res_protocol = None
 		"""
 UPnP resource DIDL protocolInfo value
-		"""
-		self.id = None
-		"""
-UPnP resource ID
 		"""
 		self._lock = ThreadLock()
 		"""
@@ -172,9 +170,13 @@ UPnP resource mime type
 		"""
 UPnP resource name
 		"""
-		self.parent_id = None
+		self.parent_resource_id = None
 		"""
 UPnP resource parent ID
+		"""
+		self.resource_id = None
+		"""
+UPnP resource ID
 		"""
 		self.searchable = False
 		"""
@@ -212,6 +214,10 @@ UPnP resource type name
 		"""
 True if the resource is writable
 		"""
+		self.virtual_resource = False
+		"""
+True if the resource is a virtual one
+		"""
 
 		self.supported_features['search_content'] = self._supports_search_content
 	#
@@ -227,19 +233,19 @@ Add the given resource to the content list.
 :since:  v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.add_content()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.add_content()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 		_return = False
 
-		if (isinstance(resource, Resource) and resource.get_type() != None):
+		if (isinstance(resource, Resource) and resource.get_type() is not None):
 		#
 			with self._lock:
 			#
-				if (self.content == None): self._init_content()
+				if (self.content is None): self._init_content()
 
-				if (self.content != None):
+				if (self.content is not None):
 				#
 					self.content.append(resource)
-					self.set_update_id("++")
+					if (not self.virtual_resource): self.set_update_id("++")
 
 					_return = True
 				#
@@ -267,52 +273,53 @@ Uses the given XML resource to add the DIDL metadata of this UPnP resource.
 
 		is_resource_container = (resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER)
 		is_resource_item = (resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM)
-		is_resource_searchable = self.get_searchable()
 		is_resource_updatable = self.get_updatable()
 
-		if (parent_id == None): parent_id = self.get_parent_id()
+		if (parent_id is None): parent_id = self.get_parent_resource_id()
 
 		if (is_resource_container):
 		#
-			attributes = { "id": self.get_id(),
-			               "parentID": parent_id,
+			attributes = { "id": self.get_resource_id(),
 			               "restricted": (Variable.BOOL_FALSE if (is_resource_updatable) else Variable.BOOL_TRUE),
-			               "searchable": (Variable.BOOL_FALSE if (is_resource_searchable) else Variable.BOOL_TRUE)
+			               "searchable": (Variable.BOOL_TRUE if (self.get_searchable()) else Variable.BOOL_FALSE)
 			             }
 
+			if (parent_id is not None): attributes['parentID'] = parent_id
+
 			didl_fields = self.get_didl_fields()
-			if (len(didl_fields) < 1 or "@childCount" in didl_fields): attributes['childCount'] = str(self.get_total())
+			if (len(didl_fields) < 1 or "@childCount" in didl_fields): attributes['childCount'] = self.get_total()
 		#
 		elif (is_resource_item):
 		#
-			attributes = { "id": self.get_id(),
-			               "parentID": parent_id,
+			attributes = { "id": self.get_resource_id(),
 			               "restricted": (Variable.BOOL_FALSE if (is_resource_updatable) else Variable.BOOL_TRUE)
 			             }
+
+			if (parent_id is not None): attributes['parentID'] = parent_id
 		#
 		elif (resource_type & Resource.TYPE_CDS_RESOURCE == Resource.TYPE_CDS_RESOURCE):
 		#
 			res_protocol = self.get_didl_res_protocol()
 			size = self.get_size()
 
-			if (res_protocol != None):
+			if (res_protocol is not None):
 			#
 				attributes = { "protocolInfo": res_protocol }
-				if (size != None): attributes['size'] = size
+				if (size is not None): attributes['size'] = size
 
 				url = Binary.str(self.get_content(0))
-				if (type(url) == str): value = url
+				if (type(url) is str): value = url
 			#
 		#
 
-		if (attributes != None):
+		if (attributes is not None):
 		#
 			xml_resource.add_node(xml_node_path, value, attributes)
 
 			if (is_resource_container or is_resource_item):
 			#
 				type_name = self.get_type_name()
-				type_attributes = (None if (type_name == None) else { "name": type_name })
+				type_attributes = (None if (type_name is None) else { "name": type_name })
 
 				xml_resource.add_node("{0} dc:title".format(xml_node_path), self.get_name())
 				xml_resource.add_node("{0} upnp:class".format(xml_node_path), self.get_type_class(), type_attributes)
@@ -324,19 +331,14 @@ Uses the given XML resource to add the DIDL metadata of this UPnP resource.
 
 				xml_resource.add_node(update_id_node_path.format(xml_node_path), self.get_update_id())
 
-				if (is_resource_container and is_resource_searchable):
-				#
-					xml_resource.add_node("{0} upnp:searchClass".format(xml_node_path),
-					                      "object.item",
-					                      { "includeDerived": Variable.BOOL_TRUE }
-					                     )
-				#
-
 				timestamp = self.get_timestamp()
 				if (timestamp > -1): xml_resource.add_node("{0} dc:date".format(xml_node_path), Basics.get_iso8601_datetime(timestamp))
-				xml_resource.add_node("{0} upnp:writeStatus".format(xml_node_path), ("WRITABLE" if (is_resource_updatable) else "NOT_WRITABLE"))
 
-				if (is_resource_item): Resource._append_content_didl_xml_nodes(xml_resource, xml_node_path, self.get_content_list(), self.get_id())
+				xml_resource.add_node("{0} upnp:writeStatus".format(xml_node_path),
+				                      ("WRITABLE" if (is_resource_updatable) else "NOT_WRITABLE")
+				                     )
+
+				if (is_resource_item): Resource._append_content_didl_xml_nodes(xml_resource, xml_node_path, self.get_content_list(), self.get_resource_id())
 			#
 		#
 	#
@@ -373,7 +375,7 @@ Flushes the content cache.
 :since: v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.flush_content_cache()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.flush_content_cache()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
 		with self._lock: self.content = None
 	#
@@ -401,12 +403,15 @@ Returns the UPnP content resource at the given position.
 :since:  v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_content({1:d})- (#echo(__LINE__)#)", self, position, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_content({1:d})- (#echo(__LINE__)#)", self, position, context = "pas_upnp")
 
 		position -= self.content_offset
 		self._init_content()
 
-		return (self.content[position] if (position >= 0 and self.content != None and len(self.content) > position) else None)
+		return (self.content[position]
+		        if (position >= 0 and self.content is not None and len(self.content) > position) else
+		        None
+		       )
 	#
 
 	def get_content_list(self):
@@ -418,12 +423,18 @@ Returns the UPnP content resources between offset and limit.
 :since:  v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_content_list()- (#echo(__LINE__)#)", self, context = "pas_upnp")
-
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_content_list()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 		_return = [ ]
 
 		self._init_content()
-		if (self.content != None): _return = (self.content if (self.content_limit == None) else self.content[self.content_offset:self.content_offset + self.content_limit])
+
+		if (self.content is not None):
+		#
+			_return = (self.content
+			           if (self.content_limit is None) else
+			           self.content[self.content_offset:self.content_offset + self.content_limit]
+			          )
+		#
 
 		return _return
 	#
@@ -444,10 +455,9 @@ offset and limit.
 		elif (_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): _return = None
 		else: _return = self.get_content_list()
 
-		if (_return == None):
+		if (_return is None):
 		#
-			if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_content_list_of_type()- (#echo(__LINE__)#)", self, context = "pas_upnp")
-
+			if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_content_list_of_type()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 			_return = [ ]
 
 			for entry in self.get_content_list():
@@ -471,21 +481,24 @@ resources.
 :since:  v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_content_didl_xml()- (#echo(__LINE__)#)", self, context = "pas_upnp")
-
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_content_didl_xml()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 		_return = None
 
-		if (self.type != None and self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
+		if (self.type is not None and self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
 		#
 			xml_resource = self._init_xml_resource()
 			xml_resource.add_node("DIDL-Lite", attributes = Resource._get_didl_xmlns_attributes())
 
-			content_count = Resource._append_content_didl_xml_nodes(xml_resource, "DIDL-Lite", self.get_content_list(), self.get_id())
+			content_count = Resource._append_content_didl_xml_nodes(xml_resource,
+			                                                        "DIDL-Lite",
+			                                                        self.get_content_list(),
+			                                                        self.get_resource_id()
+			                                                       )
 
 			_return = { "result": xml_resource.export_cache(True),
 			            "number_returned": content_count,
 			            "total_matches": self.get_total(),
-			            "update_id": self.get_update_id()
+			            "update_id": UpdateIdRegistry.get("upnp://ContentDirectory-0/system_update_id")
 			          }
 		#
 
@@ -501,8 +514,15 @@ Returns the user agent specific DIDL fields requested.
 :since:  v0.1.01
 		"""
 
-		_return = (None if (self.client_user_agent == None) else Hook.call("dNG.pas.upnp.Resource.getDidlFields", didl_fields = didl_fields, client_user_agent = self.client_user_agent))
-		return (didl_fields if (_return == None) else _return)
+		_return = (None
+		           if (self.client_user_agent is None) else
+		           Hook.call("dNG.pas.upnp.Resource.getDidlFields",
+		                     didl_fields = didl_fields,
+		                     client_user_agent = self.client_user_agent
+		                    )
+		          )
+
+		return (didl_fields if (_return is None) else _return)
 	#
 
 	def _get_custom_didl_res_protocol(self, didl_res_protocol):
@@ -514,8 +534,15 @@ Returns a user agent specific DIDL protcolInfo value.
 :since:  v0.1.01
 		"""
 
-		_return = (None if (self.client_user_agent == None) else Hook.call("dNG.pas.upnp.Resource.getDidlResProtocol", didl_res_protocol = didl_res_protocol, client_user_agent = self.client_user_agent))
-		return (didl_res_protocol if (_return == None) else _return)
+		_return = (None
+		           if (self.client_user_agent is None) else
+		           Hook.call("dNG.pas.upnp.Resource.getDidlResProtocol",
+		                     didl_res_protocol = didl_res_protocol,
+		                     client_user_agent = self.client_user_agent
+		                    )
+		          )
+
+		return (didl_res_protocol if (_return is None) else _return)
 	#
 
 	def _get_custom_mimetype(self, mimetype):
@@ -527,8 +554,15 @@ Returns a user agent specific UPnP resource mime type.
 :since:  v0.1.01
 		"""
 
-		_return = (None if (self.client_user_agent == None) else Hook.call("dNG.pas.upnp.Resource.getMimetype", mimetype = mimetype, client_user_agent = self.client_user_agent))
-		if (_return == None): _return = mimetype
+		_return = (None
+		           if (self.client_user_agent is None) else
+		           Hook.call("dNG.pas.upnp.Resource.getMimetype",
+		                     mimetype = mimetype,
+		                     client_user_agent = self.client_user_agent
+		                    )
+		          )
+
+		if (_return is None): _return = mimetype
 
 		client = Client.load_user_agent(self.client_user_agent)
 		client_mimetypes = client.get("upnp_custom_mimetypes")
@@ -546,8 +580,15 @@ Returns a user agent specific UPnP resource type.
 :since:  v0.1.01
 		"""
 
-		_return = (None if (self.client_user_agent == None) else Hook.call("dNG.pas.upnp.Resource.getType", _type = _type, client_user_agent = self.client_user_agent))
-		return (_type if (_return == None) else _return)
+		_return = (None
+		           if (self.client_user_agent is None) else
+		           Hook.call("dNG.pas.upnp.Resource.getType",
+		                     _type = _type,
+		                     client_user_agent = self.client_user_agent
+		                    )
+		          )
+
+		return (_type if (_return is None) else _return)
 	#
 
 	def _get_custom_type_class(self, type_class):
@@ -559,8 +600,15 @@ Returns a user agent specific UPnP resource type class.
 :since:  v0.1.01
 		"""
 
-		_return = (None if (self.client_user_agent == None) else Hook.call("dNG.pas.upnp.Resource.getTypeClass", type_class = type_class, client_user_agent = self.client_user_agent))
-		return (type_class if (_return == None) else _return)
+		_return = (None
+		           if (self.client_user_agent is None) else
+		           Hook.call("dNG.pas.upnp.Resource.getTypeClass",
+		                     type_class = type_class,
+		                     client_user_agent = self.client_user_agent
+		                    )
+		          )
+
+		return (type_class if (_return is None) else _return)
 	#
 
 	def get_didl_fields(self):
@@ -577,13 +625,15 @@ Returns the DIDL fields requested.
 		didl_fields = self._get_custom_didl_fields(self.didl_fields)
 		_return = [ ]
 
-		if (didl_fields != None):
+		if (didl_fields is not None):
 		#
 			for didl_field in didl_fields:
 			#
 				didl_field_elements = didl_field.split("@", 1)
 
-				if (len(didl_field_elements) > 1 and didl_field_elements[0] in _TOP_LEVEL_OBJECTS): _return.append("@{0}".format(didl_field_elements[1]))
+				if (len(didl_field_elements) > 1
+				    and didl_field_elements[0] in _TOP_LEVEL_OBJECTS
+				   ): _return.append("@{0}".format(didl_field_elements[1]))
 				else: _return.append(didl_field)
 			#
 		#
@@ -603,18 +653,6 @@ Returns the DIDL protcolInfo value.
 		return self._get_custom_didl_res_protocol(self.didl_res_protocol)
 	#
 
-	def get_id(self):
-	#
-		"""
-Returns the UPnP resource ID.
-
-:return: (str) UPnP resource ID
-:since:  v0.1.01
-		"""
-
-		return self.id
-	#
-
 	def get_metadata_didl_xml(self):
 	#
 		"""
@@ -625,11 +663,10 @@ Returns an UPnP DIDL result of generated XML for this UPnP resource.
 :since:  v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_metadata_didl_xml()- (#echo(__LINE__)#)", self, context = "pas_upnp")
-
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_metadata_didl_xml()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 		_return = None
 
-		if (self.type != None):
+		if (self.type is not None):
 		#
 			xml_resource = self._init_xml_resource()
 			xml_resource.add_node("DIDL-Lite", attributes = Resource._get_didl_xmlns_attributes())
@@ -638,7 +675,7 @@ Returns an UPnP DIDL result of generated XML for this UPnP resource.
 			elif (self.type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): xml_node_path = "DIDL-Lite item"
 			else: xml_node_path = None
 
-			if (xml_node_path != None):
+			if (xml_node_path is not None):
 			#
 				self._add_metadata_to_didl_xml_node(xml_resource, xml_node_path)
 				self._rewrite_metadata_of_didl_xml_node(xml_resource, xml_node_path)
@@ -648,7 +685,7 @@ Returns an UPnP DIDL result of generated XML for this UPnP resource.
 			_return = { "result": xml_resource.export_cache(True),
 			            "number_returned": 1,
 			            "total_matches": 1,
-			            "update_id": self.get_update_id()
+			            "update_id": UpdateIdRegistry.get("upnp://ContentDirectory-0/system_update_id")
 			          }
 		#
 
@@ -664,7 +701,7 @@ Returns the UPnP resource mime class.
 :since:  v0.1.01
 		"""
 
-		return ("unknown" if (self.mimeclass == None) else self.mimeclass)
+		return ("unknown" if (self.mimeclass is None) else self.mimeclass)
 	#
 
 	def get_mimetype(self):
@@ -676,7 +713,7 @@ Returns the UPnP resource mime type.
 :since:  v0.1.01
 		"""
 
-		return ("application/octet-stream" if (self.mimetype == None) else self._get_custom_mimetype(self.mimetype))
+		return ("application/octet-stream" if (self.mimetype is None) else self._get_custom_mimetype(self.mimetype))
 	#
 
 	def get_name(self):
@@ -691,7 +728,7 @@ Returns the UPnP resource name.
 		return self.name
 	#
 
-	def get_parent_id(self):
+	def get_parent_resource_id(self):
 	#
 		"""
 Returns the UPnP resource parent ID.
@@ -700,7 +737,19 @@ Returns the UPnP resource parent ID.
 :since:  v0.1.01
 		"""
 
-		return self.parent_id
+		return self.parent_resource_id
+	#
+
+	def get_resource_id(self):
+	#
+		"""
+Returns the UPnP resource ID.
+
+:return: (str) UPnP resource ID
+:since:  v0.1.01
+		"""
+
+		return self.resource_id
 	#
 
 	def get_searchable(self):
@@ -720,14 +769,14 @@ Returns if the UPnP resource supports searching.
 		"""
 Returns the UPnP search capabilities.
 
-:return: (int) UPnP SystemUpdateID value
-:since:  v0.1.00
+:return: (str) UPnP search capabilities
+:since:  v0.1.01
 		"""
 
 		didl_fields = Hook.call("dNG.pas.upnp.Resource.getSearchableDidlFields", client_user_agent = self.client_user_agent)
 		if (type(didl_fields) != list or len(didl_fields) < 1): didl_fields = None
 
-		if (didl_fields == None): _return = ""
+		if (didl_fields is None): _return = ""
 		else: _return = ",".join(InputFilter.filter_unique_list(didl_fields))
 
 		return _return
@@ -750,14 +799,14 @@ Returns the UPnP resource size.
 		"""
 Returns the UPnP sort capabilities.
 
-:return: (int) UPnP SystemUpdateID value
-:since:  v0.1.00
+:return: (str) UPnP sort capabilities
+:since:  v0.1.01
 		"""
 
 		didl_fields = Hook.call("dNG.pas.upnp.Resource.getSortableDidlFields", client_user_agent = self.client_user_agent)
 		if (type(didl_fields) != list or len(didl_fields) < 1): didl_fields = None
 
-		if (didl_fields == None): _return = ""
+		if (didl_fields is None): _return = ""
 		else: _return = ",".join(InputFilter.filter_unique_list(didl_fields))
 
 		return _return
@@ -772,14 +821,25 @@ Returns the UPnP stream resource.
 :since:  v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._get_stream_resource()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._get_stream_resource()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		_return = None
 
 		mimeclass = self.get_mimeclass()
 		mimetype = self.get_mimetype()
 
-		_return = (None if (mimetype == None) else NamedLoader.get_instance("dNG.pas.data.upnp.resources.{0}Stream".format("".join([word.capitalize() for word in re.split("[\\W_]+", mimetype)])), False))
-		if (_return == None): _return = NamedLoader.get_instance("dNG.pas.data.upnp.resources.{0}Stream".format("".join([word.capitalize() for word in re.split("[\\W_]+", mimeclass)])), False)
-		if (_return == None): _return = NamedLoader.get_instance("dNG.pas.data.upnp.resources.HttpBlockStream", False)
+		if (mimetype is not None):
+		#
+			stream_type_name = "".join([word.capitalize() for word in re.split("[\\W_]+", mimetype)])
+			_return = NamedLoader.get_instance("dNG.pas.data.upnp.resources.{0}Stream".format(stream_type_name), False)
+		#
+
+		if (_return is None):
+		#
+			stream_type_name = "".join([word.capitalize() for word in re.split("[\\W_]+", mimeclass)])
+			_return = NamedLoader.get_instance("dNG.pas.data.upnp.resources.{0}Stream".format(stream_type_name), False)
+		#
+
+		if (_return is None): _return = NamedLoader.get_instance("dNG.pas.data.upnp.resources.HttpBlockStream", False)
 
 		return _return
 	#
@@ -794,7 +854,7 @@ Returns the number of UPnP content resources.
 		"""
 
 		self._init_content()
-		return (0 if (self.content == None) else len(self.content))
+		return (0 if (self.content is None) else len(self.content))
 	#
 
 	def get_timestamp(self):
@@ -835,7 +895,7 @@ Returns the UPnP resource type class.
 		_type = self.get_type()
 		type_class = None
 
-		if (_type != None):
+		if (_type is not None):
 		#
 			client = Client.load_user_agent(self.client_user_agent)
 			is_cds1_container_supported = client.get("upnp_didl_cds1_container_classes_supported", True)
@@ -844,22 +904,46 @@ Returns the UPnP resource type class.
 
 		if (is_cds1_container_supported):
 		#
-			if (_type & Resource.TYPE_CDS_CONTAINER_AUDIO == Resource.TYPE_CDS_CONTAINER_AUDIO): type_class = "object.container.genre.musicGenre"
-			elif (_type & Resource.TYPE_CDS_CONTAINER_IMAGE == Resource.TYPE_CDS_CONTAINER_IMAGE): type_class = "object.container.album.photoAlbum"
-			elif (_type & Resource.TYPE_CDS_CONTAINER_VIDEO == Resource.TYPE_CDS_CONTAINER_VIDEO): type_class = "object.container.genre.movieGenre"
+			if (_type & Resource.TYPE_CDS_CONTAINER_AUDIO == Resource.TYPE_CDS_CONTAINER_AUDIO):
+			#
+				type_class = "object.container.genre.musicGenre"
+			#
+			elif (_type & Resource.TYPE_CDS_CONTAINER_IMAGE == Resource.TYPE_CDS_CONTAINER_IMAGE):
+			#
+				type_class = "object.container.album.photoAlbum"
+			#
+			elif (_type & Resource.TYPE_CDS_CONTAINER_VIDEO == Resource.TYPE_CDS_CONTAINER_VIDEO):
+			#
+				type_class = "object.container.genre.movieGenre"
+			#
 		#
 
 		if (is_cds1_object_supported):
 		#
-			if (_type & Resource.TYPE_CDS_ITEM_AUDIO == Resource.TYPE_CDS_ITEM_AUDIO): type_class = "object.item.audioItem.musicTrack"
-			elif (_type & Resource.TYPE_CDS_ITEM_IMAGE == Resource.TYPE_CDS_ITEM_IMAGE): type_class = "object.item.imageItem.photo"
-			elif (_type & Resource.TYPE_CDS_ITEM_VIDEO == Resource.TYPE_CDS_ITEM_VIDEO): type_class = "object.item.videoItem.movie"
+			if (_type & Resource.TYPE_CDS_ITEM_AUDIO == Resource.TYPE_CDS_ITEM_AUDIO):
+			#
+				type_class = "object.item.audioItem.musicTrack"
+			#
+			elif (_type & Resource.TYPE_CDS_ITEM_IMAGE == Resource.TYPE_CDS_ITEM_IMAGE):
+			#
+				type_class = "object.item.imageItem.photo"
+			#
+			elif (_type & Resource.TYPE_CDS_ITEM_VIDEO == Resource.TYPE_CDS_ITEM_VIDEO):
+			#
+				type_class = "object.item.videoItem.movie"
+			#
 		#
 
-		if (type_class == None):
+		if (type_class is None):
 		#
-			if (self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER): type_class = "object.container"
-			elif (self.type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): type_class = "object.item"
+			if (self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
+			#
+				type_class = "object.container"
+			#
+			elif (self.type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM):
+			#
+				type_class = "object.item"
+			#
 		#
 
 		return self._get_custom_type_class(type_class)
@@ -898,7 +982,7 @@ Returns the UPnP UpdateID value.
 :since:  v0.1.02
 		"""
 
-		return UpdateIdRegistry.get(self.get_id())
+		return UpdateIdRegistry.get(self.get_resource_id())
 	#
 
 	def init(self, data):
@@ -912,12 +996,12 @@ Initializes a new resource with the data given.
 :since:  v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.init()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.init()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 		_return = False
 
 		is_id_defined = ("id" in data)
 
-		if ((self.id != None or is_id_defined)
+		if ((self.resource_id is not None or is_id_defined)
 		    and "name" in data
 		    and "type" in data
 		   ):
@@ -925,13 +1009,13 @@ Initializes a new resource with the data given.
 			if (is_id_defined):
 			#
 				if (data['id'] == "0"): raise ValueException("Special UPnP resource ID '0' is not supported")
-				self.id = data['id']
+				self.resource_id = data['id']
 			#
 
 			self.name = data['name']
 			self.type = data['type']
 
-			if ("parent_id" in data): self.parent_id = data['parent_id']
+			if ("parent_id" in data): self.parent_resource_id = data['parent_id']
 			if ("searchable" in data): self.searchable = data['searchable']
 			if ("source" in data): self.source = data['source']
 			if ("symlink_target_id" in data): self.symlink_target_id = data['symlink_target_id']
@@ -959,20 +1043,20 @@ Initialize a UPnP resource by CDS ID.
 :since:  v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.init_cds_id({1})- (#echo(__LINE__)#)", self, _id, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.init_cds_id({1})- (#echo(__LINE__)#)", self, _id, context = "pas_upnp")
 		_return = False
 
-		self.id = _id
-		if (client_user_agent != None): self.client_user_agent = client_user_agent
+		self.resource_id = _id
+		if (client_user_agent is not None): self.client_user_agent = client_user_agent
 
 		if (_id == "0"):
 		#
 			self.name = L10n.get("pas_upnp_container_root")
-			self.parent_id = "-1"
 			self.type = Resource.TYPE_CDS_CONTAINER
+			self.virtual_resource = True
 
-			search_callbacks = Hook.call("dNG.pas.upnp.Resource.getSearchCallbacks")
-			self.searchable = (search_callbacks != None and len(search_callbacks) > 0)
+			search_segments = Hook.call("dNG.pas.upnp.Resource.getSearchSegments", id = _id)
+			self.searchable = (type(search_segments) is list and len(search_segments) > 0)
 
 			_return = True
 		#
@@ -989,18 +1073,18 @@ Initializes the content of a container.
 :since:  v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._init_content()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._init_content()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 		_return = False
 
-		if (self.content == None):
+		if (self.content is None):
 		# Thread safety
 			with self._lock:
 			#
-				if (self.content == None):
+				if (self.content is None):
 				#
 					self.content = [ ]
 
-					if (self.id == "0"):
+					if (self.resource_id == "0"):
 					#
 						Hook.call("dNG.pas.upnp.Resource.getRootResourceClientContent", container = self)
 						if (len(self.content) == 0): Hook.call("dNG.pas.upnp.Resource.getRootResourceContent", container = self)
@@ -1061,21 +1145,21 @@ Removes the given resource from the content list.
 :since:  v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.remove_content()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.remove_content()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 		_return = False
 
-		if (isinstance(resource, Resource) and resource.get_type() != None):
+		if (isinstance(resource, Resource) and resource.get_type() is not None):
 		#
 			with self._lock:
 			#
-				if (self.content == None): self._init_content()
+				if (self.content is None): self._init_content()
 
-				if (self.content != None):
+				if (self.content is not None):
 				#
 					if (resource in self.content):
 					#
 						self.content.remove(resource)
-						self.set_update_id("++")
+						if (not self.virtual_resource): self.set_update_id("++")
 
 						_return = True
 					#
@@ -1101,20 +1185,21 @@ Uses the given XML resource to manipulate DIDL metadata for the client.
 		resource_type = self.get_type()
 		title_format = None
 
-		if (resource_type != None):
+		if (resource_type is not None):
 		#
 			client = Client.load_user_agent(self.client_user_agent)
 
-			title_format_resource_name = "upnp_didl_title_{0}_format".format(NamedLoader.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", self.__class__.__name__).lower())
+			title_format_resource_class_name = NamedLoader.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", self.__class__.__name__)
+			title_format_resource_name = "upnp_didl_title_{0}_format".format(title_format_resource_class_name.lower())
 
 			if (title_format_resource_name in client): title_format = client.get(title_format_resource_name)
 			elif (resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER): title_format = client.get("upnp_didl_title_default_container_format")
 			elif (resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): title_format = client.get("upnp_didl_title_default_item_format")
 
-			if (title_format == None): title_format = client.get("upnp_didl_title_default_format")
+			if (title_format is None): title_format = client.get("upnp_didl_title_default_format")
 		#
 
-		if (title_format != None):
+		if (title_format is not None):
 		#
 			title = XmlRewriteParser().render(title_format, xml_resource, xml_node_path)
 			xml_resource.change_node_value("{0} dc:title".format(xml_node_path), title)
@@ -1127,13 +1212,19 @@ Uses the given XML resource to manipulate DIDL metadata for the client.
 Returns all contained UPnP content resources matching the given UPnP search
 criteria.
 
-:return: (dict) Result dict containting "result" as generated XML,
-         "number_returned" as the number of DIDL nodes, "total_matches" of
-         all DIDL nodes and the current UPnP update ID.
+:return: (object) UPnP content resources instance found
 :since:  v0.1.01
 		"""
 
-		_return = [ ]
+		search_criteria_parser = CriteriaParser()
+		search_criteria_definition = search_criteria_parser.parse(search_criteria)
+
+		_return = SearchResources()
+		_return.set_criteria_definition(search_criteria_definition)
+		_return.set_root_resource(self)
+
+		_return.set_offset(self.content_offset)
+		if (self.content_limit is not None): _return.set_limit(self.content_limit)
 
 		return _return
 	#
@@ -1150,23 +1241,33 @@ matching the given UPnP search criteria.
 :since:  v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.search_content_didl_xml()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.search_content_didl_xml()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 		_return = None
 
-		if (self.type != None and self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
+		if (self.type is not None and self.type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
 		#
 			xml_resource = self._init_xml_resource()
 			xml_resource.add_node("DIDL-Lite", attributes = Resource._get_didl_xmlns_attributes())
 
-			content_matched = self.search_content(search_criteria)
-			content_matched_count = len(content_matched)
+			search_resources_task = self.search_content(search_criteria)
 
-			content_count = (Resource._append_content_didl_xml_nodes(xml_resource, "DIDL-Lite", content_matched, self.get_id()) if (content_matched_count > 0) else 0)
+			content_count = 0
+			content_matched_count = search_resources_task.get_count()
+
+			if (content_matched_count > 0):
+			#
+				content_matched = search_resources_task.get_list()
+
+				content_count = Resource._append_content_didl_xml_nodes(xml_resource,
+				                                                        "DIDL-Lite",
+				                                                        content_matched
+				                                                       )
+			#
 
 			_return = { "result": xml_resource.export_cache(True),
 			            "number_returned": content_count,
 			            "total_matches": content_matched_count,
-			            "update_id": self.get_update_id()
+			            "update_id": UpdateIdRegistry.get("upnp://ContentDirectory-0/system_update_id")
 			          }
 		#
 
@@ -1183,7 +1284,7 @@ Sets the UPnP client user agent.
 :since: v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_client_user_agent({1})- (#echo(__LINE__)#)", self, user_agent, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_client_user_agent({1})- (#echo(__LINE__)#)", self, user_agent, context = "pas_upnp")
 		self.client_user_agent = user_agent
 	#
 
@@ -1192,12 +1293,12 @@ Sets the UPnP client user agent.
 		"""
 Sets the UPnP resource content limit.
 
-:param content_limit: UPnP resource content limit
+:param content_limit: Resource content limit
 
 :since: v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_content_limit()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_content_limit({1:d})- (#echo(__LINE__)#)", self, content_limit, context = "pas_upnp")
 
 		self.flush_content_cache()
 		self.content_limit = content_limit
@@ -1208,12 +1309,12 @@ Sets the UPnP resource content limit.
 		"""
 Sets the UPnP resource content offset.
 
-:param content_offset: UPnP resource content offset
+:param content_offset: Resource content offset
 
 :since: v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_content_offset()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_content_offset({1:d})- (#echo(__LINE__)#)", self, content_offset, context = "pas_upnp")
 
 		self.flush_content_cache()
 		self.content_offset = content_offset
@@ -1229,11 +1330,11 @@ Sets the DIDL fields to be returned.
 :since: v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_didl_fields()- (#echo(__LINE__)#)", self, context = "pas_upnp")
-		if (type(fields) == list): self.didl_fields = fields
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_didl_fields()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (type(fields) is list): self.didl_fields = fields
 	#
 
-	def set_parent_id(self, _id):
+	def set_parent_resource_id(self, _id):
 	#
 		"""
 Sets the UPnP resource parent ID.
@@ -1243,8 +1344,8 @@ Sets the UPnP resource parent ID.
 :since: v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_parent_id()- (#echo(__LINE__)#)", self, context = "pas_upnp")
-		self.parent_id = _id
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_parent_resource_id()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		self.parent_resource_id = _id
 	#
 
 	def set_sort_criteria(self, sort_criteria):
@@ -1257,13 +1358,13 @@ Sets the DIDL fields to be returned.
 :since: v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_sort_criteria()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_sort_criteria()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
-		if (type(sort_criteria) == list): self.sort_criteria = sort_criteria
+		if (type(sort_criteria) is list): self.sort_criteria = sort_criteria
 		else:
 		#
 			sort_criteria = Binary.str(sort_criteria)
-			self.sort_criteria = (sort_criteria.split(",") if (type(sort_criteria) == str and len(sort_criteria) > 0) else [ ])
+			self.sort_criteria = (sort_criteria.split(",") if (type(sort_criteria) is str and len(sort_criteria) > 0) else [ ])
 		#
 	#
 
@@ -1277,10 +1378,10 @@ Sets the UPnP UpdateID value or increments it.
 :since: v0.1.01
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_update_id()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_update_id()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
-		if (update_id == "--"): UpdateIdRegistry.unset(self.get_id())
-		else: UpdateIdRegistry.set(self.get_id(), update_id)
+		if (update_id == "--"): UpdateIdRegistry.unset(self.get_resource_id())
+		else: UpdateIdRegistry.set(self.get_resource_id(), update_id, self)
 	#
 
 	def _supports_search_content(self):
@@ -1292,7 +1393,7 @@ Returns false if the resource content can't be searched for.
 :since:  v0.1.00
 		"""
 
-		return (True if (self.id == "0" and self.get_searchable() and len(self.get_search_capabilities()) > 0) else False)
+		return (True if (self.resource_id == "0" and self.get_searchable() and len(self.get_search_capabilities()) > 0) else False)
 	#
 
 	@staticmethod
@@ -1320,7 +1421,7 @@ resource.
 		#
 			resource_type = resource.get_type()
 
-			if (resource_type == None): xml_node_path = None
+			if (resource_type is None): xml_node_path = None
 			elif (resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER):
 			#
 				xml_node_path = "{0} container#{1:d}".format(xml_base_path, content_containers)
@@ -1338,7 +1439,7 @@ resource.
 			#
 			else: xml_node_path = None
 
-			if (xml_node_path != None):
+			if (xml_node_path is not None):
 			#
 				resource._add_metadata_to_didl_xml_node(xml_resource, xml_node_path, parent_id)
 				resource._rewrite_metadata_of_didl_xml_node(xml_resource, xml_node_path)
@@ -1384,12 +1485,12 @@ Load a UPnP resource by CDS ID.
 
 		_return = None
 
-		if (_id == "0" and cds != None):
+		if (_id == "0" and cds is not None):
 		#
 			_return = Resource()
 			_return.init_cds_id(_id, client_user_agent, deleted)
 		#
-		elif (_id != None and "://" in _id):
+		elif (_id is not None and "://" in _id):
 		#
 			url_elements = urlsplit(_id)
 

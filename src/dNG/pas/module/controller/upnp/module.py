@@ -86,17 +86,17 @@ Initialize block from the given request and response.
 		if (Settings.get("pas_upnp_http_client_name_use_cache", False)):
 		#
 			user_agent_blacklist = Settings.get("pas_upnp_http_client_name_blacklist", [ ])
-			if (user_agent != None and user_agent in user_agent_blacklist): user_agent = None
+			if (user_agent is not None and user_agent in user_agent_blacklist): user_agent = None
 
 			host = self.request.get_client_host()
 			ip_address_list = socket.getaddrinfo(host, None, socket.AF_UNSPEC, 0, socket.IPPROTO_TCP)
 
 			for ip_address_data in ip_address_list:
 			#
-				if (user_agent == None):
+				if (user_agent is None):
 				#
 					user_agent = ControlPoint.get_instance().get_http_client_name_of_ip(ip_address_data[4][0])
-					if (user_agent != None): break
+					if (user_agent is not None): break
 				#
 				else: ControlPoint.get_instance().add_http_client_name_to_ip(user_agent, ip_address_data[4][0])
 			#

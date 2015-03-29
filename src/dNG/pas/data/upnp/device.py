@@ -267,11 +267,11 @@ Returns an embedded device.
 			for device in self.embedded_devices:
 			#
 				_return = self.embedded_devices[device].get_embedded_device(uuid)
-				if (_return != None): break
+				if (_return is not None): break
 			#
 		#
 
-		if (_return != None and _return.is_managed()): _return.set_configid(self.configid)
+		if (_return is not None and _return.is_managed()): _return.set_configid(self.configid)
 
 		return _return
 	#
@@ -491,18 +491,18 @@ Initialize the list of embedded devices from a UPnP description.
 			#
 				usn = xml_resource.get_node_value("upnp:deviceList upnp:device#{0:d} upnp:UDN".format(position))
 
-				if (usn != None):
+				if (usn is not None):
 				#
 					value = xml_resource.get_node_value("upnp:deviceList upnp:device#{0:d} upnp:deviceType".format(position))
-					usn = (None if (value == None) else "{0}::{1}".format(usn, value))
+					usn = (None if (value is None) else "{0}::{1}".format(usn, value))
 				#
 
-				if (usn != None):
+				if (usn is not None):
 				#
 					embedded_identifier = Device.get_identifier(usn, identifier['bootid'], identifier['configid'])
 
 					embedded_device = NamedLoader.get_instance("dNG.pas.data.upnp.devices.{0}".format(embedded_identifier['type']), False)
-					if (embedded_device == None): embedded_device = Device()
+					if (embedded_device is None): embedded_device = Device()
 
 					embedded_xml_data = { "device": xml_resource.get_node("upnp:deviceList upnp:device#{0:d}".format(position), False) }
 					if (embedded_device.init_embedded_device_xml_tree(embedded_identifier, self.url_base, embedded_xml_data)): self.add_embedded_device(embedded_device)
@@ -536,13 +536,13 @@ Initialize the embedded device from a UPnP description.
 		if (_return):
 		#
 			value = xml_resource.get_node_value("upnp:device upnp:deviceType")
-			if (value == None or identifier['urn'] != value[4:]): _return = False
+			if (value is None or identifier['urn'] != value[4:]): _return = False
 		#
 
 		if (_return):
 		#
 			value = xml_resource.get_node_value("upnp:device upnp:UDN")
-			if (value == None or identifier['uuid'] != value[5:]): _return = False
+			if (value is None or identifier['uuid'] != value[5:]): _return = False
 		#
 
 		if (_return): _return = self._init_device_xml_tree(xml_tree)
@@ -559,7 +559,7 @@ Initialize the embedded device from a UPnP description.
 			self.url_base = url_base
 
 			xml_node = xml_resource.get_node("upnp:device upnp:serviceList", False)
-			if (xml_node != None and "xml.item" in xml_node): _return = self._init_services_xml_tree({ xml_node['xml.item']['tag']: xml_node })
+			if (xml_node is not None and "xml.item" in xml_node): _return = self._init_services_xml_tree({ xml_node['xml.item']['tag']: xml_node })
 		#
 
 		return _return
@@ -593,7 +593,7 @@ Initialize the list of services from a UPnP description.
 			#
 				service = Service()
 				xml_node = xml_resource.get_node("upnp:serviceList upnp:service#{0:d}".format(position), False)
-				if (xml_node != None and "xml.item" in xml_node and service.init_metadata_xml_tree(self._get_identifier(), self.url_base, { xml_node['xml.item']['tag']: xml_node })): self.add_service(service)
+				if (xml_node is not None and "xml.item" in xml_node and service.init_metadata_xml_tree(self._get_identifier(), self.url_base, { xml_node['xml.item']['tag']: xml_node })): self.add_service(service)
 			#
 		#
 
@@ -620,7 +620,7 @@ Initialize the device structure from a UPnP description.
 		#
 			xml_resource = self._init_xml_resource()
 
-			if (xml_resource.xml_to_dict(xml_data) == None or xml_resource.count_node("upnp:root") < 1): _return = False
+			if (xml_resource.xml_to_dict(xml_data) is None or xml_resource.count_node("upnp:root") < 1): _return = False
 			else: xml_resource.set_cached_node("upnp:root")
 
 			if (_return):
@@ -640,14 +640,14 @@ Initialize the device structure from a UPnP description.
 				elif ("urn" in usn_data):
 				#
 					value = xml_resource.get_node_value("upnp:root upnp:device upnp:deviceType")
-					if (value == None or usn_data['urn'] != value[4:]): _return = False
+					if (value is None or usn_data['urn'] != value[4:]): _return = False
 				#
 			#
 
 			if (_return and usn_data['class'] == "rootdevice"):
 			#
 				value = xml_resource.get_node_value("upnp:root upnp:device upnp:UDN")
-				if (value == None or usn_data['uuid'] != value[5:]): _return = False
+				if (value is None or usn_data['uuid'] != value[5:]): _return = False
 			#
 
 			if (_return):
@@ -657,7 +657,7 @@ Initialize the device structure from a UPnP description.
 				                    )
 
 				value = xml_resource.get_node_value("upnp:root upnp:URLBase")
-				self.url_base = (usn_data['url_base'] if (value == None) else value)
+				self.url_base = (usn_data['url_base'] if (value is None) else value)
 
 				xml_data = { "device": xml_resource.get_node("upnp:root upnp:device", False) }
 				_return = self._init_device_xml_tree(xml_data)
@@ -680,7 +680,7 @@ Initialize the device structure from a UPnP description.
 			self._set_identifier(Device.get_identifier(usn_data['usn'], usn_data['bootid'], usn_data['configid']))
 
 			xml_node = xml_resource.get_node("upnp:root upnp:device upnp:serviceList", False)
-			if (xml_node != None and "xml.item" in xml_node): _return = self._init_services_xml_tree({ xml_node['xml.item']['tag']: xml_node })
+			if (xml_node is not None and "xml.item" in xml_node): _return = self._init_services_xml_tree({ xml_node['xml.item']['tag']: xml_node })
 		#
 
 		return _return

@@ -85,7 +85,7 @@ Initializes a host service.
 		self.upnp_domain = "schemas-direct-netware-de"
 		self.version = "1"
 
-		if (service_id == None): service_id = "CallableService"
+		if (service_id is None): service_id = "CallableService"
 		return AbstractService.init_host(self, device, service_id, configid)
 	#
 

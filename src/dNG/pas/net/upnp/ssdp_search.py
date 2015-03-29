@@ -70,7 +70,7 @@ Returns the result UPnP USN based on the search condition.
 		                                                  device.get_type(),
 		                                                  condition_identifier['version']
 		                                                 )
-		        if (condition_identifier != None and "version" in condition_identifier) else
+		        if (condition_identifier is not None and "version" in condition_identifier) else
 		        "uuid:{0}::urn:{1}".format(device.get_udn(), device.get_urn())
 		       )
 	#
@@ -142,7 +142,7 @@ Returns the result UPnP USN based on the search condition.
 		                                                   service.get_type(),
 		                                                   condition_identifier['version']
 		                                                  )
-		        if (condition_identifier != None and "version" in condition_identifier) else
+		        if (condition_identifier is not None and "version" in condition_identifier) else
 		        "uuid:{0}::urn:{1}".format(service.get_udn(), service.get_urn())
 		       )
 	#
@@ -166,7 +166,7 @@ Searches for hosted devices matching the given search condition.
 
 		device_matched = False
 
-		if (condition_identifier != None):
+		if (condition_identifier is not None):
 		#
 			if (condition_identifier['class'] == "device"
 			    and device.get_upnp_domain() == condition_identifier['domain']
@@ -270,11 +270,11 @@ Searches for hosted devices matching the given UPnP search target.
 
 		results = [ ]
 
-		if (condition != None):
+		if (condition is not None):
 		#
 			control_point = ControlPoint.get_instance()
 
-			if (condition_identifier == None
+			if (condition_identifier is None
 			    and condition == "upnp:rootdevice"
 			   ): results += SsdpSearch._get_rootdevice_results(condition)
 			else:
@@ -292,7 +292,7 @@ Searches for hosted devices matching the given UPnP search target.
 					                                           )
 
 					if (condition == "ssdp:all"
-					    or (condition_identifier != None and condition_identifier['class'] == "service")
+					    or (condition_identifier is not None and condition_identifier['class'] == "service")
 					   ):
 					#
 						services = device.get_service_ids()
@@ -321,7 +321,7 @@ Searches for hosted devices matching the given UPnP search target.
 						                                            embedded_device
 						                                           )
 
-						if (condition_identifier != None and condition_identifier['class'] == "service"):
+						if (condition_identifier is not None and condition_identifier['class'] == "service"):
 						#
 							services = embedded_device.get_service_ids()
 
@@ -342,7 +342,7 @@ Searches for hosted devices matching the given UPnP search target.
 
 			if (len(results) > 0):
 			#
-				if (additional_data != None):
+				if (additional_data is not None):
 				#
 					if ('USER-AGENT' in additional_data):
 					#

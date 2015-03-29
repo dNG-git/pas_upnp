@@ -1,4 +1,6 @@
+-e git+http://git.direct-netware.de/pas/file_cache/#egg=pas_file_cache
 -e git+http://git.direct-netware.de/pas/http/core/#egg=pas_http_core
+-e git+http://git.direct-netware.de/pas/imaging/#egg=pas_imaging
 -e git+http://git.direct-netware.de/pas/server/#egg=pas_server
--e git+http://git.direct-netware.de/pas/timed_tasks/#egg=pas_timed_tasks
+-e git+http://git.direct-netware.de/pas/tasks/#egg=pas_tasks
 -e git+http://git.direct-netware.de/pas/udpne/#egg=pas_udpne

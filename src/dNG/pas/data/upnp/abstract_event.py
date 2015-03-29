@@ -135,10 +135,10 @@ Activates all relevant multicast listeners based on the IP address given.
 
 		# pylint: disable=star-args
 
-		if (self.control_point == None): raise ValueException("UPnP control point needs to be defined to schedule event delivery")
+		if (self.control_point is None): raise ValueException("UPnP control point needs to be defined to schedule event delivery")
 
 		event_data = { "event": self }
-		if (self.usn != None): event_data['usn'] = self.usn
+		if (self.usn is not None): event_data['usn'] = self.usn
 
 		self.control_point._add_task(wait_timeout, "deliver_event", **event_data)
 	#

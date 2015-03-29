@@ -82,16 +82,16 @@ Action for "request"
 		gena_sid = self.request.get_header("SID")
 		upnp_service.set_client_user_agent(self.client_user_agent)
 
-		if ((callback_value == None or self.request.get_header("NT") != "upnp:event")
-		    and gena_sid == None
+		if ((callback_value is None or self.request.get_header("NT") != "upnp:event")
+		    and gena_sid is None
 		   ): raise UpnpException("pas_http_core_400", 400)
 
 		gena = Gena.get_instance()
 		timeout = self.request.get_header("Timeout")
 
-		re_result = (None if (timeout == None) else re.match("^Second-(\\d+)$", timeout))
+		re_result = (None if (timeout is None) else re.match("^Second-(\\d+)$", timeout))
 
-		if (re_result == None):
+		if (re_result is None):
 		#
 			client = Client.load_user_agent(self.client_user_agent)
 			timeout = int(client.get("upnp_subscription_timeout", 1800))
@@ -100,12 +100,12 @@ Action for "request"
 
 		usn = upnp_service.get_usn()
 
-		if (gena_sid == None):
+		if (gena_sid is None):
 		#
 			gena_variables = self.request.get_header("StateVar")
 
 			gena_sid = gena.register(usn, callback_value, timeout, variables = gena_variables)
-			if (gena_sid == None): raise UpnpException("pas_http_core_404", 412)
+			if (gena_sid is None): raise UpnpException("pas_http_core_404", 412)
 
 			self.response.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
 			self.response.set_header("SID", gena_sid)
@@ -148,7 +148,7 @@ Action for "request"
 		gena_sid = self.request.get_header("SID")
 		upnp_service.set_client_user_agent(self.client_user_agent)
 
-		if (gena_sid == None): raise UpnpException("pas_http_core_400", 400)
+		if (gena_sid is None): raise UpnpException("pas_http_core_400", 400)
 
 		gena = Gena.get_instance()
 		usn = upnp_service.get_usn()

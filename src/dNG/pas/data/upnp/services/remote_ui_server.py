@@ -80,7 +80,7 @@ Initializes a host service.
 		self.upnp_domain = "schemas-upnp-org"
 		self.version = "1"
 
-		if (service_id == None): service_id = "RemoteUIServer"
+		if (service_id is None): service_id = "RemoteUIServer"
 		return AbstractService.init_host(self, device, service_id, configid)
 	#
 

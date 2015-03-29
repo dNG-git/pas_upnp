@@ -143,10 +143,10 @@ Send event.
 :since: v0.1.03
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._send()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._send()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
 		bootid = self.control_point.get_bootid()
-		configid = (self.control_point.get_configid() if (self.configid == None) else self.configid)
+		configid = (self.control_point.get_configid() if (self.configid is None) else self.configid)
 
 		identifier = Device.get_identifier(self.usn, bootid, configid)
 
@@ -158,7 +158,7 @@ Send event.
 		#
 			device = self.control_point.get_device(identifier)
 
-			services = ([ ] if (device == None) else device.get_unique_service_type_ids())
+			services = ([ ] if (device is None) else device.get_unique_service_type_ids())
 
 			for target in targets:
 			#
@@ -172,8 +172,8 @@ Send event.
 					ssdp_request.set_header("NTS", "ssdp:byebye")
 					ssdp_request.set_header("NT", "urn:{0}".format(service.get_urn()))
 					ssdp_request.set_header("USN", service.get_usn())
-					ssdp_request.set_header("BOOTID.UPNP.ORG", str(bootid))
-					ssdp_request.set_header("CONFIGID.UPNP.ORG", str(configid))
+					ssdp_request.set_header("BOOTID.UPNP.ORG", bootid)
+					ssdp_request.set_header("CONFIGID.UPNP.ORG", configid)
 					ssdp_request.send_notify()
 				#
 
@@ -181,8 +181,8 @@ Send event.
 				ssdp_request.set_header("NTS", "ssdp:byebye")
 				ssdp_request.set_header("NT", "urn:{0}".format(identifier['urn']))
 				ssdp_request.set_header("USN", self.usn)
-				ssdp_request.set_header("BOOTID.UPNP.ORG", str(bootid))
-				ssdp_request.set_header("CONFIGID.UPNP.ORG", str(configid))
+				ssdp_request.set_header("BOOTID.UPNP.ORG", bootid)
+				ssdp_request.set_header("CONFIGID.UPNP.ORG", configid)
 				ssdp_request.send_notify()
 
 				if (identifier['class'] == "device"):
@@ -191,8 +191,8 @@ Send event.
 					ssdp_request.set_header("NTS", "ssdp:byebye")
 					ssdp_request.set_header("NT", "uuid:{0}".format(identifier['uuid']))
 					ssdp_request.set_header("USN", "uuid:{0}".format(identifier['uuid']))
-					ssdp_request.set_header("BOOTID.UPNP.ORG", str(bootid))
-					ssdp_request.set_header("CONFIGID.UPNP.ORG", str(configid))
+					ssdp_request.set_header("BOOTID.UPNP.ORG", bootid)
+					ssdp_request.set_header("CONFIGID.UPNP.ORG", configid)
 					ssdp_request.send_notify()
 				#
 
@@ -202,8 +202,8 @@ Send event.
 					ssdp_request.set_header("NTS", "ssdp:byebye")
 					ssdp_request.set_header("NT", "upnp:rootdevice")
 					ssdp_request.set_header("USN", "uuid:{0}::upnp:rootdevice".format(identifier['uuid']))
-					ssdp_request.set_header("BOOTID.UPNP.ORG", str(bootid))
-					ssdp_request.set_header("CONFIGID.UPNP.ORG", str(configid))
+					ssdp_request.set_header("BOOTID.UPNP.ORG", bootid)
+					ssdp_request.set_header("CONFIGID.UPNP.ORG", configid)
 					ssdp_request.send_notify()
 				#
 			#
@@ -215,10 +215,10 @@ Send event.
 		                   )
 		     ):
 		#
-			if (self.location == None): raise ValueException("UPnP location value is required for ssdp:alive")
+			if (self.location is None): raise ValueException("UPnP location value is required for ssdp:alive")
 
 			device = self.control_point.get_device(identifier)
-			if (device == None or (not device.is_managed())): raise ValueException("UPnP device is invalid")
+			if (device is None or (not device.is_managed())): raise ValueException("UPnP device is invalid")
 
 			nts = ("ssdp:update" if (self.type == ControlPointEvent.TYPE_DEVICE_UPDATE) else "ssdp:alive")
 			services = device.get_unique_service_type_ids()
@@ -235,8 +235,8 @@ Send event.
 					ssdp_request.set_header("NT", "upnp:rootdevice")
 					ssdp_request.set_header("USN", "uuid:{0}::upnp:rootdevice".format(identifier['uuid']))
 					ssdp_request.set_header("LOCATION", self.location)
-					ssdp_request.set_header("BOOTID.UPNP.ORG", str(bootid))
-					ssdp_request.set_header("CONFIGID.UPNP.ORG", str(configid))
+					ssdp_request.set_header("BOOTID.UPNP.ORG", bootid)
+					ssdp_request.set_header("CONFIGID.UPNP.ORG", configid)
 					ssdp_request.send_notify()
 				#
 
@@ -248,8 +248,8 @@ Send event.
 					ssdp_request.set_header("NT", "uuid:{0}".format(identifier['uuid']))
 					ssdp_request.set_header("USN", "uuid:{0}".format(identifier['uuid']))
 					ssdp_request.set_header("LOCATION", self.location)
-					ssdp_request.set_header("BOOTID.UPNP.ORG", str(bootid))
-					ssdp_request.set_header("CONFIGID.UPNP.ORG", str(configid))
+					ssdp_request.set_header("BOOTID.UPNP.ORG", bootid)
+					ssdp_request.set_header("CONFIGID.UPNP.ORG", configid)
 					ssdp_request.send_notify()
 				#
 
@@ -259,8 +259,8 @@ Send event.
 				ssdp_request.set_header("NT", "urn:{0}".format(identifier['urn']))
 				ssdp_request.set_header("USN", self.usn)
 				ssdp_request.set_header("LOCATION", self.location)
-				ssdp_request.set_header("BOOTID.UPNP.ORG", str(bootid))
-				ssdp_request.set_header("CONFIGID.UPNP.ORG", str(configid))
+				ssdp_request.set_header("BOOTID.UPNP.ORG", bootid)
+				ssdp_request.set_header("CONFIGID.UPNP.ORG", configid)
 				ssdp_request.send_notify()
 
 				for service_id in services:
@@ -273,14 +273,14 @@ Send event.
 					ssdp_request.set_header("NT", "urn:{0}".format(service.get_urn()))
 					ssdp_request.set_header("USN", service.get_usn())
 					ssdp_request.set_header("LOCATION", self.location)
-					ssdp_request.set_header("BOOTID.UPNP.ORG", str(bootid))
-					ssdp_request.set_header("CONFIGID.UPNP.ORG", str(configid))
+					ssdp_request.set_header("BOOTID.UPNP.ORG", bootid)
+					ssdp_request.set_header("CONFIGID.UPNP.ORG", configid)
 					ssdp_request.send_notify()
 				#
 			#
 
 			event = ControlPointEvent(ControlPointEvent.TYPE_DEVICE_REANNOUNCE_ALIVE, control_point = self.control_point)
-			if (self.configid != None): event.set_configid(self.configid)
+			if (self.configid is not None): event.set_configid(self.configid)
 			event.set_usn(self.usn)
 			event.set_location(self.location)
 
@@ -295,9 +295,9 @@ Send event.
 		#
 		elif (self.type == ControlPointEvent.TYPE_SEARCH_RESULT):
 		#
-			if (self.location == None): raise ValueException("UPnP location value is required for M-SEARCH responses")
-			if (self.search_target == None): raise ValueException("M-SEARCH ST value is invalid")
-			if (self.target_host == None or self.target_port == None): raise ValueException("UPnP M-SEARCH response recipient address is invalid")
+			if (self.location is None): raise ValueException("UPnP location value is required for M-SEARCH responses")
+			if (self.search_target is None): raise ValueException("M-SEARCH ST value is invalid")
+			if (self.target_host is None or self.target_port is None): raise ValueException("UPnP M-SEARCH response recipient address is invalid")
 
 			ssdp_response = SsdpResponse(self.target_host, self.target_port)
 
@@ -307,8 +307,8 @@ Send event.
 			ssdp_response.set_header("ST", self.search_target)
 			ssdp_response.set_header("USN", self.usn)
 			ssdp_response.set_header("LOCATION", self.location)
-			ssdp_response.set_header("BOOTID.UPNP.ORG", str(bootid))
-			ssdp_response.set_header("CONFIGID.UPNP.ORG", str(configid))
+			ssdp_response.set_header("BOOTID.UPNP.ORG", bootid)
+			ssdp_response.set_header("CONFIGID.UPNP.ORG", configid)
 			ssdp_response.send()
 		#
 	#
@@ -325,20 +325,19 @@ Activates all relevant multicast listeners based on the IP address given.
 
 		# pylint: disable=star-args
 
-
 		if (self.type == ControlPointEvent.TYPE_DEVICE_ALIVE):
 		#
 			event = ControlPointEvent(ControlPointEvent.TYPE_DEVICE_SHUTDOWN, control_point = self.control_point)
-			if (self.configid != None): event.set_configid(self.configid)
+			if (self.configid is not None): event.set_configid(self.configid)
 			event.set_usn(self.usn)
-			event.schedule()
+			event.deliver()
 		#
 		elif (self.type == ControlPointEvent.TYPE_DEVICE_UPDATE
 		      and (not Settings.get("pas_upnp_ssdp_update_disabled", False))
 		     ):
 		#
 			event = ControlPointEvent(ControlPointEvent.TYPE_DEVICE_SHUTDOWN, control_point = self.control_point)
-			if (self.configid != None): event.set_configid(self.configid)
+			if (self.configid is not None): event.set_configid(self.configid)
 			event.set_usn(self.usn)
 			event.set_location(self.location)
 			event.schedule()

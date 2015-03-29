@@ -31,68 +31,52 @@ https://www.direct-netware.de/redirect?licenses;gpl
 #echo(__FILEPATH__)#
 """
 
-# pylint: disable=import-error,no-name-in-module
-
-try: from urllib.parse import quote
-except ImportError: from urllib import quote
-
-from dNG.pas.data.text.link import Link
-from .abstract_stream import AbstractStream
-
-class HttpBlockStream(AbstractStream):
+class DlnaHeadersMixin(object):
 #
 	"""
-"Resource" represents an UPnP directory, file or virtual object.
+Mixin to handle DLNA headers.
 
 :author:     direct Netware Group
-:copyright:  direct Netware Group - All rights reserved
+:copyright:  (C) direct Netware Group - All rights reserved
 :package:    pas
 :subpackage: upnp
-:since:      v0.1.00
+:since:      v0.1.02
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
 	"""
 
-	def _init_content(self):
+	@staticmethod
+	def _add_dlna_headers(request, response, resource, stream_resource):
 	#
 		"""
-Initializes the content of a container.
+Adds DLNA headers of the given resource and stream resource if requested.
 
-:return: (bool) True if successful
-:since:  v0.1.00
+:param request: Request instance
+:param response: Response instance
+:param resource: UPnP resource instance
+:param stream_resource: Underlying UPnP stream resource instance
+
+:since: v0.1.02
 		"""
 
-		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._init_content()- (#echo(__LINE__)#)", self, context = "pas_upnp")
-		_return = False
-
-		self.content = [ ]
-
-		if (self.type is not None):
+		if (response.is_supported("headers")):
 		#
-			resource_id = self.get_parent_resource_id()
-			if (resource_id is None): resource_id = self.get_resource_id()
+			if (request.get_header("getcontentFeatures.dlna.org") == "1"
+			    and stream_resource.is_supported("dlna_content_features")
+			   ):
+			#
+				response.set_header("contentFeatures.dlna.org",
+				                    stream_resource.get_dlna_content_features()
+				                   )
+			#
 
-			link_parameters = { "__virtual__": "/upnp/stream/{0}".format(quote(resource_id, "")) }
-			self.content.append(Link.get_preferred("upnp").build_url(Link.TYPE_VIRTUAL_PATH, link_parameters))
+			upnp_transfer_mode = request.get_header("transferMode.dlna.org")
 
-			_return = True
+			if (upnp_transfer_mode == "Background"
+			    or upnp_transfer_mode == "Interactive"
+			    or upnp_transfer_mode == "Streaming"
+			   ): response.set_header("transferMode.dlna.org", upnp_transfer_mode)
 		#
-
-		return _return
-	#
-
-	def set_mimetype(self, mimetype):
-	#
-		"""
-Sets the UPnP resource mime type.
-
-:param mimetype: UPnP resource mime type
-
-:since: v0.1.01
-		"""
-
-		AbstractStream.set_mimetype(self, mimetype)
-		if (self.didl_res_protocol is None): self.didl_res_protocol = "http-get:*:{0}:*".format(self.get_mimetype())
 	#
 #
 

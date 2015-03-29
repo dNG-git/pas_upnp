@@ -87,7 +87,7 @@ class tree for self).
 
 		# pylint: disable=no-member,undefined-loop-variable
 
-		if (self.actions != None and action_method in self.actions):
+		if (self.actions is not None and action_method in self.actions):
 		#
 			argument_variables = [ ]
 			result_variables = [ ]
@@ -97,7 +97,7 @@ class tree for self).
 			for argument_variable in self.actions[action_method]['argument_variables']: argument_variables.append({ "name": argument_variable['name'], "variable": self.service.get_definition_variable(argument_variable['variable']) })
 			for result_variable in self.actions[action_method]['result_variables']: result_variables.append({ "name": result_variable['name'], "variable": self.service.get_definition_variable(result_variable['variable']) })
 
-			if (self.actions[action_method]['return_variable'] != None): return_variable = { "name": variables['return_variable']['name'], "variable": self.service.get_definition_variable(variables['return_variable']['variable']) }
+			if (self.actions[action_method]['return_variable'] is not None): return_variable = { "name": variables['return_variable']['name'], "variable": self.service.get_definition_variable(variables['return_variable']['variable']) }
 
 			def proxymethod(**kwargs):
 			#
@@ -125,7 +125,7 @@ class tree for self).
 
 			return proxymethod
 		#
-		elif (self.variables != None and action_method in self.variables): return Variable(self.service, action_method, self.variables[action_method])
+		elif (self.variables is not None and action_method in self.variables): return Variable(self.service, action_method, self.variables[action_method])
 		else: raise ValueException("UPnP SCPD does not contain a definition for '{0}'".format(action_method))
 	#
 #

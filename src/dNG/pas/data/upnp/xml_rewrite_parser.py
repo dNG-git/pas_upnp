@@ -38,7 +38,7 @@ from dNG.pas.data.text.tag_parser.xml_if_condition_mixin import XmlIfConditionMi
 from dNG.pas.data.text.tag_parser.xml_rewrite_mixin import XmlRewriteMixin
 from dNG.pas.module.named_loader import NamedLoader
 
-class XmlRewriteParser(AbstractTagParser, XmlIfConditionMixin, XmlRewriteMixin):
+class XmlRewriteParser(XmlIfConditionMixin, XmlRewriteMixin, AbstractTagParser):
 #
 	"""
 The "XmlRewriteParser" takes a template string to render data based on XML
@@ -101,9 +101,9 @@ Change data according to the matched tag.
 		#
 			re_result = re.match("^\\[if:(.+?)(\\!=|==)(.*?)\\]", data[tag_position:data_position])
 
-			xml_value_path = (None if (re_result == None) else re_result.group(1).strip())
+			xml_value_path = (None if (re_result is None) else re_result.group(1).strip())
 
-			if (xml_value_path != None):
+			if (xml_value_path is not None):
 			#
 				operator = re_result.group(2)
 				value = re_result.group(3).strip()
@@ -139,7 +139,7 @@ Check if a possible tag match is a false positive.
 		tags = [ "if", "rewrite" ]
 		tags_length = len(tags)
 
-		while (_return == None and i < tags_length):
+		while (_return is None and i < tags_length):
 		#
 			tag = tags[i]
 			data_match = data[1:1 + len(tag)]
@@ -147,12 +147,12 @@ Check if a possible tag match is a false positive.
 			if (data_match == "if"):
 			#
 				re_result = re.match("^\\[if:.+?(\\!=|==).*?\\]", data)
-				if (re_result != None): _return = { "tag": "if", "tag_end": "[/if]", "type": "top_down" }
+				if (re_result is not None): _return = { "tag": "if", "tag_end": "[/if]", "type": "top_down" }
 			#
 			elif (data_match == "rewrite"):
 			#
 				re_result = re.match("^\\[rewrite\\]", data)
-				if (re_result != None): _return = { "tag": "rewrite", "tag_end": "[/rewrite]" }
+				if (re_result is not None): _return = { "tag": "rewrite", "tag_end": "[/rewrite]" }
 			#
 
 			i += 1
@@ -174,7 +174,7 @@ Renders content with the given template.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.render({1})- (#echo(__LINE__)#)", self, xml_node_path, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.render({1})- (#echo(__LINE__)#)", self, xml_node_path, context = "pas_upnp")
 
 		self.xml_node_path = xml_node_path
 		self.xml_parser = xml_parser

@@ -134,7 +134,7 @@ Returns the UPnP variable definition.
 :since:  v0.1.00
 		"""
 
-		if (self.variables == None or name not in self.variables): raise ValueException("'{0}' is not a defined SCPD variable".format(name))
+		if (self.variables is None or name not in self.variables): raise ValueException("'{0}' is not a defined SCPD variable".format(name))
 		return self.variables[name]
 	#
 
@@ -159,9 +159,9 @@ Returns a callable proxy object for UPnP actions and variables.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_proxy()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_proxy()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
-		if (self.actions == None and self.variables == None): self.init_scpd()
+		if (self.actions is None and self.variables is None): self.init_scpd()
 		return ServiceProxy(self, self.actions, self.variables)
 	#
 
@@ -260,9 +260,9 @@ Initialize the service metadata from a UPnP description.
 		if (_return):
 		#
 			value = xml_resource.get_node_value("upnp:service upnp:serviceType")
-			re_result = (None if (value == None) else Service.RE_USN_URN.match(value))
+			re_result = (None if (value is None) else Service.RE_USN_URN.match(value))
 
-			if (re_result == None or re_result.group(2) != "service"): _return = False
+			if (re_result is None or re_result.group(2) != "service"): _return = False
 			else:
 			#
 				self.name = "{0}:service:{1}".format(re_result.group(1), re_result.group(3))
@@ -285,9 +285,9 @@ Initialize the service metadata from a UPnP description.
 		if (_return):
 		#
 			value = xml_resource.get_node_value("upnp:service upnp:serviceId")
-			re_result = (None if (value == None) else Service.RE_SERVICE_ID_URN.match(value))
+			re_result = (None if (value is None) else Service.RE_SERVICE_ID_URN.match(value))
 
-			if (re_result == None or re_result.group(2) != "serviceId"): _return = False
+			if (re_result is None or re_result.group(2) != "serviceId"): _return = False
 			else: self.service_id = { "urn": value[4:], "domain": re_result.group(1), "id": re_result.group(3) }
 		#
 
@@ -321,7 +321,7 @@ Initialize actions from the SCPD URL.
 		http_response = http_client.request_get()
 
 		if (http_response.is_readable()): _return = self.init_xml_scpd(Binary.str(http_response.read()))
-		elif (self.log_handler != None): self.log_handler.error(http_response.get_error_message(), context = "pas_upnp")
+		elif (self.log_handler is not None): self.log_handler.error(http_response.get_error_message(), context = "pas_upnp")
 
 		return _return
 	#
@@ -361,7 +361,7 @@ Initialize the list of service actions from a UPnP SCPD description.
 			self.variables = None
 			xml_resource = self._init_xml_resource()
 
-			if (xml_resource.xml_to_dict(xml_data) == None or xml_resource.count_node("scpd:scpd") < 1): _return = False
+			if (xml_resource.xml_to_dict(xml_data) is None or xml_resource.count_node("scpd:scpd") < 1): _return = False
 			else: xml_resource.set_cached_node("scpd:scpd")
 
 			if (_return):
@@ -395,7 +395,7 @@ Initialize the list of service actions from a UPnP SCPD description.
 					self.variables[name] = { "is_sending_events": send_events, "is_multicasting_events": multicast_events, "type": _type }
 
 					value = xml_resource.get_node_value("{0} scpd:defaultValue".format(xml_base_path))
-					if (value != None): self.variables[name]['value'] = value
+					if (value is not None): self.variables[name]['value'] = value
 
 					allowed_values_count = xml_resource.count_node("{0} scpd:allowedValueList scpd:allowedValue".format(xml_base_path))
 
@@ -407,13 +407,13 @@ Initialize the list of service actions from a UPnP SCPD description.
 						for position_allowed in range(0, allowed_values_count):
 						#
 							value = xml_resource.get_node_value("{0} scpd:allowedValueList scpd:allowedValue#{1:d}".format(xml_base_path, position_allowed))
-							if (value != None and value not in self.variables[name]['values_allowed']): self.variables[name]['values_allowed'].append(value)
+							if (value is not None and value not in self.variables[name]['values_allowed']): self.variables[name]['values_allowed'].append(value)
 						#
 					#
 
 					xml_node = xml_resource.get_node("{0} scpd:allowedValueRange".format(xml_base_path))
 
-					if (xml_node != None):
+					if (xml_node is not None):
 					#
 						if (allowed_values_count > 0): raise ValueException("SCPD can only contain one of allowedValueList and allowedValueRange")
 
@@ -421,7 +421,7 @@ Initialize the list of service actions from a UPnP SCPD description.
 						self.variables[name]['values_max'] = xml_resource.get_node_value("{0} scpd:allowedValueRange scpd:maximum".format(xml_base_path))
 
 						value = xml_resource.get_node("{0} scpd:allowedValueRange scpd:step".format(xml_base_path))
-						if (value != None): self.variables[name]['values_stepping'] = value
+						if (value is not None): self.variables[name]['values_stepping'] = value
 					#
 				#
 			#
@@ -453,7 +453,7 @@ Initialize the list of service actions from a UPnP SCPD description.
 							argument_type = ("argument_variables" if (value.strip().lower() == "in") else "result_variables")
 
 							value = xml_resource.get_node_value("{0} scpd:retval".format(xml_base_path))
-							if (argument_type == "result_variables" and value != None): argument_type = "return_variable"
+							if (argument_type == "result_variables" and value is not None): argument_type = "return_variable"
 
 							value = xml_resource.get_node_value("{0} scpd:relatedStateVariable".format(xml_base_path))
 
@@ -468,7 +468,7 @@ Initialize the list of service actions from a UPnP SCPD description.
 		#
 		except Exception as handled_exception:
 		#
-			if (self.log_handler != None): self.log_handler.error(handled_exception, context = "pas_upnp")
+			if (self.log_handler is not None): self.log_handler.error(handled_exception, context = "pas_upnp")
 			_return = False
 		#
 
@@ -484,7 +484,7 @@ Initialize the list of service actions from a UPnP SCPD description.
 :since:  v0.1.00
 		"""
 
-		return (self.actions != None or self.variables != None)
+		return (self.actions is not None or self.variables is not None)
 	#
 
 	def is_managed(self):
@@ -512,7 +512,7 @@ device.
 :since:  v0.1.00
 		"""
 
-		if (self.log_handler != None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.request_soap_action({1})- (#echo(__LINE__)#)", self, action, context = "pas_upnp")
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.request_soap_action({1})- (#echo(__LINE__)#)", self, action, context = "pas_upnp")
 
 		_return = False
 
@@ -540,7 +540,7 @@ device.
 		http_response = http_client.request_post(xml_resource.export_cache(True))
 
 		if (not isinstance(http_response['body'], Exception)): _return = xml_resource.xml_to_dict(Binary.str(http_response['body']))
-		elif (self.log_handler != None): self.log_handler.error(http_response['body'], context = "pas_upnp")
+		elif (self.log_handler is not None): self.log_handler.error(http_response['body'], context = "pas_upnp")
 
 		if (_return == True):
 		#
