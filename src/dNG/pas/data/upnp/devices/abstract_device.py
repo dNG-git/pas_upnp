@@ -287,7 +287,7 @@ Returns the UPnP device description for encoding.
 							                           }
 							                  }
 
-							icon_url = Link.get_preferred("upnp").build_url(Link.TYPE_VIRTUAL_PATH, icon_parameters)
+							icon_url = Link.get_preferred("upnp").build_url((Link.TYPE_RELATIVE_URL | Link.TYPE_VIRTUAL_PATH), icon_parameters)
 
 							xml_resource.add_node("root device iconList icon#{0:d}".format(icon_position))
 							xml_resource.add_node("root device iconList icon mimetype", icon_mimetype)
@@ -411,13 +411,23 @@ Initialize a host device.
 		self.host_device = True
 		if (self.name is None): self.name = "{0} {1}".format(gethostname(), self.type)
 
-		self.udn = (str(uuid_of_namespace(NAMESPACE_URL, "upnp://{0}:{1:d}/{2}".format(control_point.get_http_host(), control_point.get_http_port(), hexlify(urandom(10)))))
-		            if (udn is None) else udn
-		           )
+		if (udn is None):
+		#
+			self.udn = str(uuid_of_namespace(NAMESPACE_URL,
+			                                 "upnp://{0}:{1:d}/{2}".format(control_point.get_http_host(),
+			                                                               control_point.get_http_port(),
+			                                                               hexlify(urandom(10))
+			                                                              )
+			                                )
+			              )
+		#
+		else: self.udn = udn
 
-		url = "http://{0}:{1:d}/upnp/{2}".format(control_point.get_http_host(), control_point.get_http_port(), Link.encode_query_value(self.udn))
-		self.desc_url = "{0}/desc".format(url)
-		self.url_base = "{0}/".format(url)
+		url_parameters = { "__virtual__": "/upnp/{0}/".format(Link.encode_query_value(self.udn)) }
+		self.url_base = Link.get_preferred("upnp").build_url((Link.TYPE_RELATIVE_URL | Link.TYPE_VIRTUAL_PATH), url_parameters)
+
+		url_parameters['__virtual__'] += "desc"
+		self.desc_url = Link.get_preferred("upnp").build_url(Link.TYPE_VIRTUAL_PATH, url_parameters)
 
 		return False
 	#

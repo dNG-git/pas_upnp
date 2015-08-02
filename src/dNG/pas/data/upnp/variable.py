@@ -134,9 +134,9 @@ variable definition.
 			elif (variable['type'] == "i1"): _return = ( int, "b" )
 			elif (variable['type'] == "i2"): _return = ( int, "h" )
 			elif (variable['type'] == "i4"): _return = int
-			elif (variable['type'] == "i8" or variable['type'] == "int"): _return = ( int, "q" )
+			elif (variable['type'] in ( "i8", "int" )): _return = ( int, "q" )
 			elif (variable['type'] == "r4"): _return = ( float, "f" )
-			elif (variable['type'] == "r8" or variable['type'] == "float" or variable['type'] == "number"): _return = float
+			elif (variable['type'] in ( "r8", "float", "number" )): _return = float
 			elif (variable['type'] == "fixed.14.4"): _return = ( float, "f14.4" )
 			elif (variable['type'] == "char"): _return = ( str, "c" )
 			elif (variable['type'] == "date"): _return = ( int, "date" )
