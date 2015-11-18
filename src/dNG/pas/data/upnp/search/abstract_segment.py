@@ -31,12 +31,13 @@ https://www.direct-netware.de/redirect?licenses;gpl
 #echo(__FILEPATH__)#
 """
 
+from dNG.pas.data.upnp.client_user_agent_mixin import ClientUserAgentMixin
 from dNG.pas.module.named_loader import NamedLoader
 from dNG.pas.runtime.not_implemented_exception import NotImplementedException
 from dNG.pas.runtime.type_exception import TypeException
 from .criteria_definition import CriteriaDefinition
 
-class AbstractSegment(object):
+class AbstractSegment(ClientUserAgentMixin):
 #
 	"""
 "AbstractSegment" is the abstract UPnP search segment class.
@@ -58,6 +59,8 @@ Constructor __init__(AbstractSegment)
 :since: v0.1.03
 		"""
 
+		ClientUserAgentMixin.__init__(self)
+
 		self.criteria_definition = None
 		"""
 UPnP search criteria definition instance
@@ -74,6 +77,10 @@ happened.
 		self.offset = 0
 		"""
 UPnP resource search segment results offset
+		"""
+		self.sort_tuples = [ ]
+		"""
+Sort list to be applied
 		"""
 	#
 
@@ -165,6 +172,20 @@ Sets the UPnP resource search segment results offset.
 
 		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_offset({1:d})- (#echo(__LINE__)#)", self, offset, context = "pas_upnp")
 		self.offset = offset
+	#
+
+	def set_sort_tuples(self, sort_tuples):
+	#
+		"""
+Sets the UPnP resource search segment sort list.
+
+:param sort_tuples: Results sort tuples list
+
+:since: v0.1.03
+		"""
+
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_sort_tuples()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+		self.sort_tuples = sort_tuples
 	#
 #
 
