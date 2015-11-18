@@ -33,7 +33,7 @@ https://www.direct-netware.de/redirect?licenses;gpl
 
 from random import uniform as randfloat
 
-from dNG.pas.data.upnp.client import Client
+from dNG.pas.data.upnp.client_settings import ClientSettings
 from dNG.pas.data.upnp.control_point_event import ControlPointEvent
 from dNG.pas.data.upnp.device import Device
 from .control_point import ControlPoint
@@ -346,8 +346,8 @@ Searches for hosted devices matching the given UPnP search target.
 				#
 					if ('USER-AGENT' in additional_data):
 					#
-						client = Client.load_user_agent(additional_data['USER-AGENT'])
-						source_wait_timeout = client.get("ssdp_upnp_search_wait_timeout", source_wait_timeout)
+						client_settings = ClientSettings.load_user_agent(additional_data['USER-AGENT'])
+						source_wait_timeout = client_settings.get("ssdp_upnp_search_wait_timeout", source_wait_timeout)
 					#
 					elif (source_wait_timeout < 4):
 					# Expect broken clients if no user-agent is given and MX is too small

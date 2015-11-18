@@ -31,7 +31,7 @@ https://www.direct-netware.de/redirect?licenses;gpl
 #echo(__FILEPATH__)#
 """
 
-from dNG.pas.data.upnp.client import Client
+from dNG.pas.data.upnp.client_settings import ClientSettings
 from dNG.pas.net.upnp.abstract_ssdp import AbstractSsdp
 from dNG.pas.plugins.hook import Hook
 
@@ -54,7 +54,7 @@ Called for "dNG.pas.upnp.ControlPoint.onDeviceAdded"
 	              None
 	             )
 
-	ssdp_quirks = Client.load_user_agent(user_agent).get("upnp_quirks_ssdp")
+	ssdp_quirks = ClientSettings.load_user_agent(user_agent).get("upnp_quirks_ssdp")
 
 	if (type(ssdp_quirks) is list):
 	#

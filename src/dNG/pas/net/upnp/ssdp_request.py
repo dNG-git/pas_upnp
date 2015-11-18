@@ -35,7 +35,7 @@ import re
 
 from dNG.net.http.raw_client import RawClient as HttpClient
 from dNG.pas.data.binary import Binary
-from dNG.pas.data.upnp.client import Client
+from dNG.pas.data.upnp.client_settings import ClientSettings
 from dNG.pas.module.named_loader import NamedLoader
 from dNG.pas.plugins.hook import Hook
 from dNG.pas.net.server.handler import Handler
@@ -97,9 +97,9 @@ Active conversation
 			control_point = NamedLoader.get_singleton("dNG.pas.net.upnp.ControlPoint")
 			user_agent = headers.get("SERVER")
 
-			client = Client.load_user_agent(user_agent)
+			client_settings = ClientSettings.load_user_agent(user_agent)
 
-			if (client.get("ssdp_notify_use_filter", False)):
+			if (client_settings.get("ssdp_notify_use_filter", False)):
 			#
 				headers_filtered = Hook.call("dNG.pas.upnp.SsdpRequest.filterHeaders", headers = headers, user_agent = user_agent)
 				if (headers_filtered is not None): headers = headers_filtered

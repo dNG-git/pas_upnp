@@ -44,7 +44,7 @@ from dNG.pas.controller.predefined_http_request import PredefinedHttpRequest
 from dNG.pas.data.http.translatable_exception import TranslatableException
 from dNG.pas.data.http.virtual_config import VirtualConfig
 from dNG.pas.data.logging.log_line import LogLine
-from dNG.pas.data.upnp.client import Client
+from dNG.pas.data.upnp.client_settings import ClientSettings
 from dNG.pas.plugins.hook import Hook
 from dNG.pas.net.upnp.control_point import ControlPoint
 from dNG.pas.runtime.value_exception import ValueException
@@ -139,9 +139,9 @@ Handles a UPnP stream related HTTP request.
 	user_agent = request.get_header("User-Agent")
 	stream_path = request.get_dsd("upnp_path")
 
-	client = Client.load_user_agent(user_agent)
+	client_settings = ClientSettings.load_user_agent(user_agent)
 
-	if (client.get("upnp_stream_path_use_filter", False)):
+	if (client_settings.get("upnp_stream_path_use_filter", False)):
 	#
 		stream_path_filtered = Hook.call("dNG.pas.http.HttpUpnpRequest.filterStreamPath", path = stream_path, user_agent = user_agent)
 		if (stream_path_filtered is not None): stream_path = stream_path_filtered
