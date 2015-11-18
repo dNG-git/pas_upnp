@@ -49,7 +49,7 @@ from dNG.pas.module.named_loader import NamedLoader
 from dNG.pas.plugins.hook import Hook
 from dNG.pas.runtime.thread_lock import ThreadLock
 from dNG.pas.runtime.value_exception import ValueException
-from .client import Client
+from .client_user_agent_mixin import ClientUserAgentMixin
 from .update_id_registry import UpdateIdRegistry
 from .variable import Variable
 from .xml_rewrite_parser import XmlRewriteParser
@@ -58,7 +58,7 @@ from .search.resources import Resources as SearchResources
 
 _TOP_LEVEL_OBJECTS = [ "container", "item" ]
 
-class Resource(SupportsMixin):
+class Resource(ClientUserAgentMixin, SupportsMixin):
 #
 	"""
 "Resource" represents an UPnP directory, file or virtual object.
@@ -119,12 +119,9 @@ Constructor __init__(Resource)
 :since: v0.1.01
 		"""
 
+		ClientUserAgentMixin.__init__(self)
 		SupportsMixin.__init__(self)
 
-		self.client_user_agent = None
-		"""
-Client user agent
-		"""
 		self.content = None
 		"""
 UPnP resource content cache
@@ -380,18 +377,6 @@ Flushes the content cache.
 		with self._lock: self.content = None
 	#
 
-	def get_client_user_agent(self):
-	#
-		"""
-Returns the UPnP client user agent requesting the resource.
-
-:return: (str) Client user agent if known; None otherwise
-:since:  v0.1.00
-		"""
-
-		return self.client_user_agent
-	#
-
 	def get_content(self, position):
 	#
 		"""
@@ -564,8 +549,8 @@ Returns a user agent specific UPnP resource mime type.
 
 		if (_return is None): _return = mimetype
 
-		client = Client.load_user_agent(self.client_user_agent)
-		client_mimetypes = client.get("upnp_custom_mimetypes")
+		client_settings = self.get_client_settings()
+		client_mimetypes = client_settings.get("upnp_custom_mimetypes")
 		if (isinstance(client_mimetypes, dict) and _return in client_mimetypes): _return = client_mimetypes[_return]
 
 		return _return
@@ -897,9 +882,9 @@ Returns the UPnP resource type class.
 
 		if (_type is not None):
 		#
-			client = Client.load_user_agent(self.client_user_agent)
-			is_cds1_container_supported = client.get("upnp_didl_cds1_container_classes_supported", True)
-			is_cds1_object_supported = client.get("upnp_didl_cds1_object_classes_supported", True)
+			client_settings = self.get_client_settings()
+			is_cds1_container_supported = client_settings.get("upnp_didl_cds1_container_classes_supported", True)
+			is_cds1_object_supported = client_settings.get("upnp_didl_cds1_object_classes_supported", True)
 		#
 
 		if (is_cds1_container_supported):
@@ -1187,16 +1172,16 @@ Uses the given XML resource to manipulate DIDL metadata for the client.
 
 		if (resource_type is not None):
 		#
-			client = Client.load_user_agent(self.client_user_agent)
+			client_settings = self.get_client_settings()
 
 			title_format_resource_class_name = NamedLoader.RE_CAMEL_CASE_SPLITTER.sub("\\1_\\2", self.__class__.__name__)
 			title_format_resource_name = "upnp_didl_title_{0}_format".format(title_format_resource_class_name.lower())
 
-			if (title_format_resource_name in client): title_format = client.get(title_format_resource_name)
-			elif (resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER): title_format = client.get("upnp_didl_title_default_container_format")
-			elif (resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): title_format = client.get("upnp_didl_title_default_item_format")
+			if (title_format_resource_name in client_settings): title_format = client_settings.get(title_format_resource_name)
+			elif (resource_type & Resource.TYPE_CDS_CONTAINER == Resource.TYPE_CDS_CONTAINER): title_format = client_settings.get("upnp_didl_title_default_container_format")
+			elif (resource_type & Resource.TYPE_CDS_ITEM == Resource.TYPE_CDS_ITEM): title_format = client_settings.get("upnp_didl_title_default_item_format")
 
-			if (title_format is None): title_format = client.get("upnp_didl_title_default_format")
+			if (title_format is None): title_format = client_settings.get("upnp_didl_title_default_format")
 		#
 
 		if (title_format is not None):
@@ -1220,8 +1205,11 @@ criteria.
 		search_criteria_definition = search_criteria_parser.parse(search_criteria)
 
 		_return = SearchResources()
-		_return.set_criteria_definition(search_criteria_definition)
+		if (self.client_user_agent is not None): _return.set_client_user_agent(self.client_user_agent)
 		_return.set_root_resource(self)
+
+		_return.set_criteria_definition(search_criteria_definition)
+		_return.set_sort_criteria(self.sort_criteria)
 
 		_return.set_offset(self.content_offset)
 		if (self.content_limit is not None): _return.set_limit(self.content_limit)
@@ -1272,20 +1260,6 @@ matching the given UPnP search criteria.
 		#
 
 		return _return
-	#
-
-	def set_client_user_agent(self, user_agent):
-	#
-		"""
-Sets the UPnP client user agent.
-
-:param user_agent: Client user agent
-
-:since: v0.1.00
-		"""
-
-		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_client_user_agent({1})- (#echo(__LINE__)#)", self, user_agent, context = "pas_upnp")
-		self.client_user_agent = user_agent
 	#
 
 	def set_content_limit(self, content_limit):
@@ -1351,9 +1325,9 @@ Sets the UPnP resource parent ID.
 	def set_sort_criteria(self, sort_criteria):
 	#
 		"""
-Sets the DIDL fields to be returned.
+Sets the UPnP sort criteria.
 
-:param fields: DIDL fields list
+:param sort_criteria: UPnP sort criteria
 
 :since: v0.1.01
 		"""
