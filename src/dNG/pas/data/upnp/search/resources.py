@@ -33,15 +33,16 @@ https://www.direct-netware.de/redirect?licenses;gpl
 
 from dNG.pas.data.settings import Settings
 from dNG.pas.data.supports_mixin import SupportsMixin
-from dNG.pas.data.upnp.search.criteria_definition import CriteriaDefinition
+from dNG.pas.data.upnp.client_user_agent_mixin import ClientUserAgentMixin
 from dNG.pas.module.named_loader import NamedLoader
 from dNG.pas.plugins.hook import Hook
 from dNG.pas.runtime.exception_log_trap import ExceptionLogTrap
 from dNG.pas.runtime.io_exception import IOException
 from dNG.pas.runtime.type_exception import TypeException
 from dNG.pas.runtime.value_exception import ValueException
+from .criteria_definition import CriteriaDefinition
 
-class Resources(SupportsMixin):
+class Resources(ClientUserAgentMixin, SupportsMixin):
 #
 	"""
 The "Resources" search instance is used to execute UPnP searches.
@@ -72,6 +73,7 @@ Constructor __init__(Resources)
 :since: v0.1.03
 		"""
 
+		ClientUserAgentMixin.__init__(self)
 		SupportsMixin.__init__(self)
 
 		self.criteria_definition = None
@@ -111,7 +113,7 @@ UPnP resource search results count from all segments
 		"""
 UPnP root resource for searching matches
 		"""
-		self.sort_list = [ ]
+		self.sort_tuples = [ ]
 		"""
 Sort list to be applied
 		"""
@@ -133,7 +135,7 @@ Adds a sort definition.
 		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.add_sort_definition({1}, {2})- (#echo(__LINE__)#)", self, _property, direction, context = "pas_upnp")
 
 		if (direction not in ( Resources.SORT_ASCENDING, Resources.SORT_DESCENDING )): raise TypeException("Sort direction given is invalid")
-		self.sort_list.append({ "property": _property, "direction": direction })
+		self.sort_tuples.append(( _property, direction ))
 	#
 
 	def _execute(self):
@@ -172,6 +174,8 @@ resource search results list as defined by "offset" and "limit".
 					      and (limit is None or len(self.resources) < self.limit)
 					     ):
 					#
+						segment.set_sort_tuples(self.sort_tuples)
+
 						segment.set_offset(offset)
 						if (limit is not None): segment.set_limit(limit)
 
@@ -329,6 +333,30 @@ Sets the UPnP root resource for searching matches.
 
 		if (self.executed): raise IOException("UPnP resource search can not be modified after execution")
 		self.root_resource = resource
+	#
+
+	def set_sort_criteria(self, criteria_list):
+	#
+		"""
+Sets the UPnP sort criteria for search matches.
+
+:param criteria_list: UPnP search sort criteria list
+
+:since: v0.1.03
+		"""
+
+		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.set_sort_criteria()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+
+		self.sort_tuples = [ ]
+
+		for criteria in criteria_list:
+		#
+			criteria_first_char = criteria[:1]
+			if (criteria_first_char == "+" or criteria_first_char == "-"): criteria = criteria[1:]
+			direction = (Resources.SORT_ASCENDING if (criteria_first_char == "+") else Resources.SORT_DESCENDING)
+
+			self.sort_tuples.append(( criteria, direction ))
+		#
 	#
 
 	def _supports_sortable(self):
