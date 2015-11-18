@@ -175,7 +175,7 @@ Sets the requested action.
 :since: v0.1.00
 		"""
 
-		self.body_instance = http_request.get_request_body(content_type_expected = "text/xml")
+		self.body_instance = http_request.prepare_body_instance(content_type_expected = "text/xml")
 		self.headers = http_request.get_headers()
 		self.module = "upnp"
 		self.upnp_control_point = control_point
