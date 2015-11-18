@@ -40,7 +40,6 @@ except ImportError: from urlparse import urlsplit
 
 from dNG.pas.data.http.streaming import Streaming
 from dNG.pas.data.text.input_filter import InputFilter
-from dNG.pas.data.upnp.client import Client
 from dNG.pas.data.upnp.resource import Resource
 from dNG.pas.data.upnp.resources.abstract_stream import AbstractStream
 from dNG.pas.module.named_loader import NamedLoader
@@ -74,12 +73,10 @@ Action for "resource"
 		rid = InputFilter.filter_control_chars(self.request.get_dsd("urid", ""))
 
 		client_host = self.request.get_client_host()
+		client_settings = self.get_client_settings()
 		upnp_control_point = ControlPoint.get_instance()
 
-		client_user_agent = self.request.get_header("User-Agent")
-		client = Client.load_user_agent(client_user_agent)
-
-		self.response.init(True, compress = client.get("upnp_http_compression_supported", True))
+		self.response.init(True, compress = client_settings.get("upnp_http_compression_supported", True))
 
 		if (client_host is None): is_allowed = False
 		else:
@@ -92,13 +89,13 @@ Action for "resource"
 
 		if (is_allowed):
 		#
-			if (client.get("upnp_stream_filter_resource_id_hook_call", False)):
+			if (client_settings.get("upnp_stream_filter_resource_id_hook_call", False)):
 			#
 				rid_filtered = Hook.call("dNG.pas.upnp.Stream.filterResourceID",
 				                         rid = rid,
 				                         request = self.request,
 				                         response = self.response,
-				                         client_user_agent = client_user_agent
+				                         client_user_agent = self.client_user_agent
 				                        )
 
 				if (rid_filtered is not None): rid = rid_filtered
@@ -127,7 +124,7 @@ Action for "resource"
 
 			stream_url = InputFilter.filter_control_chars(stream_resource.get_resource_id())
 
-			if (client.get("upnp_stream_filter_url_hook_call", False)):
+			if (client_settings.get("upnp_stream_filter_url_hook_call", False)):
 			#
 				stream_url_filtered = Hook.call("dNG.pas.upnp.Stream.filterUrl",
 				                                resource = resource,
@@ -135,7 +132,7 @@ Action for "resource"
 				                                url = stream_url,
 				                                request = self.request,
 				                                response = self.response,
-				                                client_user_agent = client_user_agent
+				                                client_user_agent = self.client_user_agent
 				                               )
 
 				if (stream_url_filtered is not None): stream_url = stream_url_filtered
@@ -153,7 +150,7 @@ Action for "resource"
 			            NamedLoader.get_instance("dNG.pas.data.streamer.{0}".format(streamer_class), False)
 			           )
 
-			if (client.get("upnp_stream_handle_event_hook_call", False)):
+			if (client_settings.get("upnp_stream_handle_event_hook_call", False)):
 			#
 				Hook.call("dNG.pas.upnp.Stream.onHandle",
 				          resource = resource,
@@ -161,7 +158,7 @@ Action for "resource"
 				          streamer = streamer,
 				          request = self.request,
 				          response = self.response,
-				          client_user_agent = client_user_agent
+				          client_user_agent = self.client_user_agent
 				         )
 			#
 

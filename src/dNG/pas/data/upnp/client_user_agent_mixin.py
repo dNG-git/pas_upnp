@@ -31,62 +31,75 @@ https://www.direct-netware.de/redirect?licenses;gpl
 #echo(__FILEPATH__)#
 """
 
-from dNG.pas.controller.http_upnp_request import HttpUpnpRequest
-from dNG.pas.data.upnp.upnp_exception import UpnpException
-from dNG.pas.data.upnp.devices.abstract_device import AbstractDevice
-from dNG.pas.data.upnp.services.abstract_service import AbstractService
-from .module import Module
+from .client_settings import ClientSettings
 
-class Identity(Module):
+class ClientUserAgentMixin(object):
 #
 	"""
-Service for "m=upnp;s=identity"
+"ClientUserAgentMixin" implements methods to access the user agent of the
+UPnP client.
 
 :author:     direct Netware Group
-:copyright:  (C) direct Netware Group - All rights reserved
+:copyright:  direct Netware Group - All rights reserved
 :package:    pas
 :subpackage: upnp
-:since:      v0.1.00
+:since:      v0.1.03
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
 	"""
 
-	def execute_device(self):
+	def __init__(self):
 	#
 		"""
-Action for "index"
+Constructor __init__(ClientUserAgentMixin)
 
-:since: v0.1.01
+:since: v0.1.03
 		"""
 
-		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
-		upnp_device = self.request.get_upnp_device()
-		if (not isinstance(upnp_device, AbstractDevice)): raise UpnpException("pas_http_core_400", 401)
-
-		client_settings = self.get_client_settings()
-
-		self.response.init(compress = client_settings.get("upnp_http_compression_supported", True))
-		self.response.set_header("Content-Type", "text/plain")
-		self.response.set_raw_data(upnp_device.get_udn())
+		self.client_user_agent = None
+		"""
+Client user agent
+		"""
 	#
 
-	def execute_service(self):
+	def get_client_settings(self):
 	#
 		"""
-Action for "service"
+Returns the UPnP client settings instance for the client user agent.
 
-:since: v0.1.00
+:return: (object) UPnP client settings
+:since:  v0.1.03
 		"""
 
-		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
-		upnp_service = self.request.get_upnp_service()
-		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_core_400", 401)
+		return (ClientSettings()
+		        if (self.client_user_agent is None) else
+		        ClientSettings.load_user_agent(self.client_user_agent)
+		       )
+	#
 
-		client_settings = self.get_client_settings()
+	def get_client_user_agent(self):
+	#
+		"""
+Returns the UPnP client user agent requesting the resource.
 
-		self.response.init(compress = client_settings.get("upnp_http_compression_supported", True))
-		self.response.set_header("Content-Type", "text/plain")
-		self.response.set_raw_data(upnp_service.get_udn())
+:return: (str) Client user agent if known; None otherwise
+:since:  v0.1.03
+		"""
+
+		return self.client_user_agent
+	#
+
+	def set_client_user_agent(self, user_agent):
+	#
+		"""
+Sets the UPnP client user agent.
+
+:param user_agent: Client user agent
+
+:since: v0.1.03
+		"""
+
+		self.client_user_agent = user_agent
 	#
 #
 

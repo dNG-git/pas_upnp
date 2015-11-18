@@ -40,12 +40,12 @@ from uuid import uuid3 as uuid_of_namespace
 from dNG.pas.data.logging.log_line import LogLine
 from dNG.pas.data.media.image import Image
 from dNG.pas.data.text.link import Link
-from dNG.pas.data.upnp.client import Client
+from dNG.pas.data.upnp.client_user_agent_mixin import ClientUserAgentMixin
 from dNG.pas.data.upnp.device import Device
 from dNG.pas.data.upnp.services.abstract_service import AbstractService
 from dNG.pas.runtime.not_implemented_class import NotImplementedClass
 
-class AbstractDevice(Device):
+class AbstractDevice(Device, ClientUserAgentMixin):
 #
 	"""
 An extended, abstract device implementation for server devices.
@@ -68,11 +68,8 @@ Constructor __init__(AbstractDevice)
 		"""
 
 		Device.__init__(self)
+		ClientUserAgentMixin.__init__(self)
 
-		self.client_user_agent = None
-		"""
-Client user agent
-		"""
 		self.desc_url = None
 		"""
 UPnP device description URL
@@ -233,8 +230,8 @@ Returns the UPnP device description for encoding.
 
 		LogLine.debug("#echo(__FILEPATH__)# -{0!r}._get_xml()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
-		client = Client.load_user_agent(self.client_user_agent)
-		if (not client.get("upnp_xml_cdata_encoded", False)): xml_resource.set_cdata_encoding(False)
+		client_settings = self.get_client_settings()
+		if (not client_settings.get("upnp_xml_cdata_encoded", False)): xml_resource.set_cdata_encoding(False)
 
 		attributes = { "xmlns": "urn:schemas-upnp-org:device-1-0" }
 		if (self.configid is not None): attributes['configId'] = self.configid
@@ -242,10 +239,8 @@ Returns the UPnP device description for encoding.
 		xml_resource.add_node("root", attributes = attributes)
 		xml_resource.set_cached_node("root")
 
-		client = Client.load_user_agent(self.client_user_agent)
-
 		spec_version = (self.get_spec_version()
-		                if (client.get("upnp_spec_versioning_supported", True)) else
+		                if (client_settings.get("upnp_spec_versioning_supported", True)) else
 		                ( 1, 0 )
 		               )
 
@@ -442,19 +437,6 @@ True if the host manages the device.
 		"""
 
 		return self.host_device
-	#
-
-	def set_client_user_agent(self, user_agent):
-	#
-		"""
-Sets the UPnP client user agent.
-
-:param user_agent: Client user agent
-
-:since: v0.1.00
-		"""
-
-		self.client_user_agent = user_agent
 	#
 
 	def set_configid(self, configid):

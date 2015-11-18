@@ -39,11 +39,11 @@ from dNG.data.xml_resource import XmlResource
 from dNG.data.rfc.basics import Basics as RfcBasics
 from dNG.pas.data.binary import Binary
 from dNG.pas.data.text.l10n import L10n
-from dNG.pas.data.upnp.client import Client
+from dNG.pas.data.upnp.client_user_agent_mixin import ClientUserAgentMixin
 from dNG.pas.data.upnp.upnp_exception import UpnpException
 from .abstract_http_response import AbstractHttpResponse
 
-class HttpUpnpResponse(AbstractHttpResponse):
+class HttpUpnpResponse(ClientUserAgentMixin, AbstractHttpResponse):
 #
 	"""
 This response class returns UPnP compliant responses.
@@ -66,11 +66,7 @@ Constructor __init__(HttpUpnpResponse)
 		"""
 
 		AbstractHttpResponse.__init__(self)
-
-		self.client_user_agent = None
-		"""
-Client user agent
-		"""
+		ClientUserAgentMixin.__init__(self)
 	#
 
 	def init(self, cache = False, compress = True):
@@ -87,9 +83,9 @@ compression setting and information about P3P.
 
 		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.init()- (#echo(__LINE__)#)", self, context = "pas_http_site")
 
-		client = Client.load_user_agent(self.client_user_agent)
+		client_settings = self.get_client_settings()
 
-		AbstractHttpResponse.init(self, cache, client.get("upnp_http_compression_supported", True))
+		AbstractHttpResponse.init(self, cache, client_settings.get("upnp_http_compression_supported", True))
 		os_uname = uname()
 
 		self.set_header("Content-Type", "text/xml; charset=UTF-8")
@@ -118,8 +114,8 @@ Returns a UPNP response for the given URN and SOAP action.
 		#
 			xml_resource = XmlResource(node_type = OrderedDict)
 
-			client = Client.load_user_agent(self.client_user_agent)
-			if (not client.get("upnp_xml_cdata_encoded", False)): xml_resource.set_cdata_encoding(False)
+			client_settings = self.get_client_settings()
+			if (not client_settings.get("upnp_xml_cdata_encoded", False)): xml_resource.set_cdata_encoding(False)
 
 			xml_resource.add_node("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "s:encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
 
@@ -185,19 +181,6 @@ Returns a UPNP response for the requested SOAP action.
 
 		self.data = Binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_resource.export_cache(True)))
 		self.send()
-	#
-
-	def set_client_user_agent(self, user_agent):
-	#
-		"""
-Sets the UPnP client user agent.
-
-:param user_agent: Client user agent
-
-:since: v0.1.00
-		"""
-
-		self.client_user_agent = user_agent
 	#
 #
 

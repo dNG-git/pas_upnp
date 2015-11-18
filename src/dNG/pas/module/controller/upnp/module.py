@@ -35,10 +35,11 @@ import socket
 
 from dNG.pas.controller.http_upnp_response import HttpUpnpResponse
 from dNG.pas.data.settings import Settings
+from dNG.pas.data.upnp.client_user_agent_mixin import ClientUserAgentMixin
 from dNG.pas.module.controller.abstract_http import AbstractHttp as AbstractHttpController
 from dNG.pas.net.upnp.control_point import ControlPoint
 
-class Module(AbstractHttpController):
+class Module(ClientUserAgentMixin, AbstractHttpController):
 #
 	"""
 module for "upnp"
@@ -61,11 +62,7 @@ Constructor __init__(AbstractHttpController)
 		"""
 
 		AbstractHttpController.__init__(self)
-
-		self.client_user_agent = None
-		"""
-Client user agent
-		"""
+		ClientUserAgentMixin.__init__(self)
 	#
 
 	def init(self, request, response):

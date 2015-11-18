@@ -40,7 +40,7 @@ from dNG.pas.data.logging.log_line import LogLine
 from dNG.pas.data.text.input_filter import InputFilter
 from dNG.pas.plugins.hook import Hook
 
-class Client(dict):
+class ClientSettings(dict):
 #
 	"""
 This class holds static methods to handle UPnP client settings.
@@ -79,12 +79,18 @@ user agent.
 :since: v0.1.00
 		"""
 
-		identifier = Client.get_user_agent_identifiers(user_agent)
+		identifier = ClientSettings.get_user_agent_identifiers(user_agent)
 
-		settings = Client.get_settings_file("{0}/upnp/user_agents/{1}.json".format(Settings.get("path_data"), identifier))
+		settings = ClientSettings.get_settings_file("{0}/upnp/user_agents/{1}.json".format(Settings.get("path_data"), identifier))
 
 		if (type(settings) is dict): self.update(settings)
-		else: LogLine.debug("#echo(__FILEPATH__)# -{0!r}._load_user_agent_file()- reporting: No client file for user agent '{1}' with identifier '{2}'", self, user_agent, identifier, context = "pas_upnp")
+		else:
+		#
+			log_line = "#echo(__FILEPATH__)# -{0!r}._load_user_agent_file()- reporting: No client file for user agent '{1}' with identifier '{2}'"
+
+			if (Settings.get("pas_upnp_log_missing_user_agent", False)): LogLine.warning(log_line, self, user_agent, identifier, context = "pas_upnp")
+			else: LogLine.debug(log_line, self, user_agent, identifier, context = "pas_upnp")
+		#
 	#
 
 	@staticmethod
@@ -118,7 +124,7 @@ Returns a UPnP client based on the given HTTP or SSDP user agent value.
 
 :param user_agent: HTTP or SSDP user agent value
 
-:return: (Client) UPnP client; None on error
+:return: (object) UPnP client; None on error
 :since:  v0.1.00
 		"""
 
@@ -159,7 +165,7 @@ Returns a UPnP client based on the given HTTP or SSDP user agent value.
 
 		# pylint: disable=protected-access
 
-		_return = Client()
+		_return = ClientSettings()
 
 		if (type(user_agent) is str):
 		#

@@ -37,7 +37,6 @@ import re
 
 from dNG.data.rfc.basics import Basics as RfcBasics
 from dNG.pas.controller.http_upnp_request import HttpUpnpRequest
-from dNG.pas.data.upnp.client import Client
 from dNG.pas.data.upnp.upnp_exception import UpnpException
 from dNG.pas.data.upnp.services.abstract_service import AbstractService
 from dNG.pas.net.upnp.gena import Gena
@@ -93,8 +92,8 @@ Action for "request"
 
 		if (re_result is None):
 		#
-			client = Client.load_user_agent(self.client_user_agent)
-			timeout = int(client.get("upnp_subscription_timeout", 1800))
+			client_settings = self.get_client_settings()
+			timeout = int(client_settings.get("upnp_subscription_timeout", 1800))
 		#
 		else: timeout = int(re_result.group(1))
 

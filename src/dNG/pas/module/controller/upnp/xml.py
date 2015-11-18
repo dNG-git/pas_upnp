@@ -32,7 +32,6 @@ https://www.direct-netware.de/redirect?licenses;gpl
 """
 
 from dNG.pas.controller.http_upnp_request import HttpUpnpRequest
-from dNG.pas.data.upnp.client import Client
 from dNG.pas.data.upnp.upnp_exception import UpnpException
 from dNG.pas.data.upnp.devices.abstract_device import AbstractDevice
 from dNG.pas.data.upnp.services.abstract_service import AbstractService
@@ -64,10 +63,10 @@ Action for "get_device"
 		upnp_device = self.request.get_upnp_device()
 		if (not isinstance(upnp_device, AbstractDevice)): raise UpnpException("pas_http_core_400", 401)
 
-		client = Client.load_user_agent(self.client_user_agent)
+		client_settings = self.get_client_settings()
 		upnp_device.set_client_user_agent(self.client_user_agent)
 
-		self.response.init(True, compress = client.get("upnp_http_compression_supported", True))
+		self.response.init(True, compress = client_settings.get("upnp_http_compression_supported", True))
 		self.response.set_header("Content-Type", "text/xml; charset=UTF-8")
 		self.response.set_raw_data("<?xml version='1.0' encoding='UTF-8' ?>" + upnp_device.get_xml())
 	#
@@ -84,10 +83,10 @@ Action for "get_service"
 		upnp_service = self.request.get_upnp_service()
 		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_core_400", 401)
 
-		client = Client.load_user_agent(self.client_user_agent)
+		client_settings = self.get_client_settings()
 		upnp_service.set_client_user_agent(self.client_user_agent)
 
-		self.response.init(True, compress = client.get("upnp_http_compression_supported", True))
+		self.response.init(True, compress = client_settings.get("upnp_http_compression_supported", True))
 		self.response.set_header("Content-Type", "text/xml; charset=UTF-8")
 		self.response.set_raw_data("<?xml version='1.0' encoding='UTF-8' ?>" + upnp_service.get_xml())
 	#

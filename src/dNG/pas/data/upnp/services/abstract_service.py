@@ -32,7 +32,7 @@ https://www.direct-netware.de/redirect?licenses;gpl
 """
 
 from dNG.pas.data.text.link import Link
-from dNG.pas.data.upnp.client import Client
+from dNG.pas.data.upnp.client_user_agent_mixin import ClientUserAgentMixin
 from dNG.pas.data.upnp.upnp_exception import UpnpException
 from dNG.pas.data.upnp.service import Service
 from dNG.pas.data.upnp.variable import Variable
@@ -40,7 +40,7 @@ from dNG.pas.plugins.hook import Hook
 from dNG.pas.runtime.not_implemented_exception import NotImplementedException
 from dNG.pas.runtime.type_exception import TypeException
 
-class AbstractService(Service):
+class AbstractService(Service, ClientUserAgentMixin):
 #
 	"""
 An extended, abstract service implementation for server services.
@@ -63,11 +63,8 @@ Constructor __init__(AbstractService)
 		"""
 
 		Service.__init__(self)
+		ClientUserAgentMixin.__init__(self)
 
-		self.client_user_agent = None
-		"""
-Client user agent
-		"""
 		self.configid = None
 		"""
 UPnP configId value
@@ -268,8 +265,8 @@ Returns the UPnP SCPD.
 
 		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._get_xml()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
-		client = Client.load_user_agent(self.client_user_agent)
-		if (not client.get("upnp_xml_cdata_encoded", False)): xml_resource.set_cdata_encoding(False)
+		client_settings = self.get_client_settings()
+		if (not client_settings.get("upnp_xml_cdata_encoded", False)): xml_resource.set_cdata_encoding(False)
 
 		attributes = { "xmlns": "urn:schemas-upnp-org:service-1-0" }
 		if (self.configid is not None): attributes['configId'] = self.configid
@@ -277,10 +274,8 @@ Returns the UPnP SCPD.
 		xml_resource.add_node("scpd", attributes = attributes)
 		xml_resource.set_cached_node("scpd")
 
-		client = Client.load_user_agent(self.client_user_agent)
-
 		spec_version = (self.get_spec_version()
-		                if (client.get("upnp_spec_versioning_supported", True)) else
+		                if (client_settings.get("upnp_spec_versioning_supported", True)) else
 		                ( 1, 0 )
 		               )
 
@@ -639,19 +634,6 @@ Removes the given host service variable.
 		"""
 
 		if (name in self.variables): del(self.variables[name])
-	#
-
-	def set_client_user_agent(self, user_agent):
-	#
-		"""
-Sets the UPnP client user agent.
-
-:param user_agent: Client user agent
-
-:since: v0.1.00
-		"""
-
-		self.client_user_agent = user_agent
 	#
 
 	def set_configid(self, configid):
