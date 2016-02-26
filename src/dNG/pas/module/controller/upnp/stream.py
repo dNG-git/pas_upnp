@@ -39,6 +39,7 @@ try: from urllib.parse import urlsplit
 except ImportError: from urlparse import urlsplit
 
 from dNG.pas.data.http.streaming import Streaming
+from dNG.pas.data.http.translatable_error import TranslatableError
 from dNG.pas.data.text.input_filter import InputFilter
 from dNG.pas.data.upnp.resource import Resource
 from dNG.pas.data.upnp.resources.abstract_stream import AbstractStream
@@ -85,25 +86,21 @@ Action for "resource"
 			is_allowed = (False if (len(ip_address_paths) < 1) else upnp_control_point.is_ip_allowed(ip_address_paths[0][4][0]))
 		#
 
-		resource = None
+		if (not is_allowed): raise TranslatableError("core_access_denied", 403)
 
-		if (is_allowed):
+		if (client_settings.get("upnp_stream_filter_resource_id_hook_call", False)):
 		#
-			if (client_settings.get("upnp_stream_filter_resource_id_hook_call", False)):
-			#
-				rid_filtered = Hook.call("dNG.pas.upnp.Stream.filterResourceID",
-				                         rid = rid,
-				                         request = self.request,
-				                         response = self.response,
-				                         client_user_agent = self.client_user_agent
-				                        )
+			rid_filtered = Hook.call("dNG.pas.upnp.Stream.filterResourceID",
+			                         rid = rid,
+			                         request = self.request,
+			                         response = self.response,
+			                         client_user_agent = self.client_user_agent
+			                        )
 
-				if (rid_filtered is not None): rid = rid_filtered
-			#
-
-			resource = Resource.load_cds_id(rid, self.client_user_agent)
+			if (rid_filtered is not None): rid = rid_filtered
 		#
 
+		resource = Resource.load_cds_id(rid, self.client_user_agent)
 		stream_resource = None
 
 		if (resource is not None):
@@ -114,57 +111,55 @@ Action for "resource"
 			                  )
 		#
 
-		if (stream_resource is not None):
+		if (stream_resource is None): raise TranslatableError("pas_http_core_404", 404)
+
+		if (self.response.is_supported("headers")):
 		#
-			if (self.response.is_supported("headers")):
-			#
-				Stream._add_dlna_headers(self.request, self.response, resource, stream_resource)
-				self.response.set_header("Content-Type", resource.get_mimetype())
-			#
-
-			stream_url = InputFilter.filter_control_chars(stream_resource.get_resource_id())
-
-			if (client_settings.get("upnp_stream_filter_url_hook_call", False)):
-			#
-				stream_url_filtered = Hook.call("dNG.pas.upnp.Stream.filterUrl",
-				                                resource = resource,
-				                                stream_resource = stream_resource,
-				                                url = stream_url,
-				                                request = self.request,
-				                                response = self.response,
-				                                client_user_agent = self.client_user_agent
-				                               )
-
-				if (stream_url_filtered is not None): stream_url = stream_url_filtered
-			#
-
-			stream_url_elements = urlsplit(stream_url)
-
-			streamer_class = (None
-			                  if (stream_url_elements.scheme == "") else
-			                  "".join([ word.capitalize() for word in stream_url_elements.scheme.split("-") ])
-			                 )
-
-			streamer = (None
-			            if (streamer_class == "") else
-			            NamedLoader.get_instance("dNG.pas.data.streamer.{0}".format(streamer_class), False)
-			           )
-
-			if (client_settings.get("upnp_stream_handle_event_hook_call", False)):
-			#
-				Hook.call("dNG.pas.upnp.Stream.onHandle",
-				          resource = resource,
-				          stream_resource = stream_resource,
-				          streamer = streamer,
-				          request = self.request,
-				          response = self.response,
-				          client_user_agent = self.client_user_agent
-				         )
-			#
-
-			Streaming.handle_url(self.request, streamer, stream_url, self.response)
+			Stream._add_dlna_headers(self.request, self.response, resource, stream_resource)
+			self.response.set_header("Content-Type", resource.get_mimetype())
 		#
-		else: self.response.handle_critical_error("core_access_denied")
+
+		stream_url = InputFilter.filter_control_chars(stream_resource.get_resource_id())
+
+		if (client_settings.get("upnp_stream_filter_url_hook_call", False)):
+		#
+			stream_url_filtered = Hook.call("dNG.pas.upnp.Stream.filterUrl",
+			                                resource = resource,
+			                                stream_resource = stream_resource,
+			                                url = stream_url,
+			                                request = self.request,
+			                                response = self.response,
+			                                client_user_agent = self.client_user_agent
+			                               )
+
+			if (stream_url_filtered is not None): stream_url = stream_url_filtered
+		#
+
+		stream_url_elements = urlsplit(stream_url)
+
+		streamer_class = (None
+		                  if (stream_url_elements.scheme == "") else
+		                  "".join([ word.capitalize() for word in stream_url_elements.scheme.split("-") ])
+		                 )
+
+		streamer = (None
+		            if (streamer_class == "") else
+		            NamedLoader.get_instance("dNG.pas.data.streamer.{0}".format(streamer_class), False)
+		           )
+
+		if (client_settings.get("upnp_stream_handle_event_hook_call", False)):
+		#
+			Hook.call("dNG.pas.upnp.Stream.onHandle",
+			          resource = resource,
+			          stream_resource = stream_resource,
+			          streamer = streamer,
+			          request = self.request,
+			          response = self.response,
+			          client_user_agent = self.client_user_agent
+			         )
+		#
+
+		Streaming.handle_url(self.request, streamer, stream_url, self.response)
 	#
 #
 
