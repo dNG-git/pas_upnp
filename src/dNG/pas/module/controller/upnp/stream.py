@@ -33,8 +33,6 @@ https://www.direct-netware.de/redirect?licenses;gpl
 
 # pylint: disable=import-error,no-name-in-module
 
-import socket
-
 try: from urllib.parse import urlsplit
 except ImportError: from urlparse import urlsplit
 
@@ -44,12 +42,12 @@ from dNG.pas.data.text.input_filter import InputFilter
 from dNG.pas.data.upnp.resource import Resource
 from dNG.pas.data.upnp.resources.abstract_stream import AbstractStream
 from dNG.pas.module.named_loader import NamedLoader
-from dNG.pas.net.upnp.control_point import ControlPoint
 from dNG.pas.plugins.hook import Hook
+from .access_check_mixin import AccessCheckMixin
 from .dlna_headers_mixin import DlnaHeadersMixin
 from .module import Module
 
-class Stream(Module, DlnaHeadersMixin):
+class Stream(Module, AccessCheckMixin, DlnaHeadersMixin):
 #
 	"""
 Service for "m=upnp;s=stream"
@@ -63,6 +61,19 @@ Service for "m=upnp;s=stream"
              GNU General Public License 2
 	"""
 
+	def __init__(self):
+	#
+		"""
+Constructor __init__(AbstractHttpController)
+
+:since: v0.1.00
+		"""
+
+		Module.__init__(self)
+		AccessCheckMixin.__init__(self)
+		DlnaHeadersMixin.__init__(self)
+	#
+
 	def execute_resource(self):
 	#
 		"""
@@ -73,20 +84,11 @@ Action for "resource"
 
 		rid = InputFilter.filter_control_chars(self.request.get_dsd("urid", ""))
 
-		client_host = self.request.get_client_host()
 		client_settings = self.get_client_settings()
-		upnp_control_point = ControlPoint.get_instance()
 
 		self.response.init(True, compress = client_settings.get("upnp_http_compression_supported", True))
 
-		if (client_host is None): is_allowed = False
-		else:
-		#
-			ip_address_paths = socket.getaddrinfo(client_host, self.request.get_client_port(), socket.AF_UNSPEC, 0, socket.IPPROTO_TCP)
-			is_allowed = (False if (len(ip_address_paths) < 1) else upnp_control_point.is_ip_allowed(ip_address_paths[0][4][0]))
-		#
-
-		if (not is_allowed): raise TranslatableError("core_access_denied", 403)
+		self._ensure_access_granted()
 
 		if (client_settings.get("upnp_stream_filter_resource_id_hook_call", False)):
 		#
