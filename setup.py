@@ -53,8 +53,11 @@ with TemporaryDirectory(dir = ".") as build_directory:
 #
 	versions = get_versions()
 
-	parameters = { "pasUPnPVersion": versions[0], "pasUPnPIVersion": versions[1] }
+	parameters = { "install_data_plain_copy_extensions": "json",
+	               "pasUPnPVersion": versions[0], "pasUPnPIVersion": versions[1]
+	             }
 
+	InstallData.add_install_data_callback(InstallData.plain_copy, [ "data" ])
 	InstallData.set_build_target_path(build_directory)
 	InstallData.set_build_target_parameters(parameters)
 
@@ -64,10 +67,12 @@ with TemporaryDirectory(dir = ".") as build_directory:
 	      version = versions[0],
 	      description = "Python Application Services",
 	      long_description = """"pas_upnp" provides the infrastructure to build UPnP client and / or server applications.""",
-	      author = "direct Netware Group",
+	      author = "direct Netware Group et al.",
 	      author_email = "web@direct-netware.de",
 	      license = "GPLv2+",
 	      url = "https://www.direct-netware.de/redirect?pas;upnp",
+
+	      platforms = [ "any" ],
 
 	      package_dir = { "": _build_path },
 	      packages = [ "dNG" ],
