@@ -48,8 +48,7 @@ from dNG.pas.data.streamer.file_like import FileLike
 from dNG.pas.data.text.input_filter import InputFilter
 from dNG.pas.data.upnp.device import Device
 from dNG.pas.data.upnp.resource import Resource
-from dNG.pas.data.upnp.resources.abstract_stream import AbstractStream
-from dNG.pas.data.upnp.resources.thumbnail_mixin import ThumbnailMixin
+from dNG.pas.data.upnp.resources.abstract_item_resource import AbstractItemResource
 from dNG.pas.database.connection import Connection
 from dNG.pas.database.nothing_matched_exception import NothingMatchedException
 from dNG.pas.net.upnp.control_point import ControlPoint
@@ -75,25 +74,26 @@ Service for "m=upnp;s=image"
 	#
 		"""
 Adds DLNA headers of the given resource if requested.
+@TODO: Rewrite
 
 :param resource: UPnP resource instance
 
 :since: v0.1.02
 		"""
 
-		stream_resource = None
+		item_resource = None
 
 		if (resource is not None):
 		#
-			stream_resource = (resource
-			                   if (isinstance(resource, AbstractStream)) else
-			                   resource.get_content(0)
-			                  )
+			item_resource = (resource
+			                 if (isinstance(resource, AbstractItemResource)) else
+			                 resource.get_content(0)
+			                )
 		#
 
-		if (stream_resource is not None):
+		if (item_resource is not None):
 		#
-			Image._add_dlna_headers(self.request, self.response, resource, stream_resource)
+			Image._add_dlna_headers(self.request, self.response, resource)
 		#
 	#
 
@@ -144,7 +144,7 @@ Action for "resource_thumbnail"
 
 		resource = Resource.load_cds_id(rid, self.client_user_agent)
 
-		if (isinstance(resource, ThumbnailMixin)):
+		if (resource is not None and resource.is_supported("thumbnail_file")):
 		#
 			self._add_resource_dlna_headers(resource)
 
@@ -178,11 +178,11 @@ Action for "transformed_resource"
 
 		resource = Resource.load_cds_id(rid, self.client_user_agent)
 
-		if (resource is not None and resource.is_filesystem_resource()):
+		if (resource is not None and resource.is_supported("thumbnail_file")):
 		#
 			self._add_resource_dlna_headers(resource)
 
-			self._stream_transformed_file(resource.get_path(),
+			self._stream_transformed_file(resource.get_thumbnail_file_path_name(),
 			                              mimetype,
 			                              width,
 			                              height,
@@ -243,7 +243,7 @@ Creates and streams the transformed file.
 		#
 			with Connection.get_instance():
 			#
-				cache_url = "upnp-transformed-image:///{0}?mimetype={1};width={2:d};height={3:d};depth={4:d}"
+				cache_url = "x-upnp-transformed-image:///{0}?mimetype={1};width={2:d};height={3:d};depth={4:d}"
 
 				cache_url = cache_url.format(quote(file_path_name),
 				                             mimetype,
