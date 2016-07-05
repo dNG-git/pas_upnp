@@ -37,18 +37,19 @@ try: from urllib.parse import quote
 except ImportError: from urllib import quote
 
 from dNG.pas.data.text.link import Link
-from .abstract_stream import AbstractStream
+from .abstract_item_resource import AbstractItemResource
 
-class HttpBlockStream(AbstractStream):
+class AbstractItemHttpResource(AbstractItemResource):
 #
 	"""
-"Resource" represents an UPnP directory, file or virtual object.
+"AbstractItemHttpResource" represents a HTTP streamable UPnP resource "res"
+entry.
 
 :author:     direct Netware Group
 :copyright:  direct Netware Group - All rights reserved
 :package:    pas
 :subpackage: upnp
-:since:      v0.1.00
+:since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
 	"""
@@ -59,7 +60,7 @@ class HttpBlockStream(AbstractStream):
 Initializes the content of a container.
 
 :return: (bool) True if successful
-:since:  v0.1.00
+:since:  v0.2.00
 		"""
 
 		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._init_content()- (#echo(__LINE__)#)", self, context = "pas_upnp")
@@ -69,10 +70,7 @@ Initializes the content of a container.
 
 		if (self.type is not None):
 		#
-			resource_id = self.get_parent_resource_id()
-			if (resource_id is None): resource_id = self.get_resource_id()
-
-			link_parameters = { "__virtual__": "/upnp/stream/{0}".format(quote(resource_id, "")) }
+			link_parameters = { "__virtual__": "/upnp/stream/{0}".format(quote(self.get_resource_id(), "")) }
 			self.content.append(Link.get_preferred("upnp").build_url(Link.TYPE_VIRTUAL_PATH, link_parameters))
 
 			_return = True
@@ -88,10 +86,10 @@ Sets the UPnP resource mime type.
 
 :param mimetype: UPnP resource mime type
 
-:since: v0.1.01
+:since: v0.2.00
 		"""
 
-		AbstractStream.set_mimetype(self, mimetype)
+		AbstractItemResource.set_mimetype(self, mimetype)
 		if (self.didl_res_protocol is None): self.didl_res_protocol = "http-get:*:{0}:*".format(self.get_mimetype())
 	#
 #

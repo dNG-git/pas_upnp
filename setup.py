@@ -39,7 +39,7 @@ Returns the version currently in development.
 :since:  v0.1.03
 	"""
 
-	return ( "v0.1.03", "0.00103" )
+	return ( "v0.2.00", "0.00200" )
 #
 
 from dNG.distutils.command.build_py import BuildPy
