@@ -46,7 +46,7 @@ Mixin to handle DLNA headers.
 	"""
 
 	@staticmethod
-	def _add_dlna_headers(request, response, resource, stream_resource):
+	def _add_dlna_headers(request, response, resource):
 	#
 		"""
 Adds DLNA headers of the given resource and stream resource if requested.
@@ -54,7 +54,6 @@ Adds DLNA headers of the given resource and stream resource if requested.
 :param request: Request instance
 :param response: Response instance
 :param resource: UPnP resource instance
-:param stream_resource: Underlying UPnP stream resource instance
 
 :since: v0.1.02
 		"""
@@ -62,11 +61,11 @@ Adds DLNA headers of the given resource and stream resource if requested.
 		if (response.is_supported("headers")):
 		#
 			if (request.get_header("getcontentFeatures.dlna.org") == "1"
-			    and stream_resource.is_supported("dlna_content_features")
+			    and resource.is_supported("dlna_content_features")
 			   ):
 			#
 				response.set_header("contentFeatures.dlna.org",
-				                    stream_resource.get_dlna_content_features()
+				                    resource.get_dlna_content_features()
 				                   )
 			#
 
