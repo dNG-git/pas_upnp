@@ -23,7 +23,7 @@ more details.
 
 You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc.,
-59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 ----------------------------------------------------------------------------
 https://www.direct-netware.de/redirect?licenses;gpl
 ----------------------------------------------------------------------------
@@ -381,7 +381,7 @@ Update the list with the given parsed UPnP identifier.
 
 		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._add_task({1:.2f}, {2})- (#echo(__LINE__)#)", self, wait_seconds, _type, context = "pas_upnp")
 
-		timestamp = int(time() + wait_seconds)
+		timestamp = time() + wait_seconds
 
 		with self.lock:
 		#
@@ -987,7 +987,7 @@ Parse unread UPnP descriptions.
 
 			http_client = HttpClient(url, event_handler = self.log_handler)
 			http_client.set_header("Accept-Language", self.http_language)
-			http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
+			http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pas.upnp/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
 			http_client.set_ipv6_link_local_interface(Settings.get("pas_global_ipv6_link_local_interface"))
 
 			http_response = http_client.request_get()
