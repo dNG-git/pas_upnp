@@ -23,7 +23,7 @@ more details.
 
 You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc.,
-59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 ----------------------------------------------------------------------------
 https://www.direct-netware.de/redirect?licenses;gpl
 ----------------------------------------------------------------------------
@@ -318,7 +318,7 @@ Initialize actions from the SCPD URL.
 		os_uname = uname()
 
 		http_client = HttpClient(self.url_scpd, event_handler = self.log_handler)
-		http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
+		http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pas.upnp/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
 		http_response = http_client.request_get()
 
 		if (http_response.is_readable()): _return = self.init_xml_scpd(Binary.str(http_response.read()))
@@ -536,7 +536,7 @@ device.
 		http_client = HttpClient(self.url_control, event_handler = self.log_handler)
 		http_client.set_header("Content-Type", "text/xml; charset=UTF-8")
 		http_client.set_header("SoapAction", "{0}#{1}".format(urn, action))
-		http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
+		http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pas.upnp/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
 
 		http_response = http_client.request_post(xml_resource.export_cache(True))
 

@@ -23,7 +23,7 @@ more details.
 
 You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc.,
-59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 ----------------------------------------------------------------------------
 https://www.direct-netware.de/redirect?licenses;gpl
 ----------------------------------------------------------------------------
@@ -367,7 +367,7 @@ Returns a UPnP service for the given UPnP service ID.
 						os_uname = uname()
 
 						http_client = HttpClient(scpd_url, event_handler = NamedLoader.get_singleton("dNG.data.logging.LogHandler", False))
-						http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
+						http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pas.upnp/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
 						http_client.set_ipv6_link_local_interface(Settings.get("pas_global_ipv6_link_local_interface"))
 						http_response = http_client.request_get()
 
