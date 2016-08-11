@@ -23,7 +23,7 @@ more details.
 
 You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc.,
-59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 ----------------------------------------------------------------------------
 https://www.direct-netware.de/redirect?licenses;gpl
 ----------------------------------------------------------------------------
@@ -38,7 +38,7 @@ from uuid import NAMESPACE_URL
 from uuid import uuid3 as uuid_of_namespace
 
 from dNG.data.logging.log_line import LogLine
-from dNG.data.media.image import Image
+from dNG.data.media.image_implementation import ImageImplementation
 from dNG.data.text.link import Link
 from dNG.data.upnp.client_user_agent_mixin import ClientUserAgentMixin
 from dNG.data.upnp.device import Device
@@ -251,8 +251,9 @@ Returns the UPnP device description for encoding.
 		xml_resource.set_cached_node("root device")
 
 		icon_file_path_name = self.get_icon_file_path_name()
+		image_class = ImageImplementation.get_class()
 
-		if ((not issubclass(Image, NotImplementedClass)) and icon_file_path_name is not None):
+		if (image_class is not None and icon_file_path_name is not None):
 		#
 			xml_resource.add_node("root device iconList")
 
@@ -268,7 +269,7 @@ Returns the UPnP device description for encoding.
 				#
 					for icon_depth in icon_depths:
 					#
-						colormap = Image.get_colormap_for_depth(icon_mimetype, icon_depth)
+						colormap = image_class.get_colormap_for_depth(icon_mimetype, icon_depth)
 
 						if (colormap is not None):
 						#
