@@ -23,7 +23,7 @@ more details.
 
 You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc.,
-59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 ----------------------------------------------------------------------------
 https://www.direct-netware.de/redirect?licenses;gpl
 ----------------------------------------------------------------------------
@@ -34,6 +34,7 @@ https://www.direct-netware.de/redirect?licenses;gpl
 from os import path
 import re
 
+from dNG.data.binary import Binary
 from dNG.data.cache.json_file_content import JsonFileContent
 from dNG.data.logging.log_line import LogLine
 from dNG.data.settings import Settings
@@ -165,15 +166,19 @@ Returns a UPnP client based on the given HTTP or SSDP user agent value.
 
 		# pylint: disable=protected-access
 
-		_return = ClientSettings()
+		user_agent = Binary.str(user_agent)
 
-		if (type(user_agent) is str):
-		#
-			external_client = Hook.call("dNG.pas.upnp.Client.getUserAgent", user_agent = user_agent)
+		external_client = (Hook.call("dNG.pas.upnp.Client.getUserAgent", user_agent = user_agent)
+		                   if (type(user_agent) is str) else
+		                   None
+		                  )
 
-			if (external_client is None): _return._load_user_agent_file(user_agent)
-			else: _return = external_client
+		if (external_client is None):
 		#
+			_return = ClientSettings()
+			if (type(user_agent) is str): _return._load_user_agent_file(user_agent)
+		#
+		else: _return = external_client
 
 		return _return
 	#
