@@ -23,7 +23,7 @@ more details.
 
 You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc.,
-59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 ----------------------------------------------------------------------------
 https://www.direct-netware.de/redirect?licenses;gpl
 ----------------------------------------------------------------------------
@@ -71,7 +71,7 @@ Initializes the content of a container.
 
 		if (self.type is not None):
 		#
-			link_parameters = { "__virtual__": "/upnp/stream/{0}".format(quote(self.get_resource_id(), "")) }
+			link_parameters = { "__virtual__": "/upnp/stream/{0}".format(quote(self.get_resource_id(), "/")) }
 			self.content.append(Link.get_preferred("upnp").build_url(Link.TYPE_VIRTUAL_PATH, link_parameters))
 
 			_return = True
