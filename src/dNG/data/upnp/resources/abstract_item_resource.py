@@ -23,7 +23,7 @@ more details.
 
 You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc.,
-59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 ----------------------------------------------------------------------------
 https://www.direct-netware.de/redirect?licenses;gpl
 ----------------------------------------------------------------------------
@@ -78,6 +78,14 @@ Dict of UPnP resource metadata
 		"""
 UPnP parent resource instance
 		"""
+		self.use_parent_resource_data = True
+		"""
+True to use the UPnP resource data from the parent one if supported
+		"""
+		self.use_parent_resource_metadata = True
+		"""
+True to copy UPnP resource metadata from the parent resource if supported
+		"""
 		self.vfs_url = None
 		"""
 VFS URL to read data from
@@ -105,7 +113,6 @@ Uses the given XML resource to add the DIDL metadata of this UPnP resource.
 		#
 			attributes = { }
 			didl_fields = self.get_didl_fields()
-			metadata = { }
 			res_protocol = self.get_didl_res_protocol()
 			size = self.get_size()
 
@@ -114,13 +121,7 @@ Uses the given XML resource to add the DIDL metadata of this UPnP resource.
 
 			didl_fields_filtered = (len(didl_fields) > 0)
 
-			self._init_parent_resource()
-
-			if (self.parent_resource is not None
-			    and self.parent_resource.is_supported("upnp_resource_metadata")
-			   ): metadata.update(self.parent_resource.get_upnp_resource_metadata())
-
-			metadata.update(self.metadata)
+			metadata = self.get_metadata()
 
 			for key in metadata:
 			#
@@ -132,6 +133,31 @@ Uses the given XML resource to add the DIDL metadata of this UPnP resource.
 
 			xml_resource.add_node(xml_node_path, value, attributes)
 		#
+	#
+
+	def get_metadata(self, **kwargs):
+	#
+		"""
+Sets additional metadata used for "_add_metadata_to_didl_xml_node()" of this
+UPnP resource.
+
+:since: v0.2.00
+		"""
+
+		_return = { }
+
+		if (self.use_parent_resource_data and self.use_parent_resource_metadata):
+		#
+			self._init_parent_resource()
+
+			if (self.parent_resource is not None
+			    and self.parent_resource.is_supported("upnp_resource_metadata")
+			   ): _return.update(self.parent_resource.get_upnp_resource_metadata())
+		#
+
+		_return.update(self.metadata)
+
+		return _return
 	#
 
 	def get_mimeclass(self):
@@ -177,9 +203,9 @@ Returns the given attribute value or loads it from the UPnP parent resource
 if not defined.
 		"""
 
-		_return = getattr(self, "name", None)
+		_return = getattr(self, name, None)
 
-		if (_return is None):
+		if (_return is None and self.use_parent_resource_data):
 		#
 			self._init_parent_resource()
 
@@ -244,7 +270,7 @@ Initialize a UPnP resource by CDS ID.
 
 		_return = Abstract.init_cds_id(self, _id, client_user_agent, deleted)
 
-		if (self.resource_id is not None and "://" in self.resource_id):
+		if (_return and "://" in self.resource_id):
 		#
 			url_elements = urlsplit(self.resource_id)
 
@@ -264,7 +290,7 @@ Initialize a UPnP resource by CDS ID.
 				self.set_parent_resource_id(self.resource_id)
 
 				self.resource_id = "{0}:///{1}".format(item_resource_scheme,
-				                                       quote(self.resource_id)
+				                                       quote(self.resource_id, "/")
 				                                      )
 			#
 
