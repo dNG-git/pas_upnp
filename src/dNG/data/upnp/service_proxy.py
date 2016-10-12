@@ -102,6 +102,8 @@ class tree for self).
 
 			def proxymethod(**kwargs):
 			#
+				_return = { }
+
 				arguments = (argument_variables.copy() if (hasattr(argument_variables, "copy")) else copy(argument_variables))
 
 				for name in kwargs:
@@ -121,7 +123,27 @@ class tree for self).
 					#
 				#
 
-				result = self.service.request_soap_action(name, arguments)
+				result = self.service.request_soap_action(action_method, arguments)
+
+				if (return_variable is not None):
+				#
+					result_value = Variable.get_upnp_value(return_variable['variable'],
+					                                       result.get(return_variable['name'], None)
+					                                      )
+
+					_return[return_variable['name']] = result_value
+				#
+
+				for result_variable in result_variables:
+				#
+					result_value = Variable.get_upnp_value(result_variable['variable'],
+					                                       result.get(result_variable['name'], None)
+					                                      )
+
+					_return[result_variable['name']] = result_value
+				#
+
+				return _return
 			#
 
 			return proxymethod
