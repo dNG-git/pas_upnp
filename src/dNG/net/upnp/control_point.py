@@ -774,7 +774,7 @@ Returns a UPnP rootdevice for the given identifier.
 
 :param identifier: Parsed UPnP identifier
 
-:return: (dict) Parsed UPnP identifier; False on error
+:return: (object) UPnP rootdevice; None if not found
 :since:  v0.2.00
 		"""
 
@@ -804,14 +804,15 @@ Returns a UPnP rootdevice for the given identifier.
 		return _return
 	#
 
-	def get_rootdevice_for_host(self, host):
+	def get_rootdevice_for_host(self, host, _type):
 	#
 		"""
-Returns a UPnP rootdevice for the given identifier.
+Returns a UPnP rootdevice for the given UPnP host.
 
-:param identifier: Parsed UPnP identifier
+:param host: UPnP host
+:param _type: UPnP rootdevice type
 
-:return: (dict) Parsed UPnP identifier; False on error
+:return: (object) UPnP rootdevice; None if not found
 :since:  v0.2.00
 		"""
 
@@ -829,7 +830,10 @@ Returns a UPnP rootdevice for the given identifier.
 				#
 					for usn in self.usns:
 					#
-						if (ip in self.usns[usn].get("ips", [ ])):
+						if (self.usns[usn]['class'] == "device"
+						    and self.usns[usn]['type'] == _type
+						    and ip in self.usns[usn].get("ips", [ ])
+						   ):
 						#
 							_return = self.get_rootdevice(self.usns[usn])
 							break
