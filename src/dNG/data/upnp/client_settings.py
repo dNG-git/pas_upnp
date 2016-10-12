@@ -39,12 +39,16 @@ from dNG.data.cache.json_file_content import JsonFileContent
 from dNG.data.logging.log_line import LogLine
 from dNG.data.settings import Settings
 from dNG.data.text.input_filter import InputFilter
+from dNG.module.named_loader import NamedLoader
 from dNG.plugins.hook import Hook
+from dNG.runtime.thread_lock import ThreadLock
 
-class ClientSettings(dict):
+class ClientSettings(object):
 #
 	"""
 This class holds static methods to handle UPnP client settings.
+
+@TODO: Add host protocolinfo specific code
 
 :author:     direct Netware Group et al.
 :copyright:  direct Netware Group - All rights reserved
@@ -55,21 +59,166 @@ This class holds static methods to handle UPnP client settings.
              GNU General Public License 2
 	"""
 
-	def __repr__(self):
+	def __init__(self, user_agent = None, host = None):
 	#
 		"""
-python.org: Called by the repr() built-in function and by string conversions
-(reverse quotes) to compute the "official" string representation of an
-object.
+Constructor __init__(ClientSettings)
 
-:return: (str) String representation
+:since: v0.2.00
+		"""
+
+		self.host = host
+		"""
+Client host
+		"""
+		self.host_protocol_info_dict = None
+		"""
+Client UPnP protocol info dictionary
+		"""
+		self._lock = ThreadLock()
+		"""
+Thread safety lock
+		"""
+		self.user_agent = user_agent
+		"""
+Client user agent
+		"""
+		self.user_agent_file_dict = None
+		"""
+User agent file specific dictionary
+		"""
+	#
+
+	def __contains__(self, item):
+	#
+		"""
+python.org: Called to implement membership test operators.
+
+:param item: Item to be looked up
+
+:return: (bool) True if "__getitem__()" call will be successfully
 :since:  v0.2.00
 		"""
 
-		return object.__repr__(self)
+		if (self.user_agent_file_dict is None): self._init_settings()
+		if (item[:14] == "upnp_protocol_"): self._init_host_protocol_info()
+
+		_return = (item in self.user_agent_file_dict)
+
+		if (not _return
+		    and self.host_protocol_info_dict is not None
+		   ): _return = (item in self.host_protocol_info_dict)
+
+		return _return
 	#
 
-	def _load_user_agent_file(self, user_agent):
+	def __getitem__(self, key):
+	#
+		"""
+python.org: Called to implement evaluation of self[key].
+
+:param name: Attribute name
+
+:return: (mixed) Attribute value
+:since:  v0.2.00
+		"""
+
+		if (self.user_agent_file_dict is None): self._init_settings()
+		if (key[:14] == "upnp_protocol_"): self._init_host_protocol_info()
+
+		_return = (None
+		           if (self.host_protocol_info_dict is None) else
+		           self.host_protocol_info_dict.get(key, None)
+		          )
+
+		if (_return is None): _return = self.user_agent_file_dict[key]
+
+		return _return
+	#
+
+	def get(self, key, default = None):
+	#
+		"""
+python.org: Return the value for key if key is in the dictionary, else
+default.
+
+:param key: Key
+:param default: Default return value
+
+:return: (mixed) Value
+:since:  v0.2.00
+		"""
+
+		_return = default
+
+		try: _return = self[key]
+		except KeyError: pass
+
+		return _return
+	#
+
+	def _init_host_protocol_info(self):
+	#
+		"""
+Initializes the client settings UPnP host based protocol info dictionary if
+the UPnP host has been previously defined.
+
+:since: v0.2.00
+		"""
+
+		if (self.host is not None and self.host_protocol_info_dict is None):
+		#
+			with self._lock:
+			# Thread safety
+				if (self.host_protocol_info_dict is None):
+				#
+					self.host_protocol_info_dict = { }
+
+					control_point = NamedLoader.get_singleton("dNG.net.upnp.ControlPoint")
+
+					connection_manager = None
+					device = control_point.get_rootdevice_for_host(self.host, "MediaRenderer")
+
+					if (device is not None): connection_manager = device.get_service("ConnectionManager")
+
+					if (connection_manager is not None and connection_manager.is_action_supported("GetProtocolInfo")):
+					#
+						connection_manager_proxy = connection_manager.get_proxy()
+
+						protocol_info = connection_manager_proxy.GetProtocolInfo()
+
+						supported_list = protocol_info.get("Source", "").split(",")
+						self.host_protocol_info_dict['upnp_protocol_source_supported_list'] = supported_list
+
+						supported_list = protocol_info.get("Sink", "").split(",")
+						self.host_protocol_info_dict['upnp_protocol_sink_supported_list'] = supported_list
+					#
+				#
+			#
+		#
+	#
+
+	def _init_settings(self):
+	#
+		"""
+Initializes the client settings user agent dictionary.
+
+:since: v0.2.00
+		"""
+
+		if (self.user_agent_file_dict is None):
+		#
+			with self._lock:
+			# Thread safety
+				if (self.user_agent_file_dict is None):
+				#
+					self.user_agent_file_dict = ClientSettings.get_user_agent_settings(self.user_agent)
+				#
+			#
+		#
+	#
+
+	def set_host(self, host):
 	#
 		"""
 Updates the client with the data loaded from the settings file for the given
@@ -80,38 +229,69 @@ user agent.
 :since: v0.2.00
 		"""
 
-		identifier = ClientSettings.get_user_agent_identifiers(user_agent)
-
-		settings = ClientSettings.get_settings_file("{0}/upnp/user_agents/{1}.json".format(Settings.get("path_data"), identifier))
-
-		if (type(settings) is dict): self.update(settings)
-		else:
-		#
-			log_line = "#echo(__FILEPATH__)# -{0!r}._load_user_agent_file()- reporting: No client file for user agent '{1}' with identifier '{2}'"
-
-			if (Settings.get("pas_upnp_log_missing_user_agent", False)): LogLine.warning(log_line, self, user_agent, identifier, context = "pas_upnp")
-			else: LogLine.debug(log_line, self, user_agent, identifier, context = "pas_upnp")
-		#
+		self.host = host
+		self.host_protocol_info_dict = None
 	#
 
 	@staticmethod
-	def get_settings_file(file_path_name):
+	def get_user_agent_settings(user_agent):
 	#
 		"""
-Returns the client settings from the given file or a client file specified
-in it.
+Returns the user agent specific client settings dictionary.
 
-:param file_path_name: Settings file path
+:param user_agent: User agent
 
-:return: (dict) UPnP client settings; None on error
+:return: (dict) User agent specific client settings; None on error
 :since:  v0.2.00
 		"""
 
-		_return = JsonFileContent.read(path.normpath(file_path_name))
+		_return = { }
 
-		if (type(_return) is dict and "client_file" in _return):
+		settings = None
+		user_agent = Binary.str(user_agent)
+
+		if (type(user_agent) is str):
 		#
-			_return = JsonFileContent.read(path.join(Settings.get("path_data"), "upnp", "user_agents", InputFilter.filter_file_path(_return['client_file'])))
+			settings = Hook.call("dNG.pas.upnp.Client.getUserAgentSettings", user_agent = user_agent)
+
+			if (not isinstance(settings, dict)):
+			#
+				identifier = ClientSettings.get_user_agent_identifiers(user_agent)
+				settings_file_name = "{0}.json".format(identifier)
+
+				settings = JsonFileContent.read(path.join(Settings.get("path_data"),
+				                                          "upnp",
+				                                          "user_agents",
+				                                          settings_file_name
+				                                         )
+				                               )
+
+				if (settings is None):
+				#
+					log_line = "#echo(__FILEPATH__)# -ClientSettings.get_user_agent_settings()- reporting: No client settings found for user agent '{0}' with identifier '{1}'"
+
+					if (Settings.get("pas_upnp_log_missing_user_agent", False)): LogLine.warning(log_line, user_agent, identifier, context = "pas_upnp")
+					else: LogLine.debug(log_line, user_agent, identifier, context = "pas_upnp")
+				#
+			#
+		#
+
+		if (settings is not None):
+		#
+			if ("client_file" in settings):
+			#
+				base_settings = JsonFileContent.read(path.join(Settings.get("path_data"),
+				                                               "upnp",
+				                                               "user_agents",
+				                                               InputFilter.filter_file_path(_return['client_file'])
+				                                              )
+				                                    )
+
+				if (type(base_settings) is dict): _return.update(base_settings)
+				del(settings['client_file'])
+			#
+
+			_return.update(settings)
 		#
 
 		return _return
@@ -148,37 +328,6 @@ Returns a UPnP client based on the given HTTP or SSDP user agent value.
 
 		if (_return == ""): _return = re.sub("\\W+", "_", user_agent).lower()
 		else: _return = _return.lower()
-
-		return _return
-	#
-
-	@staticmethod
-	def load_user_agent(user_agent):
-	#
-		"""
-Returns a UPnP client based on the given HTTP or SSDP user agent value.
-
-:param user_agent: HTTP or SSDP user agent value
-
-:return: (Client) UPnP client; Empty one if unknown
-:since:  v0.2.00
-		"""
-
-		# pylint: disable=protected-access
-
-		user_agent = Binary.str(user_agent)
-
-		external_client = (Hook.call("dNG.pas.upnp.Client.getUserAgent", user_agent = user_agent)
-		                   if (type(user_agent) is str) else
-		                   None
-		                  )
-
-		if (external_client is None):
-		#
-			_return = ClientSettings()
-			if (type(user_agent) is str): _return._load_user_agent_file(user_agent)
-		#
-		else: _return = external_client
 
 		return _return
 	#
