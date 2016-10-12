@@ -31,15 +31,10 @@ https://www.direct-netware.de/redirect?licenses;gpl
 #echo(__FILEPATH__)#
 """
 
-from platform import uname
-
-from dNG.data.binary import Binary
-from dNG.data.settings import Settings
 from dNG.data.logging.log_line import LogLine
 from dNG.data.xml_resource import XmlResource
 from dNG.module.named_loader import NamedLoader
-from dNG.net.http.client import Client as HttpClient
-from dNG.runtime.thread_lock import ThreadLock
+from dNG.runtime.io_exception import IOException
 from dNG.runtime.value_exception import ValueException
 
 from .identifier_mixin import IdentifierMixin
@@ -119,17 +114,9 @@ UPnP friendlyName value
 		"""
 UPnP presentationURL value
 		"""
-		self.scpds = { }
-		"""
-Received Service Control Protocol Definitions
-		"""
 		self.services = { }
 		"""
 UPnP services
-		"""
-		self._lock = ThreadLock()
-		"""
-Thread safety lock
 		"""
 		self.url_base = None
 		"""
@@ -358,28 +345,8 @@ Returns a UPnP service for the given UPnP service ID.
 
 			if (not _return.is_initialized()):
 			#
-				with self._lock:
-				#
-					scpd_url = _return.get_url_scpd()
-
-					if (scpd_url not in self.scpds):
-					#
-						os_uname = uname()
-
-						http_client = HttpClient(scpd_url, event_handler = NamedLoader.get_singleton("dNG.data.logging.LogHandler", False))
-						http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pas.upnp/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
-						http_client.set_ipv6_link_local_interface(Settings.get("pas_global_ipv6_link_local_interface"))
-						http_response = http_client.request_get()
-
-						if (http_response.is_readable()): self.scpds[scpd_url] = Binary.str(http_response['body'])
-					#
-
-					if (scpd_url in self.scpds):
-					#
-						_return.init_xml_scpd(self.scpds[scpd_url])
-						if (_return.is_managed()): _return.set_configid(self.configid)
-					#
-				#
+				if (not _return.init_scpd()): raise IOException("Failed to initialize service {0}".format(_return.get_service_id_urn()))
+				if (_return.is_managed()): _return.set_configid(self.configid)
 			#
 		#
 
@@ -445,7 +412,9 @@ Initialize the device from a UPnP description.
 
 		xml_resource = self._init_xml_resource()
 
-		if (xml_resource.set(xml_tree, True) != False and xml_resource.count_node("upnp:device") > 0): xml_resource.set_cached_node("upnp:device")
+		if (xml_resource.set(xml_tree, True) != False
+		    and xml_resource.count_node("upnp:device") > 0
+		   ): xml_resource.set_cached_node("upnp:device")
 		else: _return = False
 
 		if (_return):
@@ -481,7 +450,9 @@ Initialize the list of embedded devices from a UPnP description.
 
 		xml_resource = self._init_xml_resource()
 
-		if (xml_resource.set(xml_tree, True) != False and xml_resource.count_node("upnp:deviceList") > 0): xml_resource.set_cached_node("upnp:deviceList")
+		if (xml_resource.set(xml_tree, True) != False
+		    and xml_resource.count_node("upnp:deviceList") > 0
+		   ): xml_resource.set_cached_node("upnp:deviceList")
 		else: _return = False
 
 		devices_count = xml_resource.count_node("upnp:deviceList upnp:device")
@@ -506,7 +477,11 @@ Initialize the list of embedded devices from a UPnP description.
 					if (embedded_device is None): embedded_device = Device()
 
 					embedded_xml_data = { "device": xml_resource.get_node("upnp:deviceList upnp:device#{0:d}".format(position), False) }
-					if (embedded_device.init_embedded_device_xml_tree(embedded_identifier, self.url_base, embedded_xml_data)): self.add_embedded_device(embedded_device)
+
+					if (embedded_device.init_embedded_device_xml_tree(embedded_identifier,
+					                                                  self.url_base, embedded_xml_data
+					                                                 )
+					   ): self.add_embedded_device(embedded_device)
 				#
 			#
 		#
@@ -531,7 +506,9 @@ Initialize the embedded device from a UPnP description.
 
 		xml_resource = self._init_xml_resource()
 
-		if (xml_resource.set(xml_tree, True) != False and xml_resource.count_node("upnp:device") > 0): xml_resource.set_cached_node("upnp:device")
+		if (xml_resource.set(xml_tree, True) != False
+		    and xml_resource.count_node("upnp:device") > 0
+		   ): xml_resource.set_cached_node("upnp:device")
 		else: _return = False
 
 		if (_return):
@@ -560,7 +537,10 @@ Initialize the embedded device from a UPnP description.
 			self.url_base = url_base
 
 			xml_node = xml_resource.get_node("upnp:device upnp:serviceList", False)
-			if (xml_node is not None and "xml.item" in xml_node): _return = self._init_services_xml_tree({ xml_node['xml.item']['tag']: xml_node })
+
+			if (xml_node is not None
+			    and "xml.item" in xml_node
+			   ): _return = self._init_services_xml_tree({ xml_node['xml.item']['tag']: xml_node })
 		#
 
 		return _return
@@ -594,7 +574,20 @@ Initialize the list of services from a UPnP description.
 			#
 				service = Service()
 				xml_node = xml_resource.get_node("upnp:serviceList upnp:service#{0:d}".format(position), False)
-				if (xml_node is not None and "xml.item" in xml_node and service.init_metadata_xml_tree(self._get_identifier(), self.url_base, { xml_node['xml.item']['tag']: xml_node })): self.add_service(service)
+
+				if (xml_node is not None
+				    and "xml.item" in xml_node
+				   ):
+				#
+					service_xml_resource = self._init_xml_resource()
+
+					if (service_xml_resource.set({ xml_node['xml.item']['tag']: xml_node }, True) != False
+					    and service.init_metadata_xml_tree(self._get_identifier(),
+					                                       self.url_base,
+					                                       service_xml_resource
+					                                      )
+					   ): self.add_service(service)
+				#
 			#
 		#
 
@@ -653,9 +646,11 @@ Initialize the device structure from a UPnP description.
 
 			if (_return):
 			#
-				self._set_spec_major(xml_resource.get_node_value("upnp:root upnp:specVersion upnp:major"),
-				                     xml_resource.get_node_value("upnp:root upnp:specVersion upnp:minor")
-				                    )
+				spec_version = ( xml_resource.get_node_value("upnp:root upnp:specVersion upnp:major"),
+				                 xml_resource.get_node_value("upnp:root upnp:specVersion upnp:minor")
+				               )
+
+				self._set_spec_version(spec_version)
 
 				value = xml_resource.get_node_value("upnp:root upnp:URLBase")
 				self.url_base = (usn_data['url_base'] if (value is None) else value)
