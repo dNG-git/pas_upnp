@@ -162,7 +162,7 @@ Returns a callable proxy object for UPnP actions and variables.
 
 		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.get_proxy()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
-		if (self.actions is None and self.variables is None): self.init_scpd()
+		if (not self.is_initialized()): self.init_scpd()
 		return ServiceProxy(self, self.actions, self.variables)
 	#
 
@@ -486,10 +486,25 @@ Initialize the list of service actions from a UPnP SCPD description.
 		return _return
 	#
 
+	def is_action_supported(self, action_method):
+	#
+		"""
+Returns true if the given UPnP action method is supported.
+
+:param action_method: UPnP action method
+
+:return: (bool) True if supported
+:since:  v0.2.00
+		"""
+
+		if (not self.is_initialized()): self.init_scpd()
+		return (self.actions is not None and action_method in self.actions)
+	#
+
 	def is_initialized(self):
 	#
 		"""
-"is_initialized()" returns true if it is initialized.
+Returns true if this service has been initialized.
 
 :return: (bool) True if already initialized
 :since:  v0.2.00
