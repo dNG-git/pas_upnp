@@ -238,14 +238,14 @@ Returns the UPnP SCPDURL value.
 		return self.url_scpd
 	#
 
-	def init_metadata_xml_tree(self, device_identifier, url_base, xml_tree):
+	def init_metadata_xml_tree(self, device_identifier, url_base, xml_resource):
 	#
 		"""
 Initialize the service metadata from a UPnP description.
 
 :param device_identifier: Parsed UPnP device identifier
 :param url_base: HTTP base URL
-:param xml_tree: Input tree dict
+:param xml_resource: UPnP description XML parser instance
 
 :return: (bool) True if parsed successfully
 :since:  v0.2.00
@@ -253,9 +253,7 @@ Initialize the service metadata from a UPnP description.
 
 		_return = True
 
-		xml_resource = self._init_xml_resource()
-
-		if (xml_resource.set(xml_tree, True) != False and xml_resource.count_node("upnp:service") > 0): xml_resource.set_cached_node("upnp:service")
+		if (xml_resource.count_node("upnp:service") > 0): xml_resource.set_cached_node("upnp:service")
 		else: _return = False
 
 		if (_return):
@@ -360,6 +358,7 @@ Initialize the list of service actions from a UPnP SCPD description.
 		#
 			self.actions = None
 			self.variables = None
+
 			xml_resource = self._init_xml_resource()
 
 			if (xml_resource.xml_to_dict(xml_data) is None or xml_resource.count_node("scpd:scpd") < 1): _return = False
@@ -367,9 +366,11 @@ Initialize the list of service actions from a UPnP SCPD description.
 
 			if (_return):
 			#
-				self._set_spec_major(xml_resource.get_node_value("scpd:scpd scpd:specVersion scpd:major"),
-				                     xml_resource.get_node_value("scpd:scpd scpd:specVersion scpd:minor")
-				                    )
+				spec_version = ( xml_resource.get_node_value("scpd:scpd scpd:specVersion scpd:major"),
+				                 xml_resource.get_node_value("scpd:scpd scpd:specVersion scpd:minor")
+				               )
+
+				self._set_spec_version(spec_version)
 			#
 
 			variables_count = (xml_resource.count_node("scpd:scpd scpd:serviceStateTable scpd:stateVariable") if (_return) else 0)
@@ -390,15 +391,22 @@ Initialize the list of service actions from a UPnP SCPD description.
 					if (xml_node_attributes.get("multicast", "").lower() == "yes"): multicast_events = True
 
 					name = xml_resource.get_node_value("{0} scpd:name".format(xml_base_path))
-					_type = Variable.get_native_type_from_xml(xml_resource, xml_resource.get_node("{0} scpd:dataType".format(xml_base_path)))
+
+					xml_node = xml_resource.get_node("{0} scpd:dataType".format(xml_base_path))
+					_type = Variable.get_native_type_from_xml(xml_resource, xml_node)
 
 					if (_type == False): raise ValueException("Invalid dataType definition found")
-					self.variables[name] = { "is_sending_events": send_events, "is_multicasting_events": multicast_events, "type": _type }
+
+					self.variables[name] = { "is_sending_events": send_events,
+					                         "is_multicasting_events": multicast_events,
+					                         "type": _type
+					                       }
 
 					value = xml_resource.get_node_value("{0} scpd:defaultValue".format(xml_base_path))
 					if (value is not None): self.variables[name]['value'] = value
 
-					allowed_values_count = xml_resource.count_node("{0} scpd:allowedValueList scpd:allowedValue".format(xml_base_path))
+					xml_allowed_value_node_path = "{0} scpd:allowedValueList scpd:allowedValue".format(xml_base_path)
+					allowed_values_count = xml_resource.count_node(xml_allowed_value_node_path)
 
 					if (allowed_values_count > 0):
 					#
@@ -407,19 +415,20 @@ Initialize the list of service actions from a UPnP SCPD description.
 
 						for position_allowed in range(0, allowed_values_count):
 						#
-							value = xml_resource.get_node_value("{0} scpd:allowedValueList scpd:allowedValue#{1:d}".format(xml_base_path, position_allowed))
+							value = xml_resource.get_node_value("{0}#{1:d}".format(xml_allowed_value_node_path, position_allowed))
 							if (value is not None and value not in self.variables[name]['values_allowed']): self.variables[name]['values_allowed'].append(value)
 						#
 					#
 
-					xml_node = xml_resource.get_node("{0} scpd:allowedValueRange".format(xml_base_path))
+					xml_allowed_value_range_node_path = "{0} scpd:allowedValueRange".format(xml_base_path)
+					xml_node = xml_resource.get_node(xml_allowed_value_range_node_path)
 
 					if (xml_node is not None):
 					#
 						if (allowed_values_count > 0): raise ValueException("SCPD can only contain one of allowedValueList and allowedValueRange")
 
-						self.variables[name]['values_min'] = xml_resource.get_node_value("{0} scpd:allowedValueRange scpd:minimum".format(xml_base_path))
-						self.variables[name]['values_max'] = xml_resource.get_node_value("{0} scpd:allowedValueRange scpd:maximum".format(xml_base_path))
+						self.variables[name]['values_min'] = xml_resource.get_node_value("{0} scpd:minimum".format(xml_allowed_value_range_node_path))
+						self.variables[name]['values_max'] = xml_resource.get_node_value("{0} scpd:maximum".format(xml_allowed_value_range_node_path))
 
 						value = xml_resource.get_node("{0} scpd:allowedValueRange scpd:step".format(xml_base_path))
 						if (value is not None): self.variables[name]['values_stepping'] = value
@@ -437,26 +446,27 @@ Initialize the list of service actions from a UPnP SCPD description.
 
 				for position in range(0, actions_count):
 				#
-					name = xml_resource.get_node_value("scpd:scpd scpd:actionList scpd:action#{0:d} scpd:name".format(position))
+					xml_base_path = "scpd:scpd scpd:actionList scpd:action#{0:d}".format(position)
+					name = xml_resource.get_node_value("{0} scpd:name".format(xml_base_path))
 
-					action_arguments_count = xml_resource.count_node("scpd:scpd scpd:actionList scpd:action#{0:d} scpd:argumentList scpd:argument".format(position))
+					action_arguments_count = xml_resource.count_node("{0} scpd:argumentList scpd:argument".format(xml_base_path))
 					self.actions[name] = { "argument_variables": [ ], "return_variable": None, "result_variables": [ ] }
 
 					if (action_arguments_count > 0):
 					#
 						for position_argument in range(0, action_arguments_count):
 						#
-							xml_base_path = "scpd:scpd scpd:actionList scpd:action#{0:d} scpd:argumentList scpd:argument#{1:d}".format(position, position_argument)
+							xml_argument_node_path = "{0} scpd:argumentList scpd:argument#{1:d}".format(xml_base_path, position_argument)
 
-							argument_name = xml_resource.get_node_value("{0} scpd:name".format(xml_base_path))
+							argument_name = xml_resource.get_node_value("{0} scpd:name".format(xml_argument_node_path))
 
-							value = xml_resource.get_node_value("{0} scpd:direction".format(xml_base_path))
+							value = xml_resource.get_node_value("{0} scpd:direction".format(xml_argument_node_path))
 							argument_type = ("argument_variables" if (value.strip().lower() == "in") else "result_variables")
 
-							value = xml_resource.get_node_value("{0} scpd:retval".format(xml_base_path))
+							value = xml_resource.get_node_value("{0} scpd:retval".format(xml_argument_node_path))
 							if (argument_type == "result_variables" and value is not None): argument_type = "return_variable"
 
-							value = xml_resource.get_node_value("{0} scpd:relatedStateVariable".format(xml_base_path))
+							value = xml_resource.get_node_value("{0} scpd:relatedStateVariable".format(xml_argument_node_path))
 
 							if (value not in self.variables): raise ValueException("SCPD can only contain arguments defined as an stateVariable")
 
@@ -509,43 +519,56 @@ device.
 :param action: SOAP action
 :param arguments: SOAP action arguments
 
-:return: (bool) True if parsed successfully
+:return: (dict) SOAP action response
 :since:  v0.2.00
 		"""
 
 		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.request_soap_action({1})- (#echo(__LINE__)#)", self, action, context = "pas_upnp")
 
-		_return = False
+		_return = None
 
 		os_uname = uname()
 		urn = "urn:{0}".format(self.get_urn())
 
 		xml_resource = self._init_xml_resource()
+		xml_resource.register_ns("s", "http://schemas.xmlsoap.org/soap/envelope/")
+		xml_resource.register_ns("u", urn)
+		xml_resource.set_parse_only(False)
 
-		xml_resource.add_node("Envelope", attributes = { "xmlns": "http://schemas.xmlsoap.org/soap/envelope/", "encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
-		xml_resource.add_node("Envelope Header")
+		xml_resource.add_node("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
+		xml_resource.add_node("s:Envelope s:Body")
 
-		xml_resource.add_node("Envelope Body")
-		xml_base_path = "Envelope Body {0}".format(action)
+		xml_base_path = "s:Envelope s:Body u:{0}".format(action)
 
-		xml_resource.add_node(xml_base_path, attributes = { "xmlns": urn })
-		xml_resource.set_cached_node("Envelope Body")
+		xml_resource.add_node(xml_base_path, attributes = { "xmlns:u": urn })
+		xml_resource.set_cached_node("s:Envelope s:Body")
 
 		for argument in arguments: xml_resource.add_node("{0} {1}".format(xml_base_path, argument['name']), argument['value'])
 
 		http_client = HttpClient(self.url_control, event_handler = self.log_handler)
 		http_client.set_header("Content-Type", "text/xml; charset=UTF-8")
-		http_client.set_header("SoapAction", "{0}#{1}".format(urn, action))
+		http_client.set_header("SoapAction", "\"{0}#{1}\"".format(urn, action))
 		http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pas.upnp/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
 
-		http_response = http_client.request_post(xml_resource.export_cache(True))
+		post_data = "<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_resource.export_cache(True))
+		http_response = http_client.request_post(post_data)
+		xml_response_variables = None
 
-		if (not isinstance(http_response['body'], Exception)): _return = xml_resource.xml_to_dict(Binary.str(http_response['body']))
-		elif (self.log_handler is not None): self.log_handler.error(http_response['body'], context = "pas_upnp")
-
-		if (_return == True):
+		if (http_response.is_readable()):
 		#
-			pass
+			xml_resource.parse(Binary.str(http_response.read()))
+			xml_response_variables = xml_resource.get_node("{0}Response".format(xml_base_path))
+		#
+		elif (self.log_handler is not None): self.log_handler.error(http_response.get_error_message(), context = "pas_upnp")
+
+		if (xml_response_variables is not None):
+		#
+			_return = { }
+
+			for key in xml_response_variables:
+			#
+				_return[key] = xml_response_variables[key]['value']
+			#
 		#
 
 		return _return
