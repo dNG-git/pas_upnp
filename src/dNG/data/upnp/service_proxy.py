@@ -149,7 +149,7 @@ class tree for self).
 			return proxymethod
 		#
 		elif (self.variables is not None and action_method in self.variables): return Variable(self.service, action_method, self.variables[action_method])
-		else: raise ValueException("UPnP SCPD does not contain a definition for '{0}'".format(action_method))
+		else: raise AttributeError("UPnP SCPD does not contain a definition for '{0}'".format(action_method))
 	#
 #
 
