@@ -98,13 +98,13 @@ Action for "resource"
 			                         rid = rid,
 			                         request = self.request,
 			                         response = self.response,
-			                         client_user_agent = self.client_user_agent
+			                         client_settings = client_settings
 			                        )
 
 			if (rid_filtered is not None): rid = rid_filtered
 		#
 
-		resource = Resource.load_cds_id(rid, self.client_user_agent)
+		resource = Resource.load_cds_id(rid, client_settings)
 
 		if (resource is None): raise TranslatableError("pas_http_core_404", 404)
 
@@ -131,7 +131,7 @@ Action for "resource"
 			                             vfs_url = vfs_url,
 			                             request = self.request,
 			                             response = self.response,
-			                             client_user_agent = self.client_user_agent
+			                             client_settings = client_settings
 			                            )
 
 			if (vfs_url_filtered is not None): vfs_url = vfs_url_filtered
@@ -168,7 +168,7 @@ Action for "resource"
 			          streamer = streamer,
 			          request = self.request,
 			          response = self.response,
-			          client_user_agent = self.client_user_agent
+			          client_settings = client_settings
 			         )
 		#
 

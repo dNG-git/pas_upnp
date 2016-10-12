@@ -38,13 +38,13 @@ from time import time
 from dNG.data.binary import Binary
 from dNG.data.rfc.basics import Basics as RfcBasics
 from dNG.data.text.l10n import L10n
-from dNG.data.upnp.client_user_agent_mixin import ClientUserAgentMixin
+from dNG.data.upnp.client_settings_mixin import ClientSettingsMixin
 from dNG.data.upnp.upnp_exception import UpnpException
 from dNG.data.xml_resource import XmlResource
 
 from .abstract_http_response import AbstractHttpResponse
 
-class HttpUpnpResponse(ClientUserAgentMixin, AbstractHttpResponse):
+class HttpUpnpResponse(ClientSettingsMixin, AbstractHttpResponse):
 #
 	"""
 This response class returns UPnP compliant responses.
@@ -67,7 +67,7 @@ Constructor __init__(HttpUpnpResponse)
 		"""
 
 		AbstractHttpResponse.__init__(self)
-		ClientUserAgentMixin.__init__(self)
+		ClientSettingsMixin.__init__(self)
 	#
 
 	def init(self, cache = False, compress = True):

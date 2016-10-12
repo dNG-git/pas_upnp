@@ -31,14 +31,14 @@ https://www.direct-netware.de/redirect?licenses;gpl
 #echo(__FILEPATH__)#
 """
 
-from dNG.data.upnp.client_user_agent_mixin import ClientUserAgentMixin
+from dNG.data.upnp.client_settings_mixin import ClientSettingsMixin
 from dNG.module.named_loader import NamedLoader
 from dNG.runtime.not_implemented_exception import NotImplementedException
 from dNG.runtime.type_exception import TypeException
 
 from .criteria_definition import CriteriaDefinition
 
-class AbstractSegment(ClientUserAgentMixin):
+class AbstractSegment(ClientSettingsMixin):
 #
 	"""
 "AbstractSegment" is the abstract UPnP search segment class.
@@ -60,7 +60,7 @@ Constructor __init__(AbstractSegment)
 :since: v0.2.00
 		"""
 
-		ClientUserAgentMixin.__init__(self)
+		ClientSettingsMixin.__init__(self)
 
 		self.criteria_definition = None
 		"""

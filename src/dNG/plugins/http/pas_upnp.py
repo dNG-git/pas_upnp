@@ -139,7 +139,7 @@ Handles a UPnP stream related HTTP request.
 	user_agent = request.get_header("User-Agent")
 	stream_path = request.get_dsd("upnp_path")
 
-	client_settings = ClientSettings.load_user_agent(user_agent)
+	client_settings = ClientSettings(user_agent)
 
 	if (client_settings.get("upnp_stream_path_use_filter", False)):
 	#

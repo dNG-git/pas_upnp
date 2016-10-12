@@ -40,12 +40,11 @@ from uuid import uuid3 as uuid_of_namespace
 from dNG.data.logging.log_line import LogLine
 from dNG.data.media.image_implementation import ImageImplementation
 from dNG.data.text.link import Link
-from dNG.data.upnp.client_user_agent_mixin import ClientUserAgentMixin
+from dNG.data.upnp.client_settings_mixin import ClientSettingsMixin
 from dNG.data.upnp.device import Device
 from dNG.data.upnp.services.abstract_service import AbstractService
-from dNG.runtime.not_implemented_class import NotImplementedClass
 
-class AbstractDevice(Device, ClientUserAgentMixin):
+class AbstractDevice(Device, ClientSettingsMixin):
 #
 	"""
 An extended, abstract device implementation for server devices.
@@ -68,7 +67,7 @@ Constructor __init__(AbstractDevice)
 		"""
 
 		Device.__init__(self)
-		ClientUserAgentMixin.__init__(self)
+		ClientSettingsMixin.__init__(self)
 
 		self.desc_url = None
 		"""

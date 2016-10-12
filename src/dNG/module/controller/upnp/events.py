@@ -79,8 +79,10 @@ Action for "request"
 		Hook.call("dNG.pas.http.l10n.upnp.Events.init")
 
 		callback_value = self.request.get_header("Callback")
+		client_settings = self.get_client_settings()
 		gena_sid = self.request.get_header("SID")
-		upnp_service.set_client_user_agent(self.client_user_agent)
+
+		upnp_service.set_client_settings(client_settings)
 
 		if ((callback_value is None or self.request.get_header("NT") != "upnp:event")
 		    and gena_sid is None
@@ -91,11 +93,7 @@ Action for "request"
 
 		re_result = (None if (timeout is None) else re.match("^Second-(\\d+)$", timeout))
 
-		if (re_result is None):
-		#
-			client_settings = self.get_client_settings()
-			timeout = int(client_settings.get("upnp_subscription_timeout", 1800))
-		#
+		if (re_result is None): timeout = int(client_settings.get("upnp_subscription_timeout", 1800))
 		else: timeout = int(re_result.group(1))
 
 		usn = upnp_service.get_usn()
@@ -146,7 +144,7 @@ Action for "request"
 		Hook.call("dNG.pas.http.l10n.upnp.Events.init")
 
 		gena_sid = self.request.get_header("SID")
-		upnp_service.set_client_user_agent(self.client_user_agent)
+		upnp_service.set_client_settings(self.get_client_settings())
 
 		if (gena_sid is None): raise UpnpException("pas_http_core_400", 400)
 

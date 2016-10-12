@@ -42,12 +42,12 @@ from dNG.module.named_loader import NamedLoader
 from dNG.runtime.thread_lock import ThreadLock
 from dNG.runtime.value_exception import ValueException
 
-from .client_user_agent_mixin import ClientUserAgentMixin
+from .client_settings_mixin import ClientSettingsMixin
 from .update_id_registry import UpdateIdRegistry
 
 _TOP_LEVEL_OBJECTS = ( "container", "item" )
 
-class Resource(ClientUserAgentMixin, SupportsMixin):
+class Resource(ClientSettingsMixin, SupportsMixin):
 #
 	"""
 "Resource" represents an UPnP container, item or resource object.
@@ -108,7 +108,7 @@ Constructor __init__(Resource)
 :since: v0.2.00
 		"""
 
-		ClientUserAgentMixin.__init__(self)
+		ClientSettingsMixin.__init__(self)
 		SupportsMixin.__init__(self)
 
 		self.content = None

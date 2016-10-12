@@ -65,7 +65,7 @@ Action for "get_device"
 		if (not isinstance(upnp_device, AbstractDevice)): raise UpnpException("pas_http_core_400", 401)
 
 		client_settings = self.get_client_settings()
-		upnp_device.set_client_user_agent(self.client_user_agent)
+		upnp_device.set_client_settings(client_settings)
 
 		self.response.init(True, compress = client_settings.get("upnp_http_compression_supported", True))
 		self.response.set_header("Content-Type", "text/xml; charset=UTF-8")
@@ -85,7 +85,7 @@ Action for "get_service"
 		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_core_400", 401)
 
 		client_settings = self.get_client_settings()
-		upnp_service.set_client_user_agent(self.client_user_agent)
+		upnp_service.set_client_settings(client_settings)
 
 		self.response.init(True, compress = client_settings.get("upnp_http_compression_supported", True))
 		self.response.set_header("Content-Type", "text/xml; charset=UTF-8")

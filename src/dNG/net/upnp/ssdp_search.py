@@ -347,7 +347,7 @@ Searches for hosted devices matching the given UPnP search target.
 				#
 					if ('USER-AGENT' in additional_data):
 					#
-						client_settings = ClientSettings.load_user_agent(additional_data['USER-AGENT'])
+						client_settings = ClientSettings(additional_data['USER-AGENT'])
 						source_wait_timeout = client_settings.get("ssdp_upnp_search_wait_timeout", source_wait_timeout)
 					#
 					elif (source_wait_timeout < 4):

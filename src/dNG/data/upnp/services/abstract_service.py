@@ -32,7 +32,7 @@ https://www.direct-netware.de/redirect?licenses;gpl
 """
 
 from dNG.data.text.link import Link
-from dNG.data.upnp.client_user_agent_mixin import ClientUserAgentMixin
+from dNG.data.upnp.client_settings_mixin import ClientSettingsMixin
 from dNG.data.upnp.service import Service
 from dNG.data.upnp.upnp_exception import UpnpException
 from dNG.data.upnp.variable import Variable
@@ -40,7 +40,7 @@ from dNG.plugins.hook import Hook
 from dNG.runtime.not_implemented_exception import NotImplementedException
 from dNG.runtime.type_exception import TypeException
 
-class AbstractService(Service, ClientUserAgentMixin):
+class AbstractService(Service, ClientSettingsMixin):
 #
 	"""
 An extended, abstract service implementation for server services.
@@ -63,7 +63,7 @@ Constructor __init__(AbstractService)
 		"""
 
 		Service.__init__(self)
-		ClientUserAgentMixin.__init__(self)
+		ClientSettingsMixin.__init__(self)
 
 		self.configid = None
 		"""

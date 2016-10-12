@@ -33,7 +33,7 @@ https://www.direct-netware.de/redirect?licenses;gpl
 
 from dNG.data.settings import Settings
 from dNG.data.supports_mixin import SupportsMixin
-from dNG.data.upnp.client_user_agent_mixin import ClientUserAgentMixin
+from dNG.data.upnp.client_settings_mixin import ClientSettingsMixin
 from dNG.module.named_loader import NamedLoader
 from dNG.plugins.hook import Hook
 from dNG.runtime.exception_log_trap import ExceptionLogTrap
@@ -43,7 +43,7 @@ from dNG.runtime.value_exception import ValueException
 
 from .criteria_definition import CriteriaDefinition
 
-class Resources(ClientUserAgentMixin, SupportsMixin):
+class Resources(ClientSettingsMixin, SupportsMixin):
 #
 	"""
 The "Resources" search instance is used to execute UPnP searches.
@@ -74,7 +74,7 @@ Constructor __init__(Resources)
 :since: v0.2.00
 		"""
 
-		ClientUserAgentMixin.__init__(self)
+		ClientSettingsMixin.__init__(self)
 		SupportsMixin.__init__(self)
 
 		self.criteria_definition = None

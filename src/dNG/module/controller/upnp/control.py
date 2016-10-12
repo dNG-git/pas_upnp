@@ -67,7 +67,7 @@ Action for "request"
 		Hook.call("dNG.pas.http.l10n.upnp.Control.init")
 
 		soap_request = self.request.get_soap_request()
-		upnp_service.set_client_user_agent(self.client_user_agent)
+		upnp_service.set_client_settings(self.get_client_settings())
 
 		if (soap_request is None): raise UpnpException("pas_http_core_500")
 

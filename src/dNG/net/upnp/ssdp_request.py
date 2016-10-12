@@ -97,7 +97,7 @@ Active conversation
 			control_point = NamedLoader.get_singleton("dNG.net.upnp.ControlPoint")
 			user_agent = headers.get("SERVER")
 
-			client_settings = ClientSettings.load_user_agent(user_agent)
+			client_settings = ClientSettings(user_agent)
 
 			if (client_settings.get("ssdp_notify_use_filter", False)):
 			#

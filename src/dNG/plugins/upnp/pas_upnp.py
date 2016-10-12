@@ -54,7 +54,7 @@ Called for "dNG.pas.upnp.ControlPoint.onDeviceAdded"
 	              None
 	             )
 
-	ssdp_quirks = ClientSettings.load_user_agent(user_agent).get("upnp_quirks_ssdp")
+	ssdp_quirks = ClientSettings(user_agent).get("upnp_quirks_ssdp")
 
 	if (type(ssdp_quirks) is list):
 	#

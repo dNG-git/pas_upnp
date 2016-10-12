@@ -118,7 +118,7 @@ Action for "resource_thumbnail"
 
 		if (width < 1 or height < 1): raise TranslatableException("pas_http_core_400", 400)
 
-		resource = Resource.load_cds_id(rid, self.client_user_agent)
+		resource = Resource.load_cds_id(rid, self.get_client_settings())
 
 		if (resource is not None and resource.is_supported("thumbnail_source_vfs_url")):
 		#
@@ -150,7 +150,7 @@ Action for "transformed_resource"
 
 		if (width < 1 or height < 1): raise TranslatableException("pas_http_core_400", 400)
 
-		resource = Resource.load_cds_id(rid, self.client_user_agent)
+		resource = Resource.load_cds_id(rid, self.get_client_settings())
 
 		if (resource is not None and resource.is_supported("thumbnail_source_vfs_url")):
 		#

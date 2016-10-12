@@ -35,11 +35,11 @@ import socket
 
 from dNG.controller.http_upnp_response import HttpUpnpResponse
 from dNG.data.settings import Settings
-from dNG.data.upnp.client_user_agent_mixin import ClientUserAgentMixin
+from dNG.data.upnp.client_settings_mixin import ClientSettingsMixin
 from dNG.module.controller.abstract_http import AbstractHttp as AbstractHttpController
 from dNG.net.upnp.control_point import ControlPoint
 
-class Module(ClientUserAgentMixin, AbstractHttpController):
+class Module(ClientSettingsMixin, AbstractHttpController):
 #
 	"""
 module for "upnp"
@@ -62,7 +62,7 @@ Constructor __init__(AbstractHttpController)
 		"""
 
 		AbstractHttpController.__init__(self)
-		ClientUserAgentMixin.__init__(self)
+		ClientSettingsMixin.__init__(self)
 	#
 
 	def init(self, request, response):
@@ -78,6 +78,7 @@ Initialize block from the given request and response.
 
 		AbstractHttpController.init(self, request, response)
 
+		host = self.request.get_client_host()
 		user_agent = self.request.get_header("User-Agent")
 
 		if (Settings.get("pas_upnp_http_client_name_use_cache", False)):
@@ -85,7 +86,6 @@ Initialize block from the given request and response.
 			user_agent_blacklist = Settings.get("pas_upnp_http_client_name_blacklist", [ ])
 			if (user_agent is not None and user_agent in user_agent_blacklist): user_agent = None
 
-			host = self.request.get_client_host()
 			ip_address_list = socket.getaddrinfo(host, None, socket.AF_UNSPEC, 0, socket.IPPROTO_TCP)
 
 			for ip_address_data in ip_address_list:
@@ -99,9 +99,9 @@ Initialize block from the given request and response.
 			#
 		#
 
-		self.client_user_agent = user_agent
+		self.init_client_settings(user_agent, host)
 
-		if (isinstance(self.response, HttpUpnpResponse)): self.response.set_client_user_agent(self.client_user_agent)
+		if (isinstance(self.response, HttpUpnpResponse)): self.response.set_client_settings(self.get_client_settings())
 	#
 #
 
