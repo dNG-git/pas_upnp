@@ -985,48 +985,60 @@ Parse unread UPnP descriptions.
 
 		for url in upnp_desc_unread:
 		#
-			if (self.log_handler is not None): self.log_handler.debug("{0!r} reads UPnP device description from '{1}'", self, url, context = "pas_upnp")
-
-			usns = upnp_desc_unread[url]
-
-			http_client = HttpClient(url, event_handler = self.log_handler)
-			http_client.set_header("Accept-Language", self.http_language)
-			http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pas.upnp/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
-			http_client.set_ipv6_link_local_interface(Settings.get("pas_global_ipv6_link_local_interface"))
-
-			http_response = http_client.request_get()
-
-			if (http_response.is_readable()):
+			try:
 			#
+				if (self.log_handler is not None): self.log_handler.debug("{0!r} reads UPnP device description from '{1}'", self, url, context = "pas_upnp")
+
+				usns = upnp_desc_unread[url]
+
+				http_client = HttpClient(url, event_handler = self.log_handler)
+				http_client.set_header("Accept-Language", self.http_language)
+				http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pas.upnp/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
+				http_client.set_ipv6_link_local_interface(Settings.get("pas_global_ipv6_link_local_interface"))
+
+				http_response = http_client.request_get()
+
+				if (http_response.is_readable()):
+				#
+					with self.lock:
+					#
+						if (url in self.upnp_desc): self.upnp_desc[url]['xml_data'] = Binary.raw_str(http_response.read())
+						else: self.upnp_desc[url] = { "xml_data": Binary.raw_str(http_response.read()), "usns": [ ] }
+
+						if (url in self.upnp_desc_unread): del(self.upnp_desc_unread[url])
+
+						for usn in usns:
+						#
+							if (usn in self.usns and usn not in self.upnp_desc[url]['usns']):
+							#
+								self.upnp_desc[url]['usns'].append(usn)
+
+								Hook.call("dNG.pas.upnp.ControlPoint.onUsnAdded", identifier = self.usns[usn])
+								if (self.usns[usn]['class'] == "device"): Hook.call("dNG.pas.upnp.ControlPoint.onDeviceAdded", identifier = self.usns[usn])
+							#
+						#
+					#
+				#
+				else:
+				#
+					if (self.log_handler is not None): self.log_handler.error(http_response.get_error_message(), context = "pas_upnp")
+
+					with self.lock:
+					#
+						if (url in self.upnp_desc_unread): del(self.upnp_desc_unread[url])
+					#
+
+					self._delete_usns(usns)
+				#
+			#
+			except Exception as handled_exception:
+			#
+				if (self.log_handler is not None): self.log_handler.error(handled_exception, context = "pas_upnp")
+
 				with self.lock:
 				#
-					if (url in self.upnp_desc): self.upnp_desc[url]['xml_data'] = Binary.raw_str(http_response.read())
-					else: self.upnp_desc[url] = { "xml_data": Binary.raw_str(http_response.read()), "usns": [ ] }
-
-					if (url in self.upnp_desc_unread): del(self.upnp_desc_unread[url])
-
-					for usn in usns:
-					#
-						if (usn in self.usns and usn not in self.upnp_desc[url]['usns']):
-						#
-							self.upnp_desc[url]['usns'].append(usn)
-
-							Hook.call("dNG.pas.upnp.ControlPoint.onUsnAdded", identifier = self.usns[usn])
-							if (self.usns[usn]['class'] == "device"): Hook.call("dNG.pas.upnp.ControlPoint.onDeviceAdded", identifier = self.usns[usn])
-						#
-					#
-				#
-			#
-			else:
-			#
-				if (self.log_handler is not None): self.log_handler.error(http_response.get_error_message(), context = "pas_upnp")
-
-				with self.lock:
-				#
 					if (url in self.upnp_desc_unread): del(self.upnp_desc_unread[url])
 				#
-
-				self._delete_usns(usns)
 			#
 		#
 
