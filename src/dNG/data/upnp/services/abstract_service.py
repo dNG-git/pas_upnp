@@ -474,20 +474,21 @@ Executes the given SOAP action.
 		except Exception as handled_exception:
 		#
 			if (self.log_handler is not None): self.log_handler.error(handled_exception, context = "pas_upnp")
-			_return = UpnpException("pas_http_core_500")
+			result = UpnpException("pas_http_core_500", _exception = handled_exception)
 		#
 
 		if (isinstance(result, Exception)): _return = result
-		elif (result is not None):
+		elif (is_request_valid):
 		#
 			return_values = ([ ] if (action_definition['return_variable'] is None) else [ action_definition['return_variable'] ])
 			return_values += action_definition['result_variables']
+			return_values_length = len(return_values)
 
 			_return = [ ]
 			is_dict_result = (type(result) is dict)
 
-			if ((not is_dict_result) and len(return_values) != 1): _return = UpnpException("pas_http_core_500")
-			else:
+			if (return_values_length > 1 and (not is_dict_result)): _return = UpnpException("pas_http_core_500", value = "Response can not be generated based on the UPnP action result from '{0}'".format(self.udn))
+			elif (return_values_length > 0):
 			#
 				for return_value in return_values:
 				#
@@ -498,12 +499,13 @@ Executes the given SOAP action.
 
 					if (return_value['variable'] not in variables or result_value is None):
 					#
-						_return = UpnpException("pas_http_core_500")
+						_return = UpnpException("pas_http_core_500", value = "Variable '{0}' is not defined for '{1}'".format(return_value['variable'], self.udn))
 						break
 					#
 					else: _return.append({ "name": return_value['name'], "value": Variable.get_upnp_value(variables[return_value['variable']], result_value) })
 				#
 			#
+			elif (result is not None): _return = UpnpException("pas_http_core_500", value = "Expected empty response does not correspond to UPnP action result from '{0}'".format(self.udn))
 		#
 
 		return _return
