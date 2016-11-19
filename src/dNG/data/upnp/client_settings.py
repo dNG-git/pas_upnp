@@ -283,7 +283,7 @@ Returns the user agent specific client settings dictionary.
 				base_settings = JsonFileContent.read(path.join(Settings.get("path_data"),
 				                                               "upnp",
 				                                               "user_agents",
-				                                               InputFilter.filter_file_path(_return['client_file'])
+				                                               InputFilter.filter_file_path(settings['client_file'])
 				                                              )
 				                                    )
 
