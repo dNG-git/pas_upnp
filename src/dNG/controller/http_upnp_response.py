@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -45,8 +44,7 @@ from dNG.data.xml_resource import XmlResource
 from .abstract_http_response import AbstractHttpResponse
 
 class HttpUpnpResponse(ClientSettingsMixin, AbstractHttpResponse):
-#
-	"""
+    """
 This response class returns UPnP compliant responses.
 
 :author:     direct Netware Group et al.
@@ -56,23 +54,21 @@ This response class returns UPnP compliant responses.
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	def __init__(self):
-	#
-		"""
+    def __init__(self):
+        """
 Constructor __init__(HttpUpnpResponse)
 
 :since: v0.2.00
-		"""
+        """
 
-		AbstractHttpResponse.__init__(self)
-		ClientSettingsMixin.__init__(self)
-	#
+        AbstractHttpResponse.__init__(self)
+        ClientSettingsMixin.__init__(self)
+    #
 
-	def init(self, cache = False, compress = True):
-	#
-		"""
+    def init(self, cache = False, compress = True):
+        """
 Important headers will be created here. This includes caching, cookies, the
 compression setting and information about P3P.
 
@@ -80,23 +76,22 @@ compression setting and information about P3P.
 :param compress: Send page GZip encoded (if supported)
 
 :since: v0.2.00
-		"""
+        """
 
-		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.init()- (#echo(__LINE__)#)", self, context = "pas_http_site")
+        if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.init()- (#echo(__LINE__)#)", self, context = "pas_http_site")
 
-		client_settings = self.get_client_settings()
+        client_settings = self.get_client_settings()
 
-		AbstractHttpResponse.init(self, cache, client_settings.get("upnp_http_compression_supported", True))
-		os_uname = uname()
+        AbstractHttpResponse.init(self, cache, client_settings.get("upnp_http_compression_supported", True))
+        os_uname = uname()
 
-		self.set_header("Content-Type", "text/xml; charset=UTF-8")
-		self.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
-		self.set_header("Server", "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.51".format(os_uname[0], os_uname[2]))
-	#
+        self.set_header("Content-Type", "text/xml; charset=UTF-8")
+        self.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
+        self.set_header("Server", "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.51".format(os_uname[0], os_uname[2]))
+    #
 
-	def handle_result(self, urn, action, result):
-	#
-		"""
+    def handle_result(self, urn, action, result):
+        """
 Returns a UPNP response for the given URN and SOAP action.
 
 :param urn: UPnP URN called
@@ -104,85 +99,75 @@ Returns a UPNP response for the given URN and SOAP action.
 :param result: UPnP result arguments
 
 :since: v0.2.00
-		"""
+        """
 
-		if (isinstance(result, Exception)):
-		#
-			if (isinstance(result, UpnpException)): self.send_error(result.get_upnp_code(), "{0:l10n_message}".format(result))
-			else: self.send_error(501, L10n.get("errors_core_unknown_error"))
-		#
-		else:
-		#
-			xml_resource = XmlResource(node_type = OrderedDict)
+        if (isinstance(result, Exception)):
+            if (isinstance(result, UpnpException)): self.send_error(result.get_upnp_code(), "{0:l10n_message}".format(result))
+            else: self.send_error(501, L10n.get("errors_core_unknown_error"))
+        else:
+            xml_resource = XmlResource(node_type = OrderedDict)
 
-			client_settings = self.get_client_settings()
-			if (not client_settings.get("upnp_xml_cdata_encoded", False)): xml_resource.set_cdata_encoding(False)
+            client_settings = self.get_client_settings()
+            if (not client_settings.get("upnp_xml_cdata_encoded", False)): xml_resource.set_cdata_encoding(False)
 
-			xml_resource.add_node("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "s:encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
+            xml_resource.add_node("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "s:encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
 
-			xml_base_path = "s:Envelope s:Body u:{0}Response".format(action)
-			xml_resource.add_node(xml_base_path, attributes = { "xmlns:u": urn })
-			xml_resource.set_cached_node(xml_base_path)
+            xml_base_path = "s:Envelope s:Body u:{0}Response".format(action)
+            xml_resource.add_node(xml_base_path, attributes = { "xmlns:u": urn })
+            xml_resource.set_cached_node(xml_base_path)
 
-			for result_value in result: xml_resource.add_node("{0} {1}".format(xml_base_path, result_value['name']), result_value['value'])
+            for result_value in result: xml_resource.add_node("{0} {1}".format(xml_base_path, result_value['name']), result_value['value'])
 
-			self.data = Binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_resource.export_cache(True)))
-		#
-	#
+            self.data = Binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_resource.export_cache(True)))
+        #
+    #
 
-	def send(self):
-	#
-		"""
+    def send(self):
+        """
 Sends the prepared response.
 
 :since: v0.2.00
-		"""
+        """
 
-		if (self.data is not None):
-		#
-			if (not self.initialized): self.init()
-			self.send_headers()
+        if (self.data is not None):
+            if (not self.initialized): self.init()
+            self.send_headers()
 
-			self.stream_response.send_data(self.data)
-			self.data = None
-		#
-		elif (not self.are_headers_sent()):
-		#
-			self.set_header("HTTP/1.1", "HTTP/1.1 500 Internal Server Error", True)
+            self.stream_response.send_data(self.data)
+            self.data = None
+        elif (not self.are_headers_sent()):
+            self.set_header("HTTP/1.1", "HTTP/1.1 500 Internal Server Error", True)
 
-			if (self.errors is None): self.send_error(501, L10n.get("errors_core_unknown_error"))
-			else: self.send_error(self.errors[0].get("code", 501), self.errors[0]['message'])
-		#
-	#
+            if (self.errors is None): self.send_error(501, L10n.get("errors_core_unknown_error"))
+            else: self.send_error(self.errors[0].get("code", 501), self.errors[0]['message'])
+        #
+    #
 
-	def send_error(self, code, description):
-	#
-		"""
+    def send_error(self, code, description):
+        """
 Returns a UPNP response for the requested SOAP action.
 
 :param code: UPnP error code
 :param description: UPnP error description
 
 :since: v0.2.00
-		"""
+        """
 
-		xml_resource = XmlResource()
+        xml_resource = XmlResource()
 
-		xml_resource.add_node("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "s:encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
+        xml_resource.add_node("s:Envelope", attributes = { "xmlns:s": "http://schemas.xmlsoap.org/soap/envelope/", "s:encodingStyle": "http://schemas.xmlsoap.org/soap/encoding/" })
 
-		xml_resource.add_node("s:Envelope s:Body s:Fault faultcode", "Client")
-		xml_resource.set_cached_node("s:Envelope s:Body")
+        xml_resource.add_node("s:Envelope s:Body s:Fault faultcode", "Client")
+        xml_resource.set_cached_node("s:Envelope s:Body")
 
-		xml_resource.add_node("s:Envelope s:Body s:Fault faultstring", "UPnPError")
-		xml_resource.add_node("s:Envelope s:Body s:Fault detail UPnPError", attributes = { "xmlns": "urn:schemas-upnp-org:control-1.0" })
-		xml_resource.set_cached_node("s:Envelope s:Body s:Fault detail UPnPError")
+        xml_resource.add_node("s:Envelope s:Body s:Fault faultstring", "UPnPError")
+        xml_resource.add_node("s:Envelope s:Body s:Fault detail UPnPError", attributes = { "xmlns": "urn:schemas-upnp-org:control-1.0" })
+        xml_resource.set_cached_node("s:Envelope s:Body s:Fault detail UPnPError")
 
-		xml_resource.add_node("s:Envelope s:Body s:Fault detail UPnPError errorCode", code)
-		xml_resource.add_node("s:Envelope s:Body s:Fault detail UPnPError errorDescription", description)
+        xml_resource.add_node("s:Envelope s:Body s:Fault detail UPnPError errorCode", code)
+        xml_resource.add_node("s:Envelope s:Body s:Fault detail UPnPError errorDescription", description)
 
-		self.data = Binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_resource.export_cache(True)))
-		self.send()
-	#
+        self.data = Binary.utf8_bytes("<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_resource.export_cache(True)))
+        self.send()
+    #
 #
-
-##j## EOF

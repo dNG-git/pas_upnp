@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -32,8 +31,7 @@ https://www.direct-netware.de/redirect?licenses;gpl
 """
 
 class SpecMixin(object):
-#
-	"""
+    """
 "SpecMixin" is used to provide the UPnP specVersion data.
 
 :author:     direct Netware Group et al.
@@ -43,54 +41,48 @@ class SpecMixin(object):
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	def __init__(self):
-	#
-		"""
+    def __init__(self):
+        """
 Constructor __init__(SpecMixin)
 
 :since: v0.2.00
-		"""
+        """
 
-		self.spec_major = 2
-		"""
+        self.spec_major = 2
+        """
 UPnP specVersion major number
-		"""
-		self.spec_minor = 0
-		"""
+        """
+        self.spec_minor = 0
+        """
 UPnP specVersion minor number
-		"""
-	#
+        """
+    #
 
-	def get_spec_version(self):
-	#
-		"""
+    def get_spec_version(self):
+        """
 Returns the UPnP specVersion number.
 
 :return: (tuple) UPnP Device Architecture version: Major and minor number
 :since:  v0.2.00
-		"""
+        """
 
-		return ( self.spec_major, self.spec_minor )
-	#
+        return ( self.spec_major, self.spec_minor )
+    #
 
-	def _set_spec_version(self, version):
-	#
-		"""
+    def _set_spec_version(self, version):
+        """
 Sets the UPnP specVersion number.
 
 :param version: (tuple) UPnP Device Architecture version
 
 :since: v0.2.00
-		"""
+        """
 
-		if (type(version) is tuple and len(version) == 2):
-		#
-			self.spec_major = int(version[0])
-			self.spec_minor = int(version[1])
-		#
-	#
+        if (type(version) is tuple and len(version) == 2):
+            self.spec_major = int(version[0])
+            self.spec_minor = int(version[1])
+        #
+    #
 #
-
-##j## EOF

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -37,8 +36,7 @@ from dNG.data.http.translatable_error import TranslatableError
 from dNG.net.upnp.control_point import ControlPoint
 
 class AccessCheckMixin(object):
-#
-	"""
+    """
 Mixin to validate that the requesting client is allowed to access UPnP
 resources.
 
@@ -49,28 +47,24 @@ resources.
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	def _ensure_access_granted(self):
-	#
-		"""
+    def _ensure_access_granted(self):
+        """
 Validates that the requesting client is allowed to access UPnP resources.
 
 :since: v0.2.00
-		"""
+        """
 
-		client_host = self.request.get_client_host()
-		upnp_control_point = ControlPoint.get_instance()
+        client_host = self.request.get_client_host()
+        upnp_control_point = ControlPoint.get_instance()
 
-		if (client_host is None): is_allowed = False
-		else:
-		#
-			ip_address_paths = socket.getaddrinfo(client_host, self.request.get_client_port(), socket.AF_UNSPEC, 0, socket.IPPROTO_TCP)
-			is_allowed = (False if (len(ip_address_paths) < 1) else upnp_control_point.is_ip_allowed(ip_address_paths[0][4][0]))
-		#
+        if (client_host is None): is_allowed = False
+        else:
+            ip_address_paths = socket.getaddrinfo(client_host, self.request.get_client_port(), socket.AF_UNSPEC, 0, socket.IPPROTO_TCP)
+            is_allowed = (False if (len(ip_address_paths) < 1) else upnp_control_point.is_ip_allowed(ip_address_paths[0][4][0]))
+        #
 
-		if (not is_allowed): raise TranslatableError("core_access_denied", 403)
-	#
+        if (not is_allowed): raise TranslatableError("core_access_denied", 403)
+    #
 #
-
-##j## EOF

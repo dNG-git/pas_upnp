@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -39,8 +38,7 @@ from dNG.net.udp_ne_ipv4_socket import UdpNeIpv4Socket
 from .ssdp_request import SsdpRequest
 
 class SsdpListenerIpv4Unicast(Dispatcher):
-#
-	"""
+    """
 Listener instance receiving IPv4 unicast SSDP messages.
 
 :author:     direct Netware Group et al.
@@ -50,19 +48,16 @@ Listener instance receiving IPv4 unicast SSDP messages.
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	def __init__(self, port = 1900):
-	#
-		"""
+    def __init__(self, port = 1900):
+        """
 Constructor __init__(SsdpListenerIpv4Unicast)
 
 :since: v0.2.00
-		"""
+        """
 
-		listener_socket = UdpNeIpv4Socket(( INADDR_ANY, port ))
-		Dispatcher.__init__(self, listener_socket, SsdpRequest, 25)
-	#
+        listener_socket = UdpNeIpv4Socket(( INADDR_ANY, port ))
+        Dispatcher.__init__(self, listener_socket, SsdpRequest, 25)
+    #
 #
-
-##j## EOF

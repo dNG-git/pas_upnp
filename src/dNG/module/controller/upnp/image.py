@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -53,8 +52,7 @@ from .dlna_headers_mixin import DlnaHeadersMixin
 from .module import Module
 
 class Image(Module, DlnaHeadersMixin):
-#
-	"""
+    """
 Service for "m=upnp;s=image"
 
 :author:     direct Netware Group et al.
@@ -64,183 +62,168 @@ Service for "m=upnp;s=image"
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	def execute_device_icon(self):
-	#
-		"""
+    def execute_device_icon(self):
+        """
 Action for "device_icon"
 
 :since: v0.2.00
-		"""
+        """
 
-		usn = InputFilter.filter_control_chars(self.request.get_dsd("uusn", ""))
-		mimetype = InputFilter.filter_control_chars(self.request.get_dsd("umimetype", ""))
-		width = InputFilter.filter_int(self.request.get_dsd("uwidth", 0))
-		height = InputFilter.filter_int(self.request.get_dsd("uheight", 0))
-		depth = InputFilter.filter_int(self.request.get_dsd("udepth", 24))
+        usn = InputFilter.filter_control_chars(self.request.get_dsd("uusn", ""))
+        mimetype = InputFilter.filter_control_chars(self.request.get_dsd("umimetype", ""))
+        width = InputFilter.filter_int(self.request.get_dsd("uwidth", 0))
+        height = InputFilter.filter_int(self.request.get_dsd("uheight", 0))
+        depth = InputFilter.filter_int(self.request.get_dsd("udepth", 24))
 
-		if (width < 1 or height < 1): raise TranslatableException("pas_http_core_400", 400)
+        if (width < 1 or height < 1): raise TranslatableException("pas_http_core_400", 400)
 
-		upnp_control_point = ControlPoint.get_instance()
+        upnp_control_point = ControlPoint.get_instance()
 
-		if (usn != ""):
-		#
-			device = upnp_control_point.get_device(Device.get_identifier(usn))
-			if (device is None): raise TranslatableException("pas_http_core_400", 400)
-			file_path_name = device.get_icon_file_path_name()
+        if (usn != ""):
+            device = upnp_control_point.get_device(Device.get_identifier(usn))
+            if (device is None): raise TranslatableException("pas_http_core_400", 400)
+            file_path_name = device.get_icon_file_path_name()
 
-			if (file_path_name is not None):
-			#
-				self._stream_transformed_vfs_url("file:///{0}".format(quote(file_path_name, "/")),
-				                                 mimetype,
-				                                 width,
-				                                 height,
-				                                 depth
-				                                )
-			#
-		#
-	#
+            if (file_path_name is not None):
+                self._stream_transformed_vfs_url("file:///{0}".format(quote(file_path_name, "/")),
+                                                 mimetype,
+                                                 width,
+                                                 height,
+                                                 depth
+                                                )
+            #
+        #
+    #
 
-	def execute_resource_thumbnail(self):
-	#
-		"""
+    def execute_resource_thumbnail(self):
+        """
 Action for "resource_thumbnail"
 
 :since: v0.2.00
-		"""
+        """
 
-		rid = InputFilter.filter_control_chars(self.request.get_dsd("urid", ""))
-		mimetype = InputFilter.filter_control_chars(self.request.get_dsd("umimetype", ""))
-		width = InputFilter.filter_int(self.request.get_dsd("uwidth", 0))
-		height = InputFilter.filter_int(self.request.get_dsd("uheight", 0))
-		depth = InputFilter.filter_int(self.request.get_dsd("udepth", 24))
+        rid = InputFilter.filter_control_chars(self.request.get_dsd("urid", ""))
+        mimetype = InputFilter.filter_control_chars(self.request.get_dsd("umimetype", ""))
+        width = InputFilter.filter_int(self.request.get_dsd("uwidth", 0))
+        height = InputFilter.filter_int(self.request.get_dsd("uheight", 0))
+        depth = InputFilter.filter_int(self.request.get_dsd("udepth", 24))
 
-		if (width < 1 or height < 1): raise TranslatableException("pas_http_core_400", 400)
+        if (width < 1 or height < 1): raise TranslatableException("pas_http_core_400", 400)
 
-		resource = Resource.load_cds_id(rid, self.get_client_settings())
+        resource = Resource.load_cds_id(rid, self.get_client_settings())
 
-		if (resource is not None and resource.is_supported("thumbnail_source_vfs_url")):
-		#
-			Image._add_dlna_headers(self.request, self.response, resource)
+        if (resource is not None and resource.is_supported("thumbnail_source_vfs_url")):
+            Image._add_dlna_headers(self.request, self.response, resource)
 
-			self._stream_transformed_vfs_url(resource.get_thumbnail_source_vfs_url(),
-			                                 mimetype,
-			                                 width,
-			                                 height,
-			                                 depth,
-			                                 AbstractImage.RESIZE_SCALED_CROP
-			                                )
-		#
-	#
+            self._stream_transformed_vfs_url(resource.get_thumbnail_source_vfs_url(),
+                                             mimetype,
+                                             width,
+                                             height,
+                                             depth,
+                                             AbstractImage.RESIZE_SCALED_CROP
+                                            )
+        #
+    #
 
-	def execute_transformed_resource(self):
-	#
-		"""
+    def execute_transformed_resource(self):
+        """
 Action for "transformed_resource"
 
 :since: v0.2.00
-		"""
+        """
 
-		rid = InputFilter.filter_control_chars(self.request.get_dsd("urid", ""))
-		mimetype = InputFilter.filter_control_chars(self.request.get_dsd("umimetype", ""))
-		width = InputFilter.filter_int(self.request.get_dsd("uwidth", 0))
-		height = InputFilter.filter_int(self.request.get_dsd("uheight", 0))
-		depth = InputFilter.filter_int(self.request.get_dsd("udepth", 24))
+        rid = InputFilter.filter_control_chars(self.request.get_dsd("urid", ""))
+        mimetype = InputFilter.filter_control_chars(self.request.get_dsd("umimetype", ""))
+        width = InputFilter.filter_int(self.request.get_dsd("uwidth", 0))
+        height = InputFilter.filter_int(self.request.get_dsd("uheight", 0))
+        depth = InputFilter.filter_int(self.request.get_dsd("udepth", 24))
 
-		if (width < 1 or height < 1): raise TranslatableException("pas_http_core_400", 400)
+        if (width < 1 or height < 1): raise TranslatableException("pas_http_core_400", 400)
 
-		resource = Resource.load_cds_id(rid, self.get_client_settings())
+        resource = Resource.load_cds_id(rid, self.get_client_settings())
 
-		if (resource is not None and resource.is_supported("thumbnail_source_vfs_url")):
-		#
-			Image._add_dlna_headers(self.request, self.response, resource)
+        if (resource is not None and resource.is_supported("thumbnail_source_vfs_url")):
+            Image._add_dlna_headers(self.request, self.response, resource)
 
-			self._stream_transformed_vfs_url(resource.get_thumbnail_source_vfs_url(),
-			                                 mimetype,
-			                                 width,
-			                                 height,
-			                                 depth,
-			                                 AbstractImage.RESIZE_SCALED_FIT
-			                                )
-		#
-	#
+            self._stream_transformed_vfs_url(resource.get_thumbnail_source_vfs_url(),
+                                             mimetype,
+                                             width,
+                                             height,
+                                             depth,
+                                             AbstractImage.RESIZE_SCALED_FIT
+                                            )
+        #
+    #
 
-	def _stream_transformed_vfs_url(self, source_vfs_url, mimetype, width, height, depth = 24, resize_mode = AbstractImage.RESIZE_SCALED_FIT):
-	#
-		"""
+    def _stream_transformed_vfs_url(self, source_vfs_url, mimetype, width, height, depth = 24, resize_mode = AbstractImage.RESIZE_SCALED_FIT):
+        """
 Creates and streams the transformed file.
 
 :since: v0.2.00
-		"""
+        """
 
-		if (source_vfs_url is None): raise TranslatableException("pas_http_core_500")
+        if (source_vfs_url is None): raise TranslatableException("pas_http_core_500")
 
-		image = ImageImplementation.get_instance()
-		vfs_object = Implementation.load_vfs_url(source_vfs_url, True)
+        image = ImageImplementation.get_instance()
+        vfs_object = Implementation.load_vfs_url(source_vfs_url, True)
 
-		if (isinstance(image, NotImplementedClass)
-		    or (not image.is_supported("transformation"))
-		   ): raise TranslatableException("core_unknown_error")
+        if (isinstance(image, NotImplementedClass)
+            or (not image.is_supported("transformation"))
+           ): raise TranslatableException("core_unknown_error")
 
-		if (width < 1 or height < 1): raise TranslatableException("pas_http_core_400", 400)
+        if (width < 1 or height < 1): raise TranslatableException("pas_http_core_400", 400)
 
-		self.response.set_header("X-Robots-Tag", "noindex")
+        self.response.set_header("X-Robots-Tag", "noindex")
 
-		is_modified = True
-		is_valid = vfs_object.is_valid()
-		last_modified_on_server = int(vfs_object.get_time_updated())
+        is_modified = True
+        is_valid = vfs_object.is_valid()
+        last_modified_on_server = int(vfs_object.get_time_updated())
 
-		if (is_valid):
-		#
-			if (self.request.get_header("If-Modified-Since") is not None):
-			#
-				last_modified_on_client = RfcBasics.get_rfc7231_timestamp(self.request.get_header("If-Modified-Since").split(";")[0])
+        if (is_valid):
+            if (self.request.get_header("If-Modified-Since") is not None):
+                last_modified_on_client = RfcBasics.get_rfc7231_timestamp(self.request.get_header("If-Modified-Since").split(";")[0])
 
-				if (last_modified_on_client > -1):
-				#
-					if (last_modified_on_server <= last_modified_on_client):
-					#
-						is_modified = False
-						self.response.set_content_dynamic(False)
+                if (last_modified_on_client > -1):
+                    if (last_modified_on_server <= last_modified_on_client):
+                        is_modified = False
+                        self.response.set_content_dynamic(False)
 
-						self.response.init(True)
-						self.response.set_header("HTTP/1.1", "HTTP/1.1 304 Not Modified", True)
-						self.response.set_expires_relative(+63072000)
-						self.response.set_last_modified(last_modified_on_server)
+                        self.response.init(True)
+                        self.response.set_header("HTTP/1.1", "HTTP/1.1 304 Not Modified", True)
+                        self.response.set_expires_relative(+63072000)
+                        self.response.set_last_modified(last_modified_on_server)
 
-						self.response.set_raw_data("")
-					#
-				#
-			#
-		#
+                        self.response.set_raw_data("")
+                    #
+                #
+            #
+        #
 
-		if (is_valid and is_modified):
-		#
-			transformed_vfs_url = "x-media-transformed-image:///{0}?mimetype={1}&width={2:d}&height={3:d}&depth={4:d}&resize_mode={5:d}"
+        if (is_valid and is_modified):
+            transformed_vfs_url = "x-media-transformed-image:///{0}?mimetype={1}&width={2:d}&height={3:d}&depth={4:d}&resize_mode={5:d}"
 
-			transformed_vfs_url = transformed_vfs_url.format(quote(vfs_object.get_url(), "/"),
-			                                                 quote(mimetype, ""),
-			                                                 width,
-			                                                 height,
-			                                                 depth,
-			                                                 resize_mode
-			                                                )
+            transformed_vfs_url = transformed_vfs_url.format(quote(vfs_object.get_url(), "/"),
+                                                             quote(mimetype, ""),
+                                                             width,
+                                                             height,
+                                                             depth,
+                                                             resize_mode
+                                                            )
 
-			self.response.set_last_modified(last_modified_on_server)
+            self.response.set_last_modified(last_modified_on_server)
 
-			transformed_file = Implementation.load_vfs_url(transformed_vfs_url)
+            transformed_file = Implementation.load_vfs_url(transformed_vfs_url)
 
-			self.response.set_content_dynamic(False)
-			self.response.init(True)
-			self.response.set_header("Content-Type", mimetype)
+            self.response.set_content_dynamic(False)
+            self.response.init(True)
+            self.response.set_header("Content-Type", mimetype)
 
-			streamer = FileLike()
-			streamer.set_file(transformed_file)
+            streamer = FileLike()
+            streamer.set_file(transformed_file)
 
-			Streaming.handle(self.request, streamer, self.response)
-		#
-	#
+            Streaming.handle(self.request, streamer, self.response)
+        #
+    #
 #
-
-##j## EOF

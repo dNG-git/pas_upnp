@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -50,8 +49,7 @@ from .dlna_headers_mixin import DlnaHeadersMixin
 from .module import Module
 
 class Stream(Module, AccessCheckMixin, DlnaHeadersMixin):
-#
-	"""
+    """
 Service for "m=upnp;s=stream"
 
 :author:     direct Netware Group et al.
@@ -61,119 +59,108 @@ Service for "m=upnp;s=stream"
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	def __init__(self):
-	#
-		"""
+    def __init__(self):
+        """
 Constructor __init__(AbstractHttpController)
 
 :since: v0.2.00
-		"""
+        """
 
-		Module.__init__(self)
-		AccessCheckMixin.__init__(self)
-		DlnaHeadersMixin.__init__(self)
-	#
+        Module.__init__(self)
+        AccessCheckMixin.__init__(self)
+        DlnaHeadersMixin.__init__(self)
+    #
 
-	def execute_resource(self):
-	#
-		"""
+    def execute_resource(self):
+        """
 Action for "resource"
 
 :since: v0.2.00
-		"""
+        """
 
-		rid = InputFilter.filter_control_chars(self.request.get_dsd("urid", ""))
+        rid = InputFilter.filter_control_chars(self.request.get_dsd("urid", ""))
 
-		client_settings = self.get_client_settings()
+        client_settings = self.get_client_settings()
 
-		self.response.init(True, compress = client_settings.get("upnp_http_compression_supported", True))
+        self.response.init(True, compress = client_settings.get("upnp_http_compression_supported", True))
 
-		self._ensure_access_granted()
+        self._ensure_access_granted()
 
-		if (client_settings.get("upnp_stream_filter_resource_id_hook_call", False)):
-		#
-			rid_filtered = Hook.call("dNG.pas.upnp.Stream.filterResourceID",
-			                         rid = rid,
-			                         request = self.request,
-			                         response = self.response,
-			                         client_settings = client_settings
-			                        )
+        if (client_settings.get("upnp_stream_filter_resource_id_hook_call", False)):
+            rid_filtered = Hook.call("dNG.pas.upnp.Stream.filterResourceID",
+                                     rid = rid,
+                                     request = self.request,
+                                     response = self.response,
+                                     client_settings = client_settings
+                                    )
 
-			if (rid_filtered is not None): rid = rid_filtered
-		#
+            if (rid_filtered is not None): rid = rid_filtered
+        #
 
-		resource = Resource.load_cds_id(rid, client_settings)
+        resource = Resource.load_cds_id(rid, client_settings)
 
-		if (resource is None): raise TranslatableError("pas_http_core_404", 404)
+        if (resource is None): raise TranslatableError("pas_http_core_404", 404)
 
-		if ((not resource.is_supported("stream_vfs_url"))
-		    and (not resource.is_supported("vfs_url"))
-		   ): raise TranslatableError("pas_http_core_400", 400)
+        if ((not resource.is_supported("stream_vfs_url"))
+            and (not resource.is_supported("vfs_url"))
+           ): raise TranslatableError("pas_http_core_400", 400)
 
-		if (self.response.is_supported("headers")):
-		#
-			Stream._add_dlna_headers(self.request, self.response, resource)
+        if (self.response.is_supported("headers")):
+            Stream._add_dlna_headers(self.request, self.response, resource)
 
-			self.response.set_header("Content-Type", resource.get_mimetype())
-		#
+            self.response.set_header("Content-Type", resource.get_mimetype())
+        #
 
-		vfs_url = (resource.get_stream_vfs_url()
-		           if (resource.is_supported("stream_vfs_url"))
-		           else resource.get_vfs_url()
-		          )
+        vfs_url = (resource.get_stream_vfs_url()
+                   if (resource.is_supported("stream_vfs_url"))
+                   else resource.get_vfs_url()
+                  )
 
-		if (client_settings.get("upnp_stream_filter_url_hook_call", False)):
-		#
-			vfs_url_filtered = Hook.call("dNG.pas.upnp.Stream.filterUrl",
-			                             resource = resource,
-			                             vfs_url = vfs_url,
-			                             request = self.request,
-			                             response = self.response,
-			                             client_settings = client_settings
-			                            )
+        if (client_settings.get("upnp_stream_filter_url_hook_call", False)):
+            vfs_url_filtered = Hook.call("dNG.pas.upnp.Stream.filterUrl",
+                                         resource = resource,
+                                         vfs_url = vfs_url,
+                                         request = self.request,
+                                         response = self.response,
+                                         client_settings = client_settings
+                                        )
 
-			if (vfs_url_filtered is not None): vfs_url = vfs_url_filtered
-		#
+            if (vfs_url_filtered is not None): vfs_url = vfs_url_filtered
+        #
 
-		vfs_url_elements = urlsplit(vfs_url)
+        vfs_url_elements = urlsplit(vfs_url)
 
-		streamer_class = (""
-		                  if (vfs_url_elements.scheme == "") else
-		                  "".join([ word.capitalize() for word in vfs_url_elements.scheme.split("-") ])
-		                 )
+        streamer_class = (""
+                          if (vfs_url_elements.scheme == "") else
+                          "".join([ word.capitalize() for word in vfs_url_elements.scheme.split("-") ])
+                         )
 
-		streamer = None
+        streamer = None
 
-		if (streamer_class == "" or (not NamedLoader.is_defined("dNG.data.streamer.{0}".format(streamer_class)))):
-		#
-			vfs_object = Implementation.load_vfs_url(vfs_url, True)
-			if (not vfs_object.is_valid()): raise TranslatableError("pas_http_core_400", 400)
+        if (streamer_class == "" or (not NamedLoader.is_defined("dNG.data.streamer.{0}".format(streamer_class)))):
+            vfs_object = Implementation.load_vfs_url(vfs_url, True)
+            if (not vfs_object.is_valid()): raise TranslatableError("pas_http_core_400", 400)
 
-			streamer = FileLike()
-			streamer.set_file(vfs_object)
-			streamer.set_size(resource.get_size())
-		#
-		else:
-		#
-			streamer = NamedLoader.get_instance("dNG.data.streamer.{0}".format(streamer_class))
-			if (not streamer.open_url(vfs_url)): raise TranslatableError("pas_http_core_400", 400)
-		#
+            streamer = FileLike()
+            streamer.set_file(vfs_object)
+            streamer.set_size(resource.get_size())
+        else:
+            streamer = NamedLoader.get_instance("dNG.data.streamer.{0}".format(streamer_class))
+            if (not streamer.open_url(vfs_url)): raise TranslatableError("pas_http_core_400", 400)
+        #
 
-		if (client_settings.get("upnp_stream_handle_event_hook_call", False)):
-		#
-			Hook.call("dNG.pas.upnp.Stream.onHandle",
-			          resource = resource,
-			          streamer = streamer,
-			          request = self.request,
-			          response = self.response,
-			          client_settings = client_settings
-			         )
-		#
+        if (client_settings.get("upnp_stream_handle_event_hook_call", False)):
+            Hook.call("dNG.pas.upnp.Stream.onHandle",
+                      resource = resource,
+                      streamer = streamer,
+                      request = self.request,
+                      response = self.response,
+                      client_settings = client_settings
+                     )
+        #
 
-		Streaming.handle(self.request, streamer, self.response)
-	#
+        Streaming.handle(self.request, streamer, self.response)
+    #
 #
-
-##j## EOF

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -35,8 +34,7 @@ from dNG.plugins.hook import Hook
 from dNG.runtime.thread_lock import ThreadLock
 
 class UpdateIdRegistry(object):
-#
-	"""
+    """
 "UpdateIdRegistry" takes a UPnP error message and its error code for later
 output.
 
@@ -47,39 +45,39 @@ output.
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	UPDATE_ID_MAX = 4294967295
-	"""
+    UPDATE_ID_MAX = 4294967295
+    """
 Largest UpdateID number supported by UPnP v1.0
-	"""
+    """
 
-	_ids = { }
-	"""
-	"""
-	_lock = ThreadLock()
-	"""
-	"""
+    _ids = { }
+    """
+Dict of IDs
+    """
+    _lock = ThreadLock()
+    """
+Thread safety lock
+    """
 
-	@staticmethod
-	def get(_id):
-	#
-		"""
+    @staticmethod
+    def get(_id):
+        """
 Returns the UPnP UpdateID for the ID given.
 
 :param _id: Registry ID
 
 :return: (int) UPnP UpdateID value
 :since:  v0.2.00
-		"""
+        """
 
-		return UpdateIdRegistry._ids.get(_id, 1)
-	#
+        return UpdateIdRegistry._ids.get(_id, 1)
+    #
 
-	@staticmethod
-	def set(_id, value, resource = None):
-	#
-		"""
+    @staticmethod
+    def set(_id, value, resource = None):
+        """
 Sets the UPnP UpdateID for the ID given.
 
 :param _id: Registry ID
@@ -87,48 +85,40 @@ Sets the UPnP UpdateID for the ID given.
 :param resource: UPnP resource of the UpdateID if applicable
 
 :since: v0.2.00
-		"""
+        """
 
-		if (value == "++"):
-		#
-			with UpdateIdRegistry._lock:
-			#
-				value = UpdateIdRegistry.get(_id) + 1
-				if (value > UpdateIdRegistry.UPDATE_ID_MAX): value = 1
+        if (value == "++"):
+            with UpdateIdRegistry._lock:
+                value = UpdateIdRegistry.get(_id) + 1
+                if (value > UpdateIdRegistry.UPDATE_ID_MAX): value = 1
 
-				UpdateIdRegistry._ids[_id] = value
-			#
-		#
-		else:
-		#
-			if (value < 1): value = UpdateIdRegistry.UPDATE_ID_MAX
-			elif (value > UpdateIdRegistry.UPDATE_ID_MAX): value = 1
+                UpdateIdRegistry._ids[_id] = value
+            #
+        else:
+            if (value < 1): value = UpdateIdRegistry.UPDATE_ID_MAX
+            elif (value > UpdateIdRegistry.UPDATE_ID_MAX): value = 1
 
-			UpdateIdRegistry._ids[_id] = value
-		#
+            UpdateIdRegistry._ids[_id] = value
+        #
 
-		if (resource is not None): Hook.call("dNG.pas.upnp.Resource.onUpdateIdChanged", id = _id, resource = resource, value = value)
-	#
+        if (resource is not None): Hook.call("dNG.pas.upnp.Resource.onUpdateIdChanged", id = _id, resource = resource, value = value)
+    #
 
-	@staticmethod
-	def unset(_id, resource = None):
-	#
-		"""
+    @staticmethod
+    def unset(_id, resource = None):
+        """
 Unsets the UPnP UpdateID for the ID given.
 
 :param _id: Registry ID
 :param resource: UPnP resource of the UpdateID if applicable
 
 :since: v0.2.00
-		"""
+        """
 
-		with UpdateIdRegistry._lock:
-		#
-			if (_id in UpdateIdRegistry._ids): del(UpdateIdRegistry._ids[_id])
-		#
+        with UpdateIdRegistry._lock:
+            if (_id in UpdateIdRegistry._ids): del(UpdateIdRegistry._ids[_id])
+        #
 
-		if (resource is not None): Hook.call("dNG.pas.upnp.Resource.onUpdateIdChanged", id = _id, resource = resource, value = None)
-	#
+        if (resource is not None): Hook.call("dNG.pas.upnp.Resource.onUpdateIdChanged", id = _id, resource = resource, value = None)
+    #
 #
-
-##j## EOF

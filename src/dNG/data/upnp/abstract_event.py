@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -38,8 +37,7 @@ from dNG.runtime.not_implemented_exception import NotImplementedException
 from dNG.runtime.value_exception import ValueException
 
 class AbstractEvent(Thread):
-#
-	"""
+    """
 The abstract event class for scheduled delivery by the UPnP control point.
 
 :author:     direct Netware Group et al.
@@ -49,117 +47,107 @@ The abstract event class for scheduled delivery by the UPnP control point.
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	def __init__(self, _type):
-	#
-		"""
+    def __init__(self, _type):
+        """
 Constructor __init__(AbstractEvent)
 
 :param _type: Event to be delivered
 
 :since: v0.2.00
-		"""
+        """
 
-		Thread.__init__(self, target = self._send)
+        Thread.__init__(self, target = self._send)
 
-		self.control_point = None
-		"""
+        self.control_point = None
+        """
 The UPnP ControlPoint scheduling the event delivery.
-		"""
-		self.type = _type
-		"""
+        """
+        self.type = _type
+        """
 Event type to be handled
-		"""
-		self.usn = None
-		"""
+        """
+        self.usn = None
+        """
 UPnP USN
-		"""
-	#
+        """
+    #
 
-	def deliver(self, wait_timeout = 0):
-	#
-		"""
+    def deliver(self, wait_timeout = 0):
+        """
 Activates all relevant multicast listeners based on the IP address given.
 
 :param wait_timeout: Time to wait before delivery
 
 :since: v0.2.00
-		"""
+        """
 
-		if (wait_timeout > 0): self.schedule(wait_timeout)
-		else: self.start()
-	#
+        if (wait_timeout > 0): self.schedule(wait_timeout)
+        else: self.start()
+    #
 
-	def get_usn(self):
-	#
-		"""
+    def get_usn(self):
+        """
 Returns the UPnP USN value.
 
 :return: (str) UPnP USN
 :since:  v0.2.00
-		"""
+        """
 
-		return self.usn
-	#
+        return self.usn
+    #
 
-	def run(self):
-	#
-		"""
+    def run(self):
+        """
 python.org: Method representing the thread's activity.
 
 :since: v0.2.00
-		"""
+        """
 
-		with ExceptionLogTrap("pas_upnp"):
-		#
-			Thread.run(self)
-		#
-	#
+        with ExceptionLogTrap("pas_upnp"):
+            Thread.run(self)
+        #
+    #
 
-	def schedule(self, wait_timeout = 0):
-	#
-		"""
+    def schedule(self, wait_timeout = 0):
+        """
 Activates all relevant multicast listeners based on the IP address given.
 
 :param wait_timeout: Time to wait before delivery
 
 :since: v0.2.00
-		"""
+        """
 
-		# pylint: disable=star-args
+        # pylint: disable=star-args
 
-		if (self.control_point is None): raise ValueException("UPnP control point needs to be defined to schedule event delivery")
+        if (self.control_point is None): raise ValueException("UPnP control point needs to be defined to schedule event delivery")
 
-		event_data = { "event": self }
-		if (self.usn is not None): event_data['usn'] = self.usn
+        event_data = { "event": self }
+        if (self.usn is not None): event_data['usn'] = self.usn
 
-		self.control_point._add_task(wait_timeout, "deliver_event", **event_data)
-	#
+        self.control_point._add_task(wait_timeout, "deliver_event", **event_data)
+    #
 
-	def _send(self):
-	#
-		"""
+    def _send(self):
+        """
 Send event.
 
 :since: v0.2.00
-		"""
+        """
 
-		raise NotImplementedException()
-	#
+        raise NotImplementedException()
+    #
 
-	def set_usn(self, usn):
-	#
-		"""
+    def set_usn(self, usn):
+        """
 Sets the UPnP USN fpr this event.
 
 :param usn: UPnP USN
 
 :since: v0.2.00
-		"""
+        """
 
-		self.usn = usn
-	#
+        self.usn = usn
+    #
 #
-
-##j## EOF

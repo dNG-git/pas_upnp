@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -32,8 +31,7 @@ https://www.direct-netware.de/redirect?licenses;gpl
 """
 
 class DlnaHeadersMixin(object):
-#
-	"""
+    """
 Mixin to handle DLNA headers.
 
 :author:     direct Netware Group et al.
@@ -43,12 +41,11 @@ Mixin to handle DLNA headers.
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	@staticmethod
-	def _add_dlna_headers(request, response, resource):
-	#
-		"""
+    @staticmethod
+    def _add_dlna_headers(request, response, resource):
+        """
 Adds DLNA headers of the given resource and stream resource if requested.
 
 :param request: Request instance
@@ -56,27 +53,23 @@ Adds DLNA headers of the given resource and stream resource if requested.
 :param resource: UPnP resource instance
 
 :since: v0.2.00
-		"""
+        """
 
-		if (response.is_supported("headers")):
-		#
-			if (request.get_header("getcontentFeatures.dlna.org") == "1"
-			    and resource.is_supported("dlna_content_features")
-			   ):
-			#
-				response.set_header("contentFeatures.dlna.org",
-				                    resource.get_dlna_content_features()
-				                   )
-			#
+        if (response.is_supported("headers")):
+            if (request.get_header("getcontentFeatures.dlna.org") == "1"
+                and resource.is_supported("dlna_content_features")
+               ):
+                response.set_header("contentFeatures.dlna.org",
+                                    resource.get_dlna_content_features()
+                                   )
+            #
 
-			upnp_transfer_mode = request.get_header("transferMode.dlna.org")
+            upnp_transfer_mode = request.get_header("transferMode.dlna.org")
 
-			if (upnp_transfer_mode == "Background"
-			    or upnp_transfer_mode == "Interactive"
-			    or upnp_transfer_mode == "Streaming"
-			   ): response.set_header("transferMode.dlna.org", upnp_transfer_mode)
-		#
-	#
+            if (upnp_transfer_mode == "Background"
+                or upnp_transfer_mode == "Interactive"
+                or upnp_transfer_mode == "Streaming"
+               ): response.set_header("transferMode.dlna.org", upnp_transfer_mode)
+        #
+    #
 #
-
-##j## EOF

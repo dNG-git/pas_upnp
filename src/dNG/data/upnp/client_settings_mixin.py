@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -34,8 +33,7 @@ https://www.direct-netware.de/redirect?licenses;gpl
 from .client_settings import ClientSettings
 
 class ClientSettingsMixin(object):
-#
-	"""
+    """
 "ClientSettingsMixin" implements methods to access UPnP client based
 settings.
 
@@ -46,127 +44,116 @@ settings.
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	def __init__(self):
-	#
-		"""
+    def __init__(self):
+        """
 Constructor __init__(ClientSettingsMixin)
 
 :since: v0.2.00
-		"""
+        """
 
-		self.client_host = None
-		"""
+        self.client_host = None
+        """
 Client host
-		"""
-		self.client_settings = None
-		"""
+        """
+        self.client_settings = None
+        """
 Cached client settings
-		"""
-		self.client_user_agent = None
-		"""
+        """
+        self.client_user_agent = None
+        """
 Client user agent
-		"""
-	#
+        """
+    #
 
-	def get_client_settings(self):
-	#
-		"""
+    def get_client_settings(self):
+        """
 Returns the UPnP client settings instance for the client user agent.
 
 :return: (object) UPnP client settings
 :since:  v0.2.00
-		"""
+        """
 
-		if (self.client_settings is None):
-		#
-			self.client_settings = ClientSettings(self.client_user_agent, self.client_host)
-		#
+        if (self.client_settings is None):
+            self.client_settings = ClientSettings(self.client_user_agent, self.client_host)
+        #
 
-		return self.client_settings
-	#
+        return self.client_settings
+    #
 
-	def get_client_host(self):
-	#
-		"""
+    def get_client_host(self):
+        """
 Returns the UPnP client host requesting the resource.
 
 :return: (str) Client host if known; None otherwise
 :since:  v0.2.00
-		"""
+        """
 
-		return self.client_host
-	#
+        return self.client_host
+    #
 
-	def get_client_user_agent(self):
-	#
-		"""
+    def get_client_user_agent(self):
+        """
 Returns the UPnP client user agent requesting the resource.
 
 :return: (str) Client user agent if known; None otherwise
 :since:  v0.2.00
-		"""
+        """
 
-		return self.client_user_agent
-	#
+        return self.client_user_agent
+    #
 
-	def init_client_settings(self, user_agent, host):
-	#
-		"""
+    def init_client_settings(self, user_agent, host):
+        """
 Initializes the UPnP client settings.
 
 :param user_agent: Client user agent
 :param host: Client host
 
 :since: v0.2.00
-		"""
+        """
 
-		self.client_host = host
-		self.client_settings = None
-		self.client_user_agent = user_agent
-	#
+        self.client_host = host
+        self.client_settings = None
+        self.client_user_agent = user_agent
+    #
 
-	def set_client_host(self, host):
-	#
-		"""
+    def set_client_host(self, host):
+        """
 Sets the UPnP client host.
 
 :param host: Client host
 
 :since: v0.2.00
-		"""
+        """
 
-		self.client_host = host
-		if (self.client_settings is not None): self.client_settings.set_host(host)
-	#
+        self.client_host = host
+        if (self.client_settings is not None): self.client_settings.set_host(host)
+    #
 
-	def set_client_settings(self, client_settings):
-	#
-		"""
+    def set_client_settings(self, client_settings):
+        """
 Sets the UPnP client settings instance.
 
 :param client_settings: Client settings instance
 
 :since: v0.2.00
-		"""
+        """
 
-		self.client_settings = client_settings
-	#
+        self.client_settings = client_settings
+    #
 
-	def set_client_user_agent(self, user_agent):
-	#
-		"""
+    def set_client_user_agent(self, user_agent):
+        """
 Sets the UPnP client user agent.
 
 :param user_agent: Client user agent
 
 :since: v0.2.00
-		"""
+        """
 
-		self.client_settings = None
-		self.client_user_agent = user_agent
-	#
+        self.client_settings = None
+        self.client_user_agent = user_agent
+    #
 #
-
-##j## EOF

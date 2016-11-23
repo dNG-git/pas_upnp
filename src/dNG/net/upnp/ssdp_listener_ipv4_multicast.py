@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -39,8 +38,7 @@ from dNG.net.udp_ne_ipv4_socket import UdpNeIpv4Socket
 from .ssdp_request import SsdpRequest
 
 class SsdpListenerIpv4Multicast(Dispatcher):
-#
-	"""
+    """
 Listener instance receiving IPv4 multicast SSDP messages.
 
 :author:     direct Netware Group et al.
@@ -50,101 +48,89 @@ Listener instance receiving IPv4 multicast SSDP messages.
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	def __init__(self, ip):
-	#
-		"""
+    def __init__(self, ip):
+        """
 Constructor __init__(SsdpListenerIpv4Multicast)
 
 :param ip: IPv4 address
 
 :since: v0.2.00
-		"""
+        """
 
-		self.listener_active = False
-		"""
+        self.listener_active = False
+        """
 True if multicast listener is active
-		"""
-		self.listener_ip = ip
-		"""
+        """
+        self.listener_ip = ip
+        """
 Listener IPv6 address
-		"""
+        """
 
-		listener_socket = UdpNeIpv4Socket(( "", 1900 ))
+        listener_socket = UdpNeIpv4Socket(( "", 1900 ))
 
-		Dispatcher.__init__(self, listener_socket, SsdpRequest, 1)
-	#
+        Dispatcher.__init__(self, listener_socket, SsdpRequest, 1)
+    #
 
-	def is_listening(self):
-	#
-		"""
+    def is_listening(self):
+        """
 Returns true if the listener is active.
 
 :return: (bool) Listener state
 :since:  v0.2.00
-		"""
+        """
 
-		return self.listener_active
-	#
+        return self.listener_active
+    #
 
-	def run(self):
-	#
-		"""
+    def run(self):
+        """
 Run the main loop for this server instance.
 
 :since: v0.2.00
-		"""
+        """
 
-		# pylint: disable=broad-except
+        # pylint: disable=broad-except
 
-		if (not self.listener_active):
-		#
-			try:
-			#
-				mreq = (socket.inet_pton(socket.AF_INET, "239.255.255.250") + socket.inet_pton(socket.AF_INET, self.listener_ip)
-				        if (hasattr(socket, "inet_pton")) else
-				        socket.inet_aton("239.255.255.250") + socket.inet_aton(self.listener_ip)
-				       )
+        if (not self.listener_active):
+            try:
+                mreq = (socket.inet_pton(socket.AF_INET, "239.255.255.250") + socket.inet_pton(socket.AF_INET, self.listener_ip)
+                        if (hasattr(socket, "inet_pton")) else
+                        socket.inet_aton("239.255.255.250") + socket.inet_aton(self.listener_ip)
+                       )
 
-				self.listener_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+                self.listener_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
-				self.listener_active = True
+                self.listener_active = True
 
-				if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.run()- reporting: Started listening on '{1}'", self, self.listener_ip, context = "pas_upnp")
-			#
-			except Exception as handled_exception:
-			#
-				if (self.log_handler is not None): self.log_handler.debug(handled_exception, context = "pas_upnp")
-			#
-		#
+                if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.run()- reporting: Started listening on '{1}'", self, self.listener_ip, context = "pas_upnp")
+            except Exception as handled_exception:
+                if (self.log_handler is not None): self.log_handler.debug(handled_exception, context = "pas_upnp")
+            #
+        #
 
-		Dispatcher.run(self)
-	#
+        Dispatcher.run(self)
+    #
 
-	def stop(self):
-	#
-		"""
+    def stop(self):
+        """
 Stops the listener and unqueues all running sockets.
 
 :since: v0.2.00
-		"""
+        """
 
-		# pylint: disable=broad-except
+        # pylint: disable=broad-except
 
-		if (self.listener_active):
-		#
-			try: self.listener_socket.setsockopt(socket.IPPROTO_IP, socket.IP_DROP_MEMBERSHIP, socket.inet_pton(socket.AF_INET, "239.255.255.250") + socket.inet_pton(socket.AF_INET, self.listener_ip))
-			except Exception as handled_exception:
-			#
-				if (self.log_handler is not None): self.log_handler.debug(handled_exception, context = "pas_upnp")
-			#
+        if (self.listener_active):
+            try: self.listener_socket.setsockopt(socket.IPPROTO_IP, socket.IP_DROP_MEMBERSHIP, socket.inet_pton(socket.AF_INET, "239.255.255.250") + socket.inet_pton(socket.AF_INET, self.listener_ip))
+            except Exception as handled_exception:
+                if (self.log_handler is not None): self.log_handler.debug(handled_exception, context = "pas_upnp")
+            #
 
-			self.listener_active = False
-		#
+            self.listener_active = False
+        #
 
-		Dispatcher.stop(self)
-	#
+        Dispatcher.stop(self)
+    #
 #
-
-##j## EOF

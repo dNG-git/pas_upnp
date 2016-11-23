@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -37,8 +36,7 @@ from dNG.plugins.hook import Hook
 from .abstract_service import AbstractService
 
 class CallableService(AbstractService):
-#
-	"""
+    """
 Implementation for "urn:schemas-direct-netware-de:service:CallableService:1".
 
 :author:     direct Netware Group et al.
@@ -48,29 +46,27 @@ Implementation for "urn:schemas-direct-netware-de:service:CallableService:1".
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	def call_hook(self, hook, json_arguments):
-	#
-		"""
+    def call_hook(self, hook, json_arguments):
+        """
 Calls the given hook and returns the result.
 
 :return: (mixed) Data returned by the called hook
 :since:  v0.2.00
-		"""
+        """
 
-		# pylint: disable=star-args
+        # pylint: disable=star-args
 
-		json_resource = JsonResource()
-		arguments = ({ } if (json_arguments.strip() == "") else json_resource.json_to_data(json_arguments))
+        json_resource = JsonResource()
+        arguments = ({ } if (json_arguments.strip() == "") else json_resource.json_to_data(json_arguments))
 
-		result = Hook.call(hook, **arguments)
-		return json_resource.data_to_json(result)
-	#
+        result = Hook.call(hook, **arguments)
+        return json_resource.data_to_json(result)
+    #
 
-	def init_host(self, device, service_id = None, configid = None):
-	#
-		"""
+    def init_host(self, device, service_id = None, configid = None):
+        """
 Initializes a host service.
 
 :param device: Host device this UPnP service is added to
@@ -79,58 +75,54 @@ Initializes a host service.
 
 :return: (bool) Returns true if initialization was successful.
 :since:  v0.2.00
-		"""
+        """
 
-		self.service_id = service_id
-		self.type = "CallableService"
-		self.upnp_domain = "schemas-direct-netware-de"
-		self.version = "1"
+        self.service_id = service_id
+        self.type = "CallableService"
+        self.upnp_domain = "schemas-direct-netware-de"
+        self.version = "1"
 
-		if (service_id is None): service_id = "CallableService"
-		return AbstractService.init_host(self, device, service_id, configid)
-	#
+        if (service_id is None): service_id = "CallableService"
+        return AbstractService.init_host(self, device, service_id, configid)
+    #
 
-	def _init_host_actions(self, device):
-	#
-		"""
+    def _init_host_actions(self, device):
+        """
 Initializes the dict of host service actions.
 
 :param device: Host device this UPnP service is added to
 
 :since: v0.2.00
-		"""
+        """
 
-		call_hook = { "argument_variables": [ { "name": "Hook", "variable": "A_ARG_TYPE_Hook" },
-		                                      { "name": "JsonArguments", "variable": "A_ARG_TYPE_Json" }
-		                                    ],
-		              "return_variable": { "name": "JsonResult", "variable": "A_ARG_TYPE_Json" },
-		              "result_variables": [ ]
-		            }
+        call_hook = { "argument_variables": [ { "name": "Hook", "variable": "A_ARG_TYPE_Hook" },
+                                              { "name": "JsonArguments", "variable": "A_ARG_TYPE_Json" }
+                                            ],
+                      "return_variable": { "name": "JsonResult", "variable": "A_ARG_TYPE_Json" },
+                      "result_variables": [ ]
+                    }
 
-		self.actions = { "CallHook": call_hook }
-	#
+        self.actions = { "CallHook": call_hook }
+    #
 
-	def _init_host_variables(self, device):
-	#
-		"""
+    def _init_host_variables(self, device):
+        """
 Initializes the dict of host service variables.
 
 :param device: Host device this UPnP service is added to
 
 :since: v0.2.00
-		"""
+        """
 
-		self.variables = { "A_ARG_TYPE_Hook": { "is_sending_events": False,
-		                                        "is_multicasting_events": False,
-		                                        "type": "string"
-		                                      },
-		                   "A_ARG_TYPE_Json": { "is_sending_events": False,
-		                                        "is_multicasting_events": False,
-		                                        "type": "string",
-		                                        "value": ""
-		                                      }
-		                 }
-	#
+        self.variables = { "A_ARG_TYPE_Hook": { "is_sending_events": False,
+                                                "is_multicasting_events": False,
+                                                "type": "string"
+                                              },
+                           "A_ARG_TYPE_Json": { "is_sending_events": False,
+                                                "is_multicasting_events": False,
+                                                "type": "string",
+                                                "value": ""
+                                              }
+                         }
+    #
 #
-
-##j## EOF

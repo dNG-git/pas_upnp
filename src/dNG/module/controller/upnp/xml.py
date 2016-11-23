@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -39,8 +38,7 @@ from dNG.data.upnp.services.abstract_service import AbstractService
 from .module import Module
 
 class Xml(Module):
-#
-	"""
+    """
 Service for "m=upnp;s=xml"
 
 :author:     direct Netware Group et al.
@@ -50,47 +48,43 @@ Service for "m=upnp;s=xml"
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	def execute_get_device(self):
-	#
-		"""
+    def execute_get_device(self):
+        """
 Action for "get_device"
 
 :since: v0.2.00
-		"""
+        """
 
-		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
-		upnp_device = self.request.get_upnp_device()
-		if (not isinstance(upnp_device, AbstractDevice)): raise UpnpException("pas_http_core_400", 401)
+        if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
+        upnp_device = self.request.get_upnp_device()
+        if (not isinstance(upnp_device, AbstractDevice)): raise UpnpException("pas_http_core_400", 401)
 
-		client_settings = self.get_client_settings()
-		upnp_device.set_client_settings(client_settings)
+        client_settings = self.get_client_settings()
+        upnp_device.set_client_settings(client_settings)
 
-		self.response.init(True, compress = client_settings.get("upnp_http_compression_supported", True))
-		self.response.set_header("Content-Type", "text/xml; charset=UTF-8")
-		self.response.set_raw_data("<?xml version='1.0' encoding='UTF-8' ?>" + upnp_device.get_xml())
-	#
+        self.response.init(True, compress = client_settings.get("upnp_http_compression_supported", True))
+        self.response.set_header("Content-Type", "text/xml; charset=UTF-8")
+        self.response.set_raw_data("<?xml version='1.0' encoding='UTF-8' ?>" + upnp_device.get_xml())
+    #
 
-	def execute_get_service(self):
-	#
-		"""
+    def execute_get_service(self):
+        """
 Action for "get_service"
 
 :since: v0.2.00
-		"""
+        """
 
-		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
-		upnp_service = self.request.get_upnp_service()
-		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_core_400", 401)
+        if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
+        upnp_service = self.request.get_upnp_service()
+        if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_core_400", 401)
 
-		client_settings = self.get_client_settings()
-		upnp_service.set_client_settings(client_settings)
+        client_settings = self.get_client_settings()
+        upnp_service.set_client_settings(client_settings)
 
-		self.response.init(True, compress = client_settings.get("upnp_http_compression_supported", True))
-		self.response.set_header("Content-Type", "text/xml; charset=UTF-8")
-		self.response.set_raw_data("<?xml version='1.0' encoding='UTF-8' ?>" + upnp_service.get_xml())
-	#
+        self.response.init(True, compress = client_settings.get("upnp_http_compression_supported", True))
+        self.response.set_header("Content-Type", "text/xml; charset=UTF-8")
+        self.response.set_raw_data("<?xml version='1.0' encoding='UTF-8' ?>" + upnp_service.get_xml())
+    #
 #
-
-##j## EOF

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -39,8 +38,7 @@ from dNG.plugins.hook import Hook
 from .module import Module
 
 class Control(Module):
-#
-	"""
+    """
 Service for "m=upnp;s=control"
 
 :author:     direct Netware Group et al.
@@ -50,30 +48,27 @@ Service for "m=upnp;s=control"
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	def execute_request(self):
-	#
-		"""
+    def execute_request(self):
+        """
 Action for "request"
 
 :since: v0.2.00
-		"""
+        """
 
-		if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
-		upnp_service = self.request.get_upnp_service()
-		if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_core_400", 401)
+        if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
+        upnp_service = self.request.get_upnp_service()
+        if (not isinstance(upnp_service, AbstractService)): raise UpnpException("pas_http_core_400", 401)
 
-		Hook.call("dNG.pas.http.l10n.upnp.Control.init")
+        Hook.call("dNG.pas.http.l10n.upnp.Control.init")
 
-		soap_request = self.request.get_soap_request()
-		upnp_service.set_client_settings(self.get_client_settings())
+        soap_request = self.request.get_soap_request()
+        upnp_service.set_client_settings(self.get_client_settings())
 
-		if (soap_request is None): raise UpnpException("pas_http_core_500")
+        if (soap_request is None): raise UpnpException("pas_http_core_500")
 
-		self.response.init()
-		self.response.handle_result(soap_request['urn'], soap_request['action'], upnp_service.handle_soap_call(soap_request['action'], soap_request['arguments']))
-	#
+        self.response.init()
+        self.response.handle_result(soap_request['urn'], soap_request['action'], upnp_service.handle_soap_call(soap_request['action'], soap_request['arguments']))
+    #
 #
-
-##j## EOF

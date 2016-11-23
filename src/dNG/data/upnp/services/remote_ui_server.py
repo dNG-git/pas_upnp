@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -34,8 +33,7 @@ https://www.direct-netware.de/redirect?licenses;gpl
 from .abstract_service import AbstractService
 
 class RemoteUiServer(AbstractService):
-#
-	"""
+    """
 Implementation for "urn:schemas-upnp-org:service:RemoteUIServer:1".
 
 :author:     direct Netware Group et al.
@@ -45,27 +43,25 @@ Implementation for "urn:schemas-upnp-org:service:RemoteUIServer:1".
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	def get_compatible_uis(self, input_device_profile, ui_filter = ""):
-	#
-		"""
+    def get_compatible_uis(self, input_device_profile, ui_filter = ""):
+        """
 Calls the given hook and returns the result.
 
 TODO: Add implementation
 
 :return: (mixed) Data returned by the called hook
 :since:  v0.2.00
-		"""
+        """
 
-		print(input_device_profile)
-		print(ui_filter)
-		return None
-	#
+        print(input_device_profile)
+        print(ui_filter)
+        return None
+    #
 
-	def init_host(self, device, service_id = None, configid = None):
-	#
-		"""
+    def init_host(self, device, service_id = None, configid = None):
+        """
 Initializes a host service.
 
 :param device: Host device this UPnP service is added to
@@ -74,63 +70,59 @@ Initializes a host service.
 
 :return: (bool) Returns true if initialization was successful.
 :since:  v0.2.00
-		"""
+        """
 
-		self.type = "RemoteUIServer"
-		self.upnp_domain = "schemas-upnp-org"
-		self.version = "1"
+        self.type = "RemoteUIServer"
+        self.upnp_domain = "schemas-upnp-org"
+        self.version = "1"
 
-		if (service_id is None): service_id = "RemoteUIServer"
-		return AbstractService.init_host(self, device, service_id, configid)
-	#
+        if (service_id is None): service_id = "RemoteUIServer"
+        return AbstractService.init_host(self, device, service_id, configid)
+    #
 
-	def _init_host_actions(self, device):
-	#
-		"""
+    def _init_host_actions(self, device):
+        """
 Initializes the dict of host service actions.
 
 :param device: Host device this UPnP service is added to
 
 :since: v0.2.00
-		"""
+        """
 
-		get_compatible_uis = { "argument_variables": [ { "name": "InputDeviceProfile", "variable": "A_ARG_TYPE_DeviceProfile" },
-		                                               { "name": "UIFilter", "variable": "A_ARG_TYPE_String" }
-		                                             ],
-		                       "return_variable": { "name": "UIListing", "variable": "A_ARG_TYPE_CompatibleUIs" },
-		                       "result_variables": [ ]
-		                     }
+        get_compatible_uis = { "argument_variables": [ { "name": "InputDeviceProfile", "variable": "A_ARG_TYPE_DeviceProfile" },
+                                                       { "name": "UIFilter", "variable": "A_ARG_TYPE_String" }
+                                                     ],
+                               "return_variable": { "name": "UIListing", "variable": "A_ARG_TYPE_CompatibleUIs" },
+                               "result_variables": [ ]
+                             }
 
-		self.actions = { "GetCompatibleUIs": get_compatible_uis }
-	#
+        self.actions = { "GetCompatibleUIs": get_compatible_uis }
+    #
 
-	def _init_host_variables(self, device):
-	#
-		"""
+    def _init_host_variables(self, device):
+        """
 Initializes the dict of host service variables.
 
 :param device: Host device this UPnP service is added to
 
 :since: v0.2.00
-		"""
+        """
 
-		self.variables = { "A_ARG_TYPE_DeviceProfile": { "is_sending_events": True,
-		                                                 "is_multicasting_events": False,
-		                                                 "type": "string",
-		                                                 "value": ""
-		                                               },
-		                   "A_ARG_TYPE_CompatibleUIs": { "is_sending_events": True,
-		                                                 "is_multicasting_events": False,
-		                                                 "type": "string",
-		                                                 "value": ""
-		                                               },
-		                   "A_ARG_TYPE_String": { "is_sending_events": True,
-		                                          "is_multicasting_events": False,
-		                                          "type": "string",
-		                                          "value": ""
-		                                        }
-		                 }
-	#
+        self.variables = { "A_ARG_TYPE_DeviceProfile": { "is_sending_events": True,
+                                                         "is_multicasting_events": False,
+                                                         "type": "string",
+                                                         "value": ""
+                                                       },
+                           "A_ARG_TYPE_CompatibleUIs": { "is_sending_events": True,
+                                                         "is_multicasting_events": False,
+                                                         "type": "string",
+                                                         "value": ""
+                                                       },
+                           "A_ARG_TYPE_String": { "is_sending_events": True,
+                                                  "is_multicasting_events": False,
+                                                  "type": "string",
+                                                  "value": ""
+                                                }
+                         }
+    #
 #
-
-##j## EOF

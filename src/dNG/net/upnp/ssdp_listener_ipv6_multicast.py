@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -41,8 +40,7 @@ from dNG.net.udp_ne_ipv6_socket import UdpNeIpv6Socket
 from .ssdp_request import SsdpRequest
 
 class SsdpListenerIpv6Multicast(Dispatcher):
-#
-	"""
+    """
 Listener instance receiving IPv6 multicast SSDP messages.
 
 :author:     direct Netware Group et al.
@@ -52,148 +50,128 @@ Listener instance receiving IPv6 multicast SSDP messages.
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	def __init__(self, ip, multicast_address = "ff02::c"):
-	#
-		"""
+    def __init__(self, ip, multicast_address = "ff02::c"):
+        """
 Constructor __init__(SsdpListenerIpv6Multicast)
 
 :param ip: IPv6 address
 
 :since: v0.2.00
-		"""
+        """
 
-		self.listener_active = False
-		"""
+        self.listener_active = False
+        """
 True if multicast listener is active
-		"""
-		self.listener_if_index = 0
-		"""
+        """
+        self.listener_if_index = 0
+        """
 Listener IPv6 interface index
-		"""
-		self.multicast_addresses = [ ]
-		"""
+        """
+        self.multicast_addresses = [ ]
+        """
 Multicast addresses to listen for on this socket
-		"""
+        """
 
-		# pylint: disable=no-member
+        # pylint: disable=no-member
 
-		# Split listener interface from IPv6 address and find corresponding index
-		if ("%" in ip and hasattr(socket, "if_nameindex")):
-		#
-			if_list = { if_name: index for index, if_name in socket.if_nameindex() }
+        # Split listener interface from IPv6 address and find corresponding index
+        if ("%" in ip and hasattr(socket, "if_nameindex")):
+            if_list = { if_name: index for index, if_name in socket.if_nameindex() }
 
-			( ip, _if ) = ip.split("%", 1)
-			self.listener_if_index = (if_list[_if] if (_if in if_list) else int(_if))
-		#
+            ( ip, _if ) = ip.split("%", 1)
+            self.listener_if_index = (if_list[_if] if (_if in if_list) else int(_if))
+        #
 
-		listener_socket = UdpNeIpv6Socket(( "::", 1900 ))
-		Dispatcher.__init__(self, listener_socket, SsdpRequest, 1)
+        listener_socket = UdpNeIpv6Socket(( "::", 1900 ))
+        Dispatcher.__init__(self, listener_socket, SsdpRequest, 1)
 
-		self.add_address(multicast_address)
-	#
+        self.add_address(multicast_address)
+    #
 
-	def add_address(self, multicast_address):
-	#
-		"""
+    def add_address(self, multicast_address):
+        """
 Adds a new IPv6 multicast address to listen for SSDP messages.
 
 :since: v0.2.00
-		"""
+        """
 
-		# pylint: disable=broad-except
+        # pylint: disable=broad-except
 
-		if (multicast_address not in self.multicast_addresses and socket.has_ipv6):
-		#
-			try:
-			#
-				self.listener_socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, socket.inet_pton(socket.AF_INET6, multicast_address) + pack("I", self.listener_if_index))
-				self.multicast_addresses.append(multicast_address)
+        if (multicast_address not in self.multicast_addresses and socket.has_ipv6):
+            try:
+                self.listener_socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, socket.inet_pton(socket.AF_INET6, multicast_address) + pack("I", self.listener_if_index))
+                self.multicast_addresses.append(multicast_address)
 
-				if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.run()- reporting: Added listener for '{1} {2:d}'", self, multicast_address, self.listener_if_index, context = "pas_upnp")
-			#
-			except Exception as handled_exception:
-			#
-				if (self.log_handler is not None): self.log_handler.debug(handled_exception, context = "pas_upnp")
-			#
-		#
-	#
+                if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.run()- reporting: Added listener for '{1} {2:d}'", self, multicast_address, self.listener_if_index, context = "pas_upnp")
+            except Exception as handled_exception:
+                if (self.log_handler is not None): self.log_handler.debug(handled_exception, context = "pas_upnp")
+            #
+        #
+    #
 
-	def is_listening(self):
-	#
-		"""
+    def is_listening(self):
+        """
 Returns true if the listener is active.
 
 :return: (bool) Listener state
 :since:  v0.2.00
-		"""
+        """
 
-		return self.listener_active
-	#
+        return self.listener_active
+    #
 
-	def remove_address(self, multicast_address):
-	#
-		"""
+    def remove_address(self, multicast_address):
+        """
 Removes an IPv6 multicast address currently listening for SSDP messages.
 
 :since: v0.2.00
-		"""
+        """
 
-		if (multicast_address in self.multicast_addresses):
-		#
-			self.listener_socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_LEAVE_GROUP, socket.inet_pton(socket.AF_INET6, multicast_address) + pack("I", self.listener_if_index))
-			self.multicast_addresses.remove(multicast_address)
-		#
-	#
+        if (multicast_address in self.multicast_addresses):
+            self.listener_socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_LEAVE_GROUP, socket.inet_pton(socket.AF_INET6, multicast_address) + pack("I", self.listener_if_index))
+            self.multicast_addresses.remove(multicast_address)
+        #
+    #
 
-	def run(self):
-	#
-		"""
+    def run(self):
+        """
 Run the main loop for this server instance.
 
 :since: v0.2.00
-		"""
+        """
 
-		if (not self.listener_active):
-		#
-			if (len(self.multicast_addresses) > 0):
-			#
-				self.listener_active = True
-				Dispatcher.run(self)
-			#
-			elif (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.run()- reporting: No IPv6 multicast addresses bound", self, context = "pas_upnp")
-		#
-	#
+        if (not self.listener_active):
+            if (len(self.multicast_addresses) > 0):
+                self.listener_active = True
+                Dispatcher.run(self)
+            elif (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}.run()- reporting: No IPv6 multicast addresses bound", self, context = "pas_upnp")
+        #
+    #
 
-	def stop(self):
-	#
-		"""
+    def stop(self):
+        """
 Stops the listener and unqueues all running sockets.
 
 :since: v0.2.00
-		"""
+        """
 
-		# pylint: disable=broad-except,no-member
+        # pylint: disable=broad-except,no-member
 
-		if (self.listener_active):
-		#
-			multicast_addresses = (self.multicast_addresses.copy() if (hasattr(self.multicast_addresses, "copy")) else copy(self.multicast_addresses))
+        if (self.listener_active):
+            multicast_addresses = (self.multicast_addresses.copy() if (hasattr(self.multicast_addresses, "copy")) else copy(self.multicast_addresses))
 
-			for multicast_address in multicast_addresses:
-			#
-				try: self.remove_address(multicast_address)
-				except Exception as handled_exception:
-				#
-					if (self.log_handler is not None): self.log_handler.debug(handled_exception, context = "pas_upnp")
-				#
-			#
+            for multicast_address in multicast_addresses:
+                try: self.remove_address(multicast_address)
+                except Exception as handled_exception:
+                    if (self.log_handler is not None): self.log_handler.debug(handled_exception, context = "pas_upnp")
+                #
+            #
 
-			self.listener_active = False
-		#
+            self.listener_active = False
+        #
 
-		Dispatcher.stop(self)
-	#
+        Dispatcher.stop(self)
+    #
 #
-
-##j## EOF

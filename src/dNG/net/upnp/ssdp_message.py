@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -34,8 +33,7 @@ https://www.direct-netware.de/redirect?licenses;gpl
 from .abstract_ssdp import AbstractSsdp
 
 class SsdpMessage(AbstractSsdp):
-#
-	"""
+    """
 This class contains the UPnP SSDP message implementation. Its based on HTTP
 for UDP.
 
@@ -46,31 +44,27 @@ for UDP.
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	def send_m_search(self):
-	#
-		"""
+    def send_m_search(self):
+        """
 Invoke an SSDP M-SEARCH method on the unicast or multicast recipient.
 
 :return: (bool) Request result
 :since:  v0.2.00
-		"""
+        """
 
-		return self.request("M-SEARCH")
-	#
+        return self.request("M-SEARCH")
+    #
 
-	def send_notify(self):
-	#
-		"""
+    def send_notify(self):
+        """
 Invoke an SSDP NOTIFY method on the unicast or multicast recipient.
 
 :return: (bool) Request result
 :since:  v0.2.00
-		"""
+        """
 
-		return self.request("NOTIFY")
-	#
+        return self.request("NOTIFY")
+    #
 #
-
-##j## EOF

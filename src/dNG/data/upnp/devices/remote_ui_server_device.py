@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -36,8 +35,7 @@ from dNG.data.upnp.services.remote_ui_server import RemoteUiServer
 from .abstract_device import AbstractDevice
 
 class RemoteUiServerDevice(AbstractDevice):
-#
-	"""
+    """
 The UPnP RemoteUIServerDevice:1 device implementation.
 
 :author:     direct Netware Group et al.
@@ -47,46 +45,42 @@ The UPnP RemoteUIServerDevice:1 device implementation.
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	def __init__(self):
-	#
-		"""
+    def __init__(self):
+        """
 Constructor __init__(RemoteUiServerDevice)
 
 :since: v0.2.00
-		"""
+        """
 
-		AbstractDevice.__init__(self)
+        AbstractDevice.__init__(self)
 
-		self.type = "RemoteUIServerDevice"
-		self.upnp_domain = "schemas-upnp-org"
-		self.version = "1"
-	#
+        self.type = "RemoteUIServerDevice"
+        self.upnp_domain = "schemas-upnp-org"
+        self.version = "1"
+    #
 
-	def init_device(self, control_point, udn = None, configid = None):
-	#
-		"""
+    def init_device(self, control_point, udn = None, configid = None):
+        """
 Initialize a host device.
 
 :return: (bool) Returns true if initialization was successful.
 :since: v0.2.00
-		"""
+        """
 
-		AbstractDevice.init_device(self, control_point, udn, configid)
+        AbstractDevice.init_device(self, control_point, udn, configid)
 
-		self.device_model = "UPnP remote UI server"
-		self.device_model_desc = "Python based UPnP remote UI server"
-		self.device_model_url = "https://www.direct-netware.de/redirect?pas;upnp"
-		self.device_model_version = "#echo(pasUPnPVersion)#"
-		self.manufacturer = "direct Netware Group"
-		self.manufacturer_url = "http://www.direct-netware.de"
+        self.device_model = "UPnP remote UI server"
+        self.device_model_desc = "Python based UPnP remote UI server"
+        self.device_model_url = "https://www.direct-netware.de/redirect?pas;upnp"
+        self.device_model_version = "#echo(pasUPnPVersion)#"
+        self.manufacturer = "direct Netware Group"
+        self.manufacturer_url = "http://www.direct-netware.de"
 
-		service = RemoteUiServer()
-		if (service.init_host(self, configid = self.configid)): self.add_service(service)
+        service = RemoteUiServer()
+        if (service.init_host(self, configid = self.configid)): self.add_service(service)
 
-		return True
-	#
+        return True
+    #
 #
-
-##j## EOF

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -36,8 +35,7 @@ from dNG.net.upnp.abstract_ssdp import AbstractSsdp
 from dNG.plugins.hook import Hook
 
 def on_device_added(params, last_return = None):
-#
-	"""
+    """
 Called for "dNG.pas.upnp.ControlPoint.onDeviceAdded"
 
 :param params: Parameter specified
@@ -45,49 +43,43 @@ Called for "dNG.pas.upnp.ControlPoint.onDeviceAdded"
 
 :return: (mixed) Return value
 :since:  v0.2.00
-	"""
+    """
 
-	_return = last_return
+    _return = last_return
 
-	user_agent = (params['identifier']['ssdp_server_name']
-	              if ("identifier" in params and "ssdp_server_name" in params['identifier']) else
-	              None
-	             )
+    user_agent = (params['identifier']['ssdp_server_name']
+                  if ("identifier" in params and "ssdp_server_name" in params['identifier']) else
+                  None
+                 )
 
-	ssdp_quirks = ClientSettings(user_agent).get("upnp_quirks_ssdp")
+    ssdp_quirks = ClientSettings(user_agent).get("upnp_quirks_ssdp")
 
-	if (type(ssdp_quirks) is list):
-	#
-		for mode in ssdp_quirks:
-		#
-			AbstractSsdp.add_quirks_mode(mode)
-			_return = True
-		#
-	#
+    if (type(ssdp_quirks) is list):
+        for mode in ssdp_quirks:
+            AbstractSsdp.add_quirks_mode(mode)
+            _return = True
+        #
+    #
 
-	return _return
+    return _return
 #
 
 def register_plugin():
-#
-	"""
+    """
 Register plugin hooks.
 
 :since: v0.2.00
-	"""
+    """
 
-	Hook.register("dNG.pas.upnp.ControlPoint.onDeviceAdded", on_device_added)
+    Hook.register("dNG.pas.upnp.ControlPoint.onDeviceAdded", on_device_added)
 #
 
 def unregister_plugin():
-#
-	"""
+    """
 Unregister plugin hooks.
 
 :since: v0.2.00
-	"""
+    """
 
-	Hook.unregister("dNG.pas.upnp.ControlPoint.onDeviceAdded", on_device_added)
+    Hook.unregister("dNG.pas.upnp.ControlPoint.onDeviceAdded", on_device_added)
 #
-
-##j## EOF

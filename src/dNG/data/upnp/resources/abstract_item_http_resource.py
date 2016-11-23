@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -41,8 +40,7 @@ from dNG.data.text.link import Link
 from .abstract_item_resource import AbstractItemResource
 
 class AbstractItemHttpResource(AbstractItemResource):
-#
-	"""
+    """
 "AbstractItemHttpResource" represents a HTTP streamable UPnP resource "res"
 entry.
 
@@ -53,46 +51,41 @@ entry.
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	def _init_content(self):
-	#
-		"""
+    def _init_content(self):
+        """
 Initializes the content of a container.
 
 :return: (bool) True if successful
 :since:  v0.2.00
-		"""
+        """
 
-		if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._init_content()- (#echo(__LINE__)#)", self, context = "pas_upnp")
-		_return = False
+        if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._init_content()- (#echo(__LINE__)#)", self, context = "pas_upnp")
+        _return = False
 
-		self.content = [ ]
+        self.content = [ ]
 
-		if (self.type is not None):
-		#
-			link_parameters = { "__virtual__": "/upnp/stream/{0}".format(quote(self.get_resource_id(), "/")) }
-			self.content.append(Link.get_preferred("upnp").build_url(Link.TYPE_VIRTUAL_PATH, link_parameters))
+        if (self.type is not None):
+            link_parameters = { "__virtual__": "/upnp/stream/{0}".format(quote(self.get_resource_id(), "/")) }
+            self.content.append(Link.get_preferred("upnp").build_url(Link.TYPE_VIRTUAL_PATH, link_parameters))
 
-			_return = True
-		#
+            _return = True
+        #
 
-		return _return
-	#
+        return _return
+    #
 
-	def set_mimetype(self, mimetype):
-	#
-		"""
+    def set_mimetype(self, mimetype):
+        """
 Sets the UPnP resource mime type.
 
 :param mimetype: UPnP resource mime type
 
 :since: v0.2.00
-		"""
+        """
 
-		AbstractItemResource.set_mimetype(self, mimetype)
-		if (self.didl_res_protocol is None): self.didl_res_protocol = "http-get:*:{0}:*".format(self.get_mimetype())
-	#
+        AbstractItemResource.set_mimetype(self, mimetype)
+        if (self.didl_res_protocol is None): self.didl_res_protocol = "http-get:*:{0}:*".format(self.get_mimetype())
+    #
 #
-
-##j## EOF

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-##j## BOF
 
 """
 direct PAS
@@ -34,8 +33,7 @@ https://www.direct-netware.de/redirect?licenses;gpl
 from dNG.data.http.translatable_error import TranslatableError
 
 class UpnpException(TranslatableError):
-#
-	"""
+    """
 "UpnpException" takes a UPnP error message and its error code for later
 output.
 
@@ -46,11 +44,10 @@ output.
 :since:      v0.2.00
 :license:    https://www.direct-netware.de/redirect?licenses;gpl
              GNU General Public License 2
-	"""
+    """
 
-	def __init__(self, l10n_id, upnp_code = 501, value = None, _exception = None):
-	#
-		"""
+    def __init__(self, l10n_id, upnp_code = 501, value = None, _exception = None):
+        """
 Constructor __init__(UpnpException)
 
 :param l10n_id: L10n translatable key (prefixed with "errors_")
@@ -59,27 +56,24 @@ Constructor __init__(UpnpException)
 :param _exception: Inner exception
 
 :since: v0.2.00
-		"""
+        """
 
-		TranslatableError.__init__(self, l10n_id, 500, value, _exception)
+        TranslatableError.__init__(self, l10n_id, 500, value, _exception)
 
-		self.upnp_code = upnp_code
-		"""
+        self.upnp_code = upnp_code
+        """
 UPnP error code
-		"""
-	#
+        """
+    #
 
-	def get_upnp_code(self):
-	#
-		"""
+    def get_upnp_code(self):
+        """
 Returns the UPnP error code.
 
 :return: (int) UPnP error code
 :since:  v0.2.00
-		"""
+        """
 
-		return self.upnp_code
-	#
+        return self.upnp_code
+    #
 #
-
-##j## EOF
