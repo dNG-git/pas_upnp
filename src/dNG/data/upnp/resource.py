@@ -98,9 +98,11 @@ UPnP CDS video item type
 UPnP CDS item type
     """
 
-    """n// NOTE
+    """
+---i---
 Inherited TYPE_CDS_* constants should start at 1 << 32.
-    NOTE_END //n"""
+---i---
+    """
 
     def __init__(self):
         """
