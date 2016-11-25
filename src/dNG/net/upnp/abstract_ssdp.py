@@ -61,15 +61,15 @@ for UDP.
     """
 Quirk mode replaces the OS string from the SERVER header with "Linux".
     """
-    QUIRK_OS_VERSION = 2
+    QUIRK_OS_VERSION = 1 << 1
     """
 Quirk mode replaces the OS version from the SERVER header with "0.0".
     """
-    QUIRK_OS_WINDOWS = 4
+    QUIRK_OS_WINDOWS = 1 << 2
     """
 Quirk mode replaces the OS string from the SERVER header with "Windows".
     """
-    QUIRK_UPNP_1_0 = 8
+    QUIRK_UPNP_1_0 = 1 << 3
     """
 Quirk mode adds UPnP/1.0 version to the SERVER header.
     """

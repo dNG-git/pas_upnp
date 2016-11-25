@@ -65,38 +65,42 @@ class Resource(ClientSettingsMixin, SupportsMixin):
     """
 UPnP CDS container type
     """
-    TYPE_CDS_CONTAINER_AUDIO = 8
+    TYPE_CDS_CONTAINER_AUDIO = 1 << 3
     """
 UPnP CDS audio container type
     """
-    TYPE_CDS_CONTAINER_IMAGE = 16
+    TYPE_CDS_CONTAINER_IMAGE = 1 << 4
     """
 UPnP CDS image container type
     """
-    TYPE_CDS_CONTAINER_VIDEO = 32
+    TYPE_CDS_CONTAINER_VIDEO = 1 << 5
     """
 UPnP CDS video container type
     """
-    TYPE_CDS_ITEM = 2
+    TYPE_CDS_ITEM = 1 << 1
     """
 UPnP CDS item type
     """
-    TYPE_CDS_ITEM_AUDIO = 64
+    TYPE_CDS_ITEM_AUDIO = 1 << 6
     """
 UPnP CDS audio item type
     """
-    TYPE_CDS_ITEM_IMAGE = 128
+    TYPE_CDS_ITEM_IMAGE = 1 << 7
     """
 UPnP CDS image item type
     """
-    TYPE_CDS_ITEM_VIDEO = 256
+    TYPE_CDS_ITEM_VIDEO = 1 << 8
     """
 UPnP CDS video item type
     """
-    TYPE_CDS_RESOURCE = 4
+    TYPE_CDS_RESOURCE = 1 << 2
     """
 UPnP CDS item type
     """
+
+    """n// NOTE
+Inherited TYPE_CDS_* constants should start at 1 << 32.
+    NOTE_END //n"""
 
     def __init__(self):
         """
