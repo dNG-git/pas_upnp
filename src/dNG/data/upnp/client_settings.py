@@ -250,7 +250,7 @@ Returns the user agent specific client settings dictionary.
                                                )
 
                 if (settings is None):
-                    log_line = "#echo(__FILEPATH__)# -ClientSettings.get_user_agent_settings()- reporting: No client settings found for user agent '{0}' with identifier '{1}'"
+                    log_line = "pas.upnp.ClientSettings reporting: No client settings found for user agent '{0}' with identifier '{1}'"
 
                     if (Settings.get("pas_upnp_log_missing_user_agent", False)): LogLine.warning(log_line, user_agent, identifier, context = "pas_upnp")
                     else: LogLine.debug(log_line, user_agent, identifier, context = "pas_upnp")
