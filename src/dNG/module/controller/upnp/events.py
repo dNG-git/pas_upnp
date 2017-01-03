@@ -67,7 +67,7 @@ Action for "request"
 
         self.response.init()
         self.response.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
-        self.response.set_header("Server", "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.51 HTTP/1.1".format(os_uname[0], os_uname[2]))
+        self.response.set_header("Server", "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.51 HTTP/2.0".format(os_uname[0], os_uname[2]))
 
         if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
         upnp_service = self.request.get_upnp_service()
@@ -128,7 +128,7 @@ Action for "request"
 
         self.response.init()
         self.response.set_header("Date", RfcBasics.get_rfc5322_datetime(time()))
-        self.response.set_header("Server", "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.51 HTTP/1.1".format(os_uname[0], os_uname[2]))
+        self.response.set_header("Server", "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.51 HTTP/2.0".format(os_uname[0], os_uname[2]))
 
         if (not isinstance(self.request, HttpUpnpRequest)): raise UpnpException("pas_http_core_400")
         upnp_service = self.request.get_upnp_service()

@@ -136,7 +136,7 @@ Sends the prepared response.
             self.stream_response.send_data(self.data)
             self.data = None
         elif (not self.are_headers_sent()):
-            self.set_header("HTTP/1.1", "HTTP/1.1 500 Internal Server Error", True)
+            self.set_header("HTTP", "HTTP/2.0 500 Internal Server Error", True)
 
             if (self.errors is None): self.send_error(501, L10n.get("errors_core_unknown_error"))
             else: self.send_error(self.errors[0].get("code", 501), self.errors[0]['message'])

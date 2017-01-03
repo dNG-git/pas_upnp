@@ -209,7 +209,7 @@ Invoke a given SSDP method on the unicast or multicast recipient.
 
         headers = self.headers.copy()
 
-        server_name = "{0}/{1} {2} pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.51 HTTP/1.1"
+        server_name = "{0}/{1} {2} pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.51 HTTP/2.0"
 
         headers['SERVER'] = server_name.format(AbstractSsdp._get_os_name(),
                                                AbstractSsdp._get_os_version(),
@@ -219,7 +219,7 @@ Invoke a given SSDP method on the unicast or multicast recipient.
         headers['HOST'] = "{0}:{1:d}".format(self.host, self.port)
         headers['CONTENT-LENGTH'] = (0 if (data is None) else len(data))
 
-        ssdp_header = "{0} {1} HTTP/1.1\r\n".format(method.upper(), self.path)
+        ssdp_header = "{0} {1} HTTP/2.0\r\n".format(method.upper(), self.path)
 
         for header_name in headers:
             if (type(headers[header_name]) is list):

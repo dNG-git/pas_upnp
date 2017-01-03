@@ -191,7 +191,7 @@ Creates and streams the transformed file.
                         self.response.set_content_dynamic(False)
 
                         self.response.init(True)
-                        self.response.set_header("HTTP/1.1", "HTTP/1.1 304 Not Modified", True)
+                        self.response.set_header("HTTP", "HTTP/2.0 304 Not Modified", True)
                         self.response.set_expires_relative(+63072000)
                         self.response.set_last_modified(last_modified_on_server)
 

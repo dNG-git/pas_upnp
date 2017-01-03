@@ -94,10 +94,10 @@ Invoke an SSDP M-SEARCH method on the unicast or multicast recipient.
         os_uname = uname()
 
         headers = self.headers.copy()
-        headers['SERVER'] = "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.51 HTTP/1.1".format(os_uname[0], os_uname[2])
+        headers['SERVER'] = "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.51 HTTP/2.0".format(os_uname[0], os_uname[2])
         headers['CONTENT-LENGTH'] = (0 if (data is None) else len(data))
 
-        ssdp_header = "HTTP/1.1 {0}\r\n".format(self.http_status)
+        ssdp_header = "HTTP/2.0 {0}\r\n".format(self.http_status)
 
         for header_name in headers:
             if (type(headers[header_name]) is list):
