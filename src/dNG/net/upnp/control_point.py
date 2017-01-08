@@ -174,7 +174,14 @@ List of devices with its services
 
         if (self.http_language is None):
             system_language = getlocale()[0]
-            http_language = re.sub("\\W", "", (Settings.get("core_lang", "en_US") if (system_language is None or system_language == "c") else system_language))
+
+            http_language = (Settings.get("core_lang", "en_US")
+                             if (system_language is None or system_language == "c") else
+                             system_language
+                            )
+
+            http_language = http_language.replace("_", "")
+            http_language = re.sub("\\W", "", http_language)
         else: http_language = self.http_language.replace("_", "")
 
         if (Settings.is_defined("core_lang_{0}".format(http_language))): http_language = Settings.get("core_lang_{0}".format(http_language))
@@ -599,8 +606,6 @@ Returns a UPnP device for the given identifier.
 :return: (dict) Parsed UPnP identifier; False on error
 :since:  v0.2.00
         """
-
-        # pylint: disable=maybe-no-member
 
         _return = None
 
@@ -1106,6 +1111,7 @@ Starts all UPnP listeners and announces itself.
         #
 
         Hook.load("upnp")
+        is_ipv6_supported = getattr(socket, "has_ipv6", False)
 
         with self.lock:
             self.bootid += 1
@@ -1121,7 +1127,7 @@ Starts all UPnP listeners and announces itself.
 
                 for ip_address_data in ip_address_list:
                     if ((ip_address_data[0] == socket.AF_INET
-                         or (socket.has_ipv6 and ip_address_data[0] == socket.AF_INET6)
+                         or (is_ipv6_supported and ip_address_data[0] == socket.AF_INET6)
                         )
                         and ip_address_data[4][0] not in ip_addresses
                        ): ip_addresses.append(ip_address_data[4][0])
@@ -1144,7 +1150,7 @@ Starts all UPnP listeners and announces itself.
                 if (self.log_handler is not None): self.log_handler.debug("{0!r} will bind to all interfaces", self, context = "pas_upnp")
 
                 self._activate_multicast_listener("0.0.0.0")
-                if (socket.has_ipv6): self._activate_multicast_listener("::0")
+                if (is_ipv6_supported): self._activate_multicast_listener("::0")
             #
         #
 
