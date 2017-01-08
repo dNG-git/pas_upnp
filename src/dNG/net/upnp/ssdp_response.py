@@ -30,8 +30,6 @@ https://www.direct-netware.de/redirect?licenses;gpl
 #echo(__FILEPATH__)#
 """
 
-from platform import uname
-
 from dNG.data.binary import Binary
 from dNG.runtime.operation_not_supported_exception import OperationNotSupportedException
 
@@ -71,8 +69,6 @@ HTTP status code of the response
 Call a given request method on the connected HTTP server.
 
 :param method: HTTP method
-:param separator: Query parameter separator
-:param params: Parsed query parameters as str
 :param data: HTTP body
 
 :return: (mixed) Response data; Exception on error
@@ -91,13 +87,14 @@ Invoke an SSDP M-SEARCH method on the unicast or multicast recipient.
         """
 
         if (data is not None): data = Binary.utf8_bytes(data)
-        os_uname = uname()
 
         headers = self.headers.copy()
-        headers['SERVER'] = "{0}/{1} UPnP/2.0 pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.51 HTTP/2.0".format(os_uname[0], os_uname[2])
         headers['CONTENT-LENGTH'] = (0 if (data is None) else len(data))
+        headers['SERVER'] = AbstractSsdp.get_pas_upnp_ssdp_server_string()
 
-        ssdp_header = "HTTP/2.0 {0}\r\n".format(self.http_status)
+        ssdp_header = "{0} {1}\r\n".format(AbstractSsdp.get_pas_upnp_http_header_string(True),
+                                           self.http_status
+                                          )
 
         for header_name in headers:
             if (type(headers[header_name]) is list):

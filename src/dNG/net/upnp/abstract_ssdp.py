@@ -30,18 +30,17 @@ https://www.direct-netware.de/redirect?licenses;gpl
 #echo(__FILEPATH__)#
 """
 
-from platform import uname
 import socket
 
 from dNG.data.binary import Binary
 from dNG.data.settings import Settings
+from dNG.data.upnp.pas_upnp_version_mixin import PasUpnpVersionMixin
 from dNG.module.named_loader import NamedLoader
 from dNG.net.http.raw_client import RawClient
 from dNG.net.udp_ne_ipv4_socket import UdpNeIpv4Socket
 from dNG.net.udp_ne_ipv6_socket import UdpNeIpv6Socket
-from dNG.runtime.instance_lock import InstanceLock
 
-class AbstractSsdp(RawClient):
+class AbstractSsdp(RawClient, PasUpnpVersionMixin):
     """
 This class contains a generic SSDP message implementation. Its based on HTTP
 for UDP.
@@ -56,36 +55,6 @@ for UDP.
     """
 
     # pylint: disable=arguments-differ
-
-    QUIRK_OS_LINUX = 1
-    """
-Quirk mode replaces the OS string from the SERVER header with "Linux".
-    """
-    QUIRK_OS_VERSION = 1 << 1
-    """
-Quirk mode replaces the OS version from the SERVER header with "0.0".
-    """
-    QUIRK_OS_WINDOWS = 1 << 2
-    """
-Quirk mode replaces the OS string from the SERVER header with "Windows".
-    """
-    QUIRK_UPNP_1_0 = 1 << 3
-    """
-Quirk mode adds UPnP/1.0 version to the SERVER header.
-    """
-
-    _lock = InstanceLock()
-    """
-Thread safety lock
-    """
-    _os_uname = uname()
-    """
-OS uname data
-    """
-    quirks_mode = 0
-    """
-The quirks mode adds non-standard behaviour to SSDP headers and messages.
-    """
 
     def __init__(self, target, port = 1900, source_port = None):
         """
@@ -197,8 +166,6 @@ Returns a connection to the configured UDP address.
 Invoke a given SSDP method on the unicast or multicast recipient.
 
 :param method: HTTP method
-:param separator: Query parameter separator
-:param params: Parsed query parameters as str
 :param data: HTTP body
 
 :return: (bool) Request result
@@ -209,17 +176,14 @@ Invoke a given SSDP method on the unicast or multicast recipient.
 
         headers = self.headers.copy()
 
-        server_name = "{0}/{1} {2} pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/1.51 HTTP/2.0"
-
-        headers['SERVER'] = server_name.format(AbstractSsdp._get_os_name(),
-                                               AbstractSsdp._get_os_version(),
-                                               AbstractSsdp._get_upnp_string()
-                                              )
-
         headers['HOST'] = "{0}:{1:d}".format(self.host, self.port)
         headers['CONTENT-LENGTH'] = (0 if (data is None) else len(data))
+        headers['SERVER'] = AbstractSsdp.get_pas_upnp_ssdp_server_string()
 
-        ssdp_header = "{0} {1} HTTP/2.0\r\n".format(method.upper(), self.path)
+        ssdp_header = "{0} {1} {2}\r\n".format(method.upper(),
+                                               self.path,
+                                               AbstractSsdp.get_pas_upnp_http_header_string(True)
+                                              )
 
         for header_name in headers:
             if (type(headers[header_name]) is list):
@@ -256,88 +220,24 @@ Send the given data to the defined recipient.
         return _return
     #
 
-    @staticmethod
-    def add_quirks_mode(mode):
-        """
+    add_quirks_mode = PasUpnpVersionMixin.add_pas_upnp_quirks_mode
+    """
 Adds the defined quirks mode to the already activated ones.
 
 :since: v0.2.00
-        """
+    """
 
-        if (type(mode) is str): mode = AbstractSsdp.get_quirks_mode(mode)
-        with AbstractSsdp._lock: AbstractSsdp.quirks_mode |= mode
-    #
-
-    @staticmethod
-    def _get_os_name():
-        """
-Returns the OS name based on the currently active quirks mode.
-
-:return: (str) OS name
-:since:  v0.2.00
-        """
-
-        if (AbstractSsdp.quirks_mode & AbstractSsdp.QUIRK_OS_LINUX == AbstractSsdp.QUIRK_OS_LINUX): _return = "Linux"
-        elif (AbstractSsdp.quirks_mode & AbstractSsdp.QUIRK_OS_WINDOWS == AbstractSsdp.QUIRK_OS_WINDOWS): _return = "Windows"
-        else: _return = AbstractSsdp._os_uname[0]
-
-        return _return
-    #
-
-    @staticmethod
-    def _get_os_version():
-        """
-Returns the OS version based on the currently active quirks mode.
-
-:return: (str) OS version
-:since:  v0.2.00
-        """
-
-        return ("1.0"
-                if (AbstractSsdp.quirks_mode & AbstractSsdp.QUIRK_OS_VERSION == AbstractSsdp.QUIRK_OS_VERSION) else
-                AbstractSsdp._os_uname[2]
-               )
-    #
-
-    @staticmethod
-    def get_quirks_mode(mode):
-        """
+    get_quirks_mode = PasUpnpVersionMixin.get_pas_upnp_quirks_mode
+    """
 Adds the defined quirks mode to the already activated ones.
 
 :since: v0.2.00
-        """
+    """
 
-        if (mode == "quirk_os_linux"): return AbstractSsdp.QUIRK_OS_LINUX
-        elif (mode == "quirk_os_version"): return AbstractSsdp.QUIRK_OS_VERSION
-        elif (mode == "quirk_os_windows"): return AbstractSsdp.QUIRK_OS_WINDOWS
-        elif (mode == "quirk_upnp_1_0"): return AbstractSsdp.QUIRK_UPNP_1_0
-        else: return 0
-    #
-
-    @staticmethod
-    def _get_upnp_string():
-        """
-Returns the supported UPnP specification string based on the currently
-active quirks mode.
-
-:return: (str) UPnP specification string
-:since:  v0.2.00
-        """
-
-        return ("UPnP/2.0 UPnP/1.0"
-                if (AbstractSsdp.quirks_mode & AbstractSsdp.QUIRK_UPNP_1_0 == AbstractSsdp.QUIRK_UPNP_1_0) else
-                "UPnP/2.0"
-               )
-    #
-
-    @staticmethod
-    def remove_quirks_mode(mode):
-        """
+    remove_quirks_mode = PasUpnpVersionMixin.remove_pas_upnp_quirks_mode
+    """
 Removes the defined quirks mode from the activated ones.
 
 :since: v0.2.00
-        """
-
-        with AbstractSsdp._lock: AbstractSsdp.quirks_mode &= ~mode
-    #
+    """
 #

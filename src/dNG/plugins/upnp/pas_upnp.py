@@ -30,6 +30,7 @@ https://www.direct-netware.de/redirect?licenses;gpl
 #echo(__FILEPATH__)#
 """
 
+from dNG.data.settings import Settings
 from dNG.data.upnp.client_settings import ClientSettings
 from dNG.net.upnp.abstract_ssdp import AbstractSsdp
 from dNG.plugins.hook import Hook
@@ -57,11 +58,31 @@ Called for "dNG.pas.upnp.ControlPoint.onDeviceAdded"
     if (type(ssdp_quirks) is list):
         for mode in ssdp_quirks:
             AbstractSsdp.add_quirks_mode(mode)
-            _return = True
         #
+
+        _return = True
     #
 
     return _return
+#
+
+def on_startup(params, last_return = None):
+    """
+Called for "dNG.pas.upnp.ControlPoint.onStartup"
+
+:param params: Parameter specified
+:param last_return: The return value from the last hook called.
+
+:since: v0.2.00
+    """
+
+    ssdp_quirks = Settings.get("pas_upnp_client_quirks")
+
+    if (type(ssdp_quirks) is list):
+        for mode in ssdp_quirks: AbstractSsdp.add_quirks_mode(mode)
+    #
+
+    return last_return
 #
 
 def register_plugin():
@@ -72,6 +93,7 @@ Register plugin hooks.
     """
 
     Hook.register("dNG.pas.upnp.ControlPoint.onDeviceAdded", on_device_added)
+    Hook.register("dNG.pas.upnp.ControlPoint.onStartup", on_startup)
 #
 
 def unregister_plugin():
@@ -82,4 +104,5 @@ Unregister plugin hooks.
     """
 
     Hook.unregister("dNG.pas.upnp.ControlPoint.onDeviceAdded", on_device_added)
+    Hook.unregister("dNG.pas.upnp.ControlPoint.onStartup", on_startup)
 #

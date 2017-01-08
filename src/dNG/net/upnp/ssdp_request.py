@@ -82,7 +82,7 @@ Active conversation
                 ssdp_request = ssdp_request_data[0].upper()
                 ssdp_request_path = ssdp_request_data[1]
 
-                http_version = float(ssdp_request_data[2].split("/", 1))
+                http_version = float(ssdp_request_data[2].split("/", 1)[1])
             #
         #
 

@@ -32,13 +32,15 @@ https://www.direct-netware.de/redirect?licenses;gpl
 
 import socket
 
+from dNG.controller.abstract_http_response import AbstractHttpResponse
 from dNG.controller.http_upnp_response import HttpUpnpResponse
 from dNG.data.settings import Settings
 from dNG.data.upnp.client_settings_mixin import ClientSettingsMixin
+from dNG.data.upnp.pas_upnp_version_mixin import PasUpnpVersionMixin
 from dNG.module.controller.abstract_http import AbstractHttp as AbstractHttpController
 from dNG.net.upnp.control_point import ControlPoint
 
-class Module(ClientSettingsMixin, AbstractHttpController):
+class Module(ClientSettingsMixin, AbstractHttpController, PasUpnpVersionMixin):
     """
 module for "upnp"
 
@@ -92,6 +94,10 @@ Initialize block from the given request and response.
         #
 
         self.init_client_settings(user_agent, host)
+
+        if (isinstance(self.response, AbstractHttpResponse)):
+            self.response.set_header("Server", Module.get_pas_upnp_http_server_string())
+        #
 
         if (isinstance(self.response, HttpUpnpResponse)): self.response.set_client_settings(self.get_client_settings())
     #
