@@ -129,7 +129,7 @@ Returns a UPnP service for the given UPnP service ID.
         """
 
         _return = Device.get_service(self, _id)
-        if (_return is not None and _return.is_managed()): _return.set_client_user_agent(self.client_user_agent)
+        if (_return is not None and _return.is_managed()): _return.set_client_settings(self.get_client_settings())
 
         return _return
     #
@@ -301,8 +301,17 @@ XML node path.
         xml_resource.add_node("{0} UDN".format(xml_base_path), udn)
         xml_resource.set_cached_node(xml_base_path)
 
+        client_settings = self.get_client_settings()
+
+        friendly_name = self.get_name()
+        friendly_name_format = client_settings.get("upnp_friendly_name_format")
+
+        if (friendly_name_format is not None):
+            friendly_name = friendly_name_format.replace("[rewrite]name[/rewrite]", friendly_name)
+        #
+
         xml_resource.add_node("{0} deviceType".format(xml_base_path), "urn:{0}".format(self.get_urn()))
-        xml_resource.add_node("{0} friendlyName".format(xml_base_path), self.get_name())
+        xml_resource.add_node("{0} friendlyName".format(xml_base_path), friendly_name)
         xml_resource.add_node("{0} manufacturer".format(xml_base_path), self.get_manufacturer())
 
         value = self.get_manufacturer_url()
