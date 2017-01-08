@@ -43,10 +43,10 @@ from dNG.runtime.type_exception import TypeException
 
 from .abstract import Abstract
 
-class AbstractItemResource(Abstract):
+class AbstractResource(Abstract):
     """
-"AbstractItemResource" represents a UPnP resource "res" entry with support
-to set metadata from the corresponding parent.
+"AbstractResource" represents a UPnP resource "res" entry with support to
+set metadata from the corresponding parent.
 
 :author:     direct Netware Group et al.
 :copyright:  direct Netware Group - All rights reserved
@@ -59,7 +59,7 @@ to set metadata from the corresponding parent.
 
     def __init__(self):
         """
-Constructor __init__(AbstractItemResource)
+Constructor __init__(AbstractResource)
 
 :since: v0.2.00
         """
@@ -104,7 +104,7 @@ Uses the given XML resource to add the DIDL metadata of this UPnP resource.
 :since: v0.2.00
         """
 
-        if (self.get_type() & AbstractItemResource.TYPE_CDS_RESOURCE == AbstractItemResource.TYPE_CDS_RESOURCE):
+        if (self.get_type() & AbstractResource.TYPE_CDS_RESOURCE == AbstractResource.TYPE_CDS_RESOURCE):
             attributes = { }
             didl_fields = self.get_didl_fields()
             res_protocol = self.get_didl_res_protocol()
@@ -276,7 +276,7 @@ Initialize a UPnP resource by CDS ID.
         #
 
         if (_return):
-            self.type = AbstractItemResource.TYPE_CDS_RESOURCE
+            self.type = AbstractResource.TYPE_CDS_RESOURCE
         #
 
         return _return
@@ -297,7 +297,7 @@ Initialize the UPnP parent resource instance.
             with self._lock:
                 # Thread safety
                 if (self.parent_resource is None):
-                    self.parent_resource = AbstractItemResource.load_cds_id(self.get_parent_resource_id(), self.get_client_user_agent())
+                    self.parent_resource = AbstractResource.load_cds_id(self.get_parent_resource_id(), self.get_client_user_agent())
 
                     if (self.mimeclass is None): self.set_mimeclass(self.parent_resource.get_mimeclass())
                     if (self.mimetype is None): self.set_mimetype(self.parent_resource.get_mimetype())

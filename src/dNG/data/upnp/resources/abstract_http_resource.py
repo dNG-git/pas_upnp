@@ -37,11 +37,11 @@ except ImportError: from urllib import quote
 
 from dNG.data.text.link import Link
 
-from .abstract_item_resource import AbstractItemResource
+from .abstract_resource import AbstractResource
 
-class AbstractItemHttpResource(AbstractItemResource):
+class AbstractHttpResource(AbstractResource):
     """
-"AbstractItemHttpResource" represents a HTTP streamable UPnP resource "res"
+"AbstractHttpResource" represents a HTTP streamable UPnP resource "res"
 entry.
 
 :author:     direct Netware Group et al.
@@ -85,7 +85,7 @@ Sets the UPnP resource mime type.
 :since: v0.2.00
         """
 
-        AbstractItemResource.set_mimetype(self, mimetype)
+        AbstractResource.set_mimetype(self, mimetype)
         if (self.didl_res_protocol is None): self.didl_res_protocol = "http-get:*:{0}:*".format(self.get_mimetype())
     #
 #
