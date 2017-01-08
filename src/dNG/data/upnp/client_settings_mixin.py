@@ -30,6 +30,8 @@ https://www.direct-netware.de/redirect?licenses;gpl
 #echo(__FILEPATH__)#
 """
 
+from dNG.runtime.value_exception import ValueException
+
 from .client_settings import ClientSettings
 
 class ClientSettingsMixin(object):
@@ -141,7 +143,11 @@ Sets the UPnP client settings instance.
 :since: v0.2.00
         """
 
+        if (not isinstance(client_settings, ClientSettings)): raise ValueException("ClientSettings instance given is invalid")
+
+        if (self.client_host is None): self.client_host = client_settings.get_host()
         self.client_settings = client_settings
+        if (self.client_user_agent is None): self.client_user_agent = client_settings.get_user_agent()
     #
 
     def set_client_user_agent(self, user_agent):

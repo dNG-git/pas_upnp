@@ -151,6 +151,28 @@ default.
         return _return
     #
 
+    def get_host(self):
+        """
+Returns the UPnP client host requesting the resource.
+
+:return: (str) Client host if known; None otherwise
+:since:  v0.2.00
+        """
+
+        return self.host
+    #
+
+    def get_user_agent(self):
+        """
+Returns the UPnP client user agent requesting the resource.
+
+:return: (str) Client user agent if known; None otherwise
+:since:  v0.2.00
+        """
+
+        return self.user_agent
+    #
+
     def _init_host_protocol_info(self):
         """
 Initializes the client settings UPnP host based protocol info dictionary if
@@ -207,10 +229,9 @@ Initializes the client settings user agent dictionary.
 
     def set_host(self, host):
         """
-Updates the client with the data loaded from the settings file for the given
-user agent.
+Sets the UPnP client host.
 
-:param user_agent: HTTP or SSDP user agent value
+:param host: Client host
 
 :since: v0.2.00
         """
