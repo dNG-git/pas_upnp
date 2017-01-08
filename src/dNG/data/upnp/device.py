@@ -244,7 +244,10 @@ Returns an embedded device.
             #
         #
 
-        if (_return is not None and _return.is_managed()): _return.set_configid(self.configid)
+        if (_return is not None and _return.is_managed()):
+            _return.set_client_settings(self.get_client_settings())
+            _return.set_configid(self.configid)
+        #
 
         return _return
     #
