@@ -78,7 +78,11 @@ Quirk mode to not add the HTTP version to the SERVER header at all.
     """
     UPNP_HEADER_QUIRK_UPNP_1_0 = 1 << 7
     """
-Quirk mode adds UPnP/1.0 version to the SERVER header.
+Quirk mode adds UPnP/1.0 to the SERVER header.
+    """
+    UPNP_HEADER_QUIRK_UPNP_1_0_FORCED = 1 << 8
+    """
+Quirk mode replaces newer UPnP versions with UPnP/1.0.
     """
 
     _os_uname = uname()
@@ -136,21 +140,37 @@ active quirks mode.
     #
 
     @staticmethod
-    def get_pas_upnp_http_server_string():
+    def get_pas_upnp_http_client_identifier_string():
         """
-Returns the PAS UPnP client string used for the HTTP "SERVER" header.
+Returns the PAS UPnP HTTP client identifier string.
 
-:return: (str) HTTP "SERVER" header string
+:return: (str) HTTP client identifier string
 :since:  v0.2.00
         """
 
-        server_name = "{0}/{1} {2} pasUPnP/#echo(pasUPnPIVersion)# DLNADOC/{3}"
+        _return = "pasUPnP/#echo(pasUPnPIVersion)# {0} DLNADOC/{1}"
 
-        return server_name.format(PasUpnpVersionMixin._get_pas_upnp_os_name(),
-                                  PasUpnpVersionMixin._get_pas_upnp_os_version(),
-                                  PasUpnpVersionMixin._get_pas_upnp_spec_string(),
-                                  PasUpnpVersionMixin.DLNADOC_VERSION_SUPPORTED
-                                 )
+        return _return.format(PasUpnpVersionMixin._get_pas_upnp_spec_string(),
+                              PasUpnpVersionMixin.DLNADOC_VERSION_SUPPORTED
+                             )
+    #
+
+    @staticmethod
+    def get_pas_upnp_http_identifier_string():
+        """
+Returns the PAS UPnP identifier string used for the HTTP "Server" and
+"User-Agent" headers.
+
+:return: (str) HTTP header string
+:since:  v0.2.00
+        """
+
+        _return = "{0}/{1} {2}"
+
+        return _return.format(PasUpnpVersionMixin._get_pas_upnp_os_name(),
+                              PasUpnpVersionMixin._get_pas_upnp_os_version(),
+                              PasUpnpVersionMixin.get_pas_upnp_http_client_identifier_string()
+                             )
     #
 
     @staticmethod
@@ -187,37 +207,48 @@ Returns the OS version based on the currently active quirks mode.
     @staticmethod
     def get_pas_upnp_quirks_mode(mode):
         """
-Adds the defined quirks mode to the already activated ones.
+Parses the given quirks mode string.
 
-:since: v0.2.00
-        """
+:param mode: String mode
 
-        if (mode == "quirk_os_linux"): return PasUpnpVersionMixin.UPNP_HEADER_QUIRK_OS_LINUX
-        elif (mode == "quirk_os_version"): return PasUpnpVersionMixin.UPNP_HEADER_QUIRK_OS_VERSION
-        elif (mode == "quirk_os_windows"): return PasUpnpVersionMixin.UPNP_HEADER_QUIRK_OS_WINDOWS
-        elif (mode == "quirk_http_1_1"): return PasUpnpVersionMixin.UPNP_HEADER_QUIRK_HTTP_1_1
-        elif (mode == "quirk_http_1_1_forced"): return PasUpnpVersionMixin.UPNP_HEADER_QUIRK_HTTP_1_1_FORCED
-        elif (mode == "quirk_http_hidden"): return PasUpnpVersionMixin.UPNP_HEADER_QUIRK_HTTP_HIDDEN
-        elif (mode == "quirk_upnp_1_0"): return PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_0
-        else: return 0
-    #
-
-    @staticmethod
-    def get_pas_upnp_ssdp_server_string():
-        """
-Returns the PAS UPnP client string used for the SSDP "SERVER" header.
-
-:return: (str) SSDP "SERVER" header string
+:return: (int) Internal mode
 :since:  v0.2.00
         """
 
-        server_name = "{0} {1}"
+        mode_set = mode.split("+")
 
-        server_name = server_name.format(PasUpnpVersionMixin.get_pas_upnp_http_server_string(),
-                                         PasUpnpVersionMixin.get_pas_upnp_http_header_string()
-                                        )
+        _return = 0
 
-        return server_name.strip()
+        for mode in mode_set:
+            if (mode == "quirk_os_linux"): _return |= PasUpnpVersionMixin.UPNP_HEADER_QUIRK_OS_LINUX
+            elif (mode == "quirk_os_version"): _return |= PasUpnpVersionMixin.UPNP_HEADER_QUIRK_OS_VERSION
+            elif (mode == "quirk_os_windows"): _return |= PasUpnpVersionMixin.UPNP_HEADER_QUIRK_OS_WINDOWS
+            elif (mode == "quirk_http_1_1"): _return |= PasUpnpVersionMixin.UPNP_HEADER_QUIRK_HTTP_1_1
+            elif (mode == "quirk_http_1_1_forced"): _return |= PasUpnpVersionMixin.UPNP_HEADER_QUIRK_HTTP_1_1_FORCED
+            elif (mode == "quirk_http_hidden"): _return |= PasUpnpVersionMixin.UPNP_HEADER_QUIRK_HTTP_HIDDEN
+            elif (mode == "quirk_upnp_1_0"): _return |= PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_0
+            elif (mode == "quirk_upnp_1_0_forced"): _return |= PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_0_FORCED
+        #
+
+        return _return
+    #
+
+    @staticmethod
+    def get_pas_upnp_sddp_identifier_string():
+        """
+Returns the PAS UPnP identifier string used for the SSDP "Server" header.
+
+:return: (str) SSDP header string
+:since:  v0.2.00
+        """
+
+        _return = "{0} {1}"
+
+        _return = _return.format(PasUpnpVersionMixin.get_pas_upnp_http_identifier_string(),
+                                 PasUpnpVersionMixin.get_pas_upnp_http_header_string()
+                                )
+
+        return _return.strip()
     #
 
     @staticmethod
@@ -230,10 +261,15 @@ active quirks mode.
 :since:  v0.2.00
         """
 
-        return ("UPnP/2.0 UPnP/1.0"
-                if (PasUpnpVersionMixin._pas_upnp_quirks_mode & PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_0 == PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_0) else
-                "UPnP/2.0"
-               )
+        _return = "UPnP/2.0"
+
+        if (PasUpnpVersionMixin._pas_upnp_quirks_mode & PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_0_FORCED == PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_0_FORCED):
+            _return = "UPnP/1.0"
+        elif (PasUpnpVersionMixin._pas_upnp_quirks_mode & PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_0 == PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_0):
+            _return += " UPnP/1.0"
+        #
+
+        return _return
     #
 
     @staticmethod

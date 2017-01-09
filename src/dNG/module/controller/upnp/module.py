@@ -40,7 +40,7 @@ from dNG.data.upnp.pas_upnp_version_mixin import PasUpnpVersionMixin
 from dNG.module.controller.abstract_http import AbstractHttp as AbstractHttpController
 from dNG.net.upnp.control_point import ControlPoint
 
-class Module(ClientSettingsMixin, AbstractHttpController, PasUpnpVersionMixin):
+class Module(ClientSettingsMixin, PasUpnpVersionMixin, AbstractHttpController):
     """
 module for "upnp"
 
@@ -96,7 +96,7 @@ Initialize block from the given request and response.
         self.init_client_settings(user_agent, host)
 
         if (isinstance(self.response, AbstractHttpResponse)):
-            self.response.set_header("Server", Module.get_pas_upnp_http_server_string())
+            self.response.set_header("Server", Module.get_pas_upnp_http_header_string())
         #
 
         if (isinstance(self.response, HttpUpnpResponse)): self.response.set_client_settings(self.get_client_settings())

@@ -32,7 +32,7 @@ https://www.direct-netware.de/redirect?licenses;gpl
 
 from dNG.data.settings import Settings
 from dNG.data.upnp.client_settings import ClientSettings
-from dNG.net.upnp.abstract_ssdp import AbstractSsdp
+from dNG.net.upnp.control_point import ControlPoint
 from dNG.plugins.hook import Hook
 
 def on_device_added(params, last_return = None):
@@ -55,11 +55,8 @@ Called for "dNG.pas.upnp.ControlPoint.onDeviceAdded"
 
     ssdp_quirks = ClientSettings(user_agent).get("upnp_quirks_ssdp")
 
-    if (type(ssdp_quirks) is list):
-        for mode in ssdp_quirks:
-            AbstractSsdp.add_quirks_mode(mode)
-        #
-
+    if (ssdp_quirks is not None):
+        ControlPoint.add_pas_upnp_quirks_mode(ssdp_quirks)
         _return = True
     #
 
@@ -77,10 +74,7 @@ Called for "dNG.pas.upnp.ControlPoint.onStartup"
     """
 
     ssdp_quirks = Settings.get("pas_upnp_client_quirks")
-
-    if (type(ssdp_quirks) is list):
-        for mode in ssdp_quirks: AbstractSsdp.add_quirks_mode(mode)
-    #
+    if (ssdp_quirks is not None): ControlPoint.add_pas_upnp_quirks_mode(ssdp_quirks)
 
     return last_return
 #

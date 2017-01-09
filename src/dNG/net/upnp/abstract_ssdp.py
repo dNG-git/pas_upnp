@@ -178,7 +178,7 @@ Invoke a given SSDP method on the unicast or multicast recipient.
 
         headers['HOST'] = "{0}:{1:d}".format(self.host, self.port)
         headers['CONTENT-LENGTH'] = (0 if (data is None) else len(data))
-        headers['SERVER'] = AbstractSsdp.get_pas_upnp_ssdp_server_string()
+        headers['SERVER'] = AbstractSsdp.get_pas_upnp_sddp_identifier_string()
 
         ssdp_header = "{0} {1} {2}\r\n".format(method.upper(),
                                                self.path,

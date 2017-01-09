@@ -33,7 +33,6 @@ https://www.direct-netware.de/redirect?licenses;gpl
 # pylint: disable=import-error,no-name-in-module
 
 from collections import OrderedDict
-from platform import uname
 import re
 
 try: from urllib.parse import urljoin
@@ -46,11 +45,12 @@ from dNG.net.http.client import Client as HttpClient
 from dNG.runtime.value_exception import ValueException
 
 from .identifier_mixin import IdentifierMixin
+from .pas_upnp_version_mixin import PasUpnpVersionMixin
 from .service_proxy import ServiceProxy
 from .spec_mixin import SpecMixin
 from .variable import Variable
 
-class Service(IdentifierMixin, SpecMixin):
+class Service(IdentifierMixin, PasUpnpVersionMixin, SpecMixin):
     """
 The UPnP common service implementation.
 
@@ -295,10 +295,8 @@ Initialize actions from the SCPD URL.
 
         _return = False
 
-        os_uname = uname()
-
         http_client = HttpClient(self.url_scpd, event_handler = self.log_handler)
-        http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pas.upnp/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
+        http_client.set_header("User-Agent", Service.get_pas_upnp_http_client_identifier_string())
         http_response = http_client.request_get()
 
         if (http_response.is_readable()): _return = self.init_xml_scpd(Binary.str(http_response.read()))
@@ -504,7 +502,6 @@ device.
 
         _return = None
 
-        os_uname = uname()
         urn = "urn:{0}".format(self.get_urn())
 
         xml_resource = self._init_xml_resource()
@@ -525,7 +522,7 @@ device.
         http_client = HttpClient(self.url_control, event_handler = self.log_handler)
         http_client.set_header("Content-Type", "text/xml; charset=UTF-8")
         http_client.set_header("SoapAction", "\"{0}#{1}\"".format(urn, action))
-        http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pas.upnp/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
+        http_client.set_header("User-Agent", Service.get_pas_upnp_http_client_identifier_string())
 
         post_data = "<?xml version='1.0' encoding='UTF-8' ?>{0}".format(xml_resource.export_cache(True))
         http_response = http_client.request_post(post_data)

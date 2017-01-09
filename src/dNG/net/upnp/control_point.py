@@ -34,7 +34,6 @@ https://www.direct-netware.de/redirect?licenses;gpl
 
 from copy import copy
 from locale import getlocale
-from platform import uname
 from random import uniform as randfloat
 from time import time
 from threading import Thread
@@ -50,6 +49,7 @@ from dNG.data.settings import Settings
 from dNG.data.text.l10n import L10n
 from dNG.data.upnp.control_point_event import ControlPointEvent
 from dNG.data.upnp.device import Device
+from dNG.data.upnp.pas_upnp_version_mixin import PasUpnpVersionMixin
 from dNG.module.named_loader import NamedLoader
 from dNG.net.http.client import Client as HttpClient
 from dNG.plugins.hook import Hook
@@ -62,7 +62,7 @@ from .gena import Gena
 from .ssdp_listener_ipv4_multicast import SsdpListenerIpv4Multicast
 from .ssdp_listener_ipv6_multicast import SsdpListenerIpv6Multicast
 
-class ControlPoint(AbstractTimed):
+class ControlPoint(PasUpnpVersionMixin, AbstractTimed):
     """
 The UPnP control point.
 
@@ -874,7 +874,6 @@ Parse unread UPnP descriptions.
 
         if (self.log_handler is not None): self.log_handler.debug("#echo(__FILEPATH__)# -{0!r}._read_upnp_descs()- (#echo(__LINE__)#)", self, context = "pas_upnp")
 
-        os_uname = uname()
         upnp_desc_unread = self.upnp_desc_unread.copy()
 
         for url in upnp_desc_unread:
@@ -885,7 +884,7 @@ Parse unread UPnP descriptions.
 
                 http_client = HttpClient(url, event_handler = self.log_handler)
                 http_client.set_header("Accept-Language", self.http_language)
-                http_client.set_header("User-Agent", "{0}/{1} UPnP/2.0 pas.upnp/#echo(pasUPnPIVersion)#".format(os_uname[0], os_uname[2]))
+                http_client.set_header("User-Agent", ControlPoint.get_pas_upnp_http_client_identifier_string())
                 http_client.set_ipv6_link_local_interface(Settings.get("pas_global_ipv6_link_local_interface"))
 
                 http_response = http_client.request_get()

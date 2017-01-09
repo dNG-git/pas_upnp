@@ -90,7 +90,7 @@ Invoke an SSDP M-SEARCH method on the unicast or multicast recipient.
 
         headers = self.headers.copy()
         headers['CONTENT-LENGTH'] = (0 if (data is None) else len(data))
-        headers['SERVER'] = AbstractSsdp.get_pas_upnp_ssdp_server_string()
+        headers['SERVER'] = AbstractSsdp.get_pas_upnp_sddp_identifier_string()
 
         ssdp_header = "{0} {1}\r\n".format(AbstractSsdp.get_pas_upnp_http_header_string(True),
                                            self.http_status
