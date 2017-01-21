@@ -84,6 +84,14 @@ Quirk mode adds UPnP/1.0 to the SERVER header.
     """
 Quirk mode replaces newer UPnP versions with UPnP/1.0.
     """
+    UPNP_HEADER_QUIRK_UPNP_1_1 = 1 << 9
+    """
+Quirk mode adds UPnP/1.1 to the SERVER header.
+    """
+    UPNP_HEADER_QUIRK_UPNP_1_1_FORCED = 1 << 10
+    """
+Quirk mode replaces newer UPnP versions with UPnP/1.1.
+    """
 
     _os_uname = uname()
     """
@@ -124,6 +132,10 @@ active quirks mode.
 
         _return = "HTTP/2.0"
 
+        if (PasUpnpVersionMixin._pas_upnp_quirks_mode & PasUpnpVersionMixin.UPNP_HEADER_QUIRK_HTTP_1_1 == PasUpnpVersionMixin.UPNP_HEADER_QUIRK_HTTP_1_1):
+            _return += " HTTP/1.1"
+        #
+
         if (distinct_version_required):
             if (PasUpnpVersionMixin._pas_upnp_quirks_mode & PasUpnpVersionMixin.UPNP_HEADER_QUIRK_HTTP_1_1 == PasUpnpVersionMixin.UPNP_HEADER_QUIRK_HTTP_1_1
                 or PasUpnpVersionMixin._pas_upnp_quirks_mode & PasUpnpVersionMixin.UPNP_HEADER_QUIRK_HTTP_1_1_FORCED == PasUpnpVersionMixin.UPNP_HEADER_QUIRK_HTTP_1_1_FORCED
@@ -132,8 +144,6 @@ active quirks mode.
             _return = ""
         elif (PasUpnpVersionMixin._pas_upnp_quirks_mode & PasUpnpVersionMixin.UPNP_HEADER_QUIRK_HTTP_1_1_FORCED == PasUpnpVersionMixin.UPNP_HEADER_QUIRK_HTTP_1_1_FORCED):
             _return = "HTTP/1.1"
-        elif (PasUpnpVersionMixin._pas_upnp_quirks_mode & PasUpnpVersionMixin.UPNP_HEADER_QUIRK_HTTP_1_1 == PasUpnpVersionMixin.UPNP_HEADER_QUIRK_HTTP_1_1):
-            _return += " HTTP/1.1"
         #
 
         return _return
@@ -228,6 +238,8 @@ Parses the given quirks mode string.
             elif (mode == "quirk_http_hidden"): _return |= PasUpnpVersionMixin.UPNP_HEADER_QUIRK_HTTP_HIDDEN
             elif (mode == "quirk_upnp_1_0"): _return |= PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_0
             elif (mode == "quirk_upnp_1_0_forced"): _return |= PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_0_FORCED
+            elif (mode == "quirk_upnp_1_1"): _return |= PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_1
+            elif (mode == "quirk_upnp_1_1_forced"): _return |= PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_1_FORCED
         #
 
         return _return
@@ -263,10 +275,18 @@ active quirks mode.
 
         _return = "UPnP/2.0"
 
+        if (PasUpnpVersionMixin._pas_upnp_quirks_mode & PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_1 == PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_1):
+            _return += " UPnP/1.1"
+        #
+
+        if (PasUpnpVersionMixin._pas_upnp_quirks_mode & PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_0 == PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_0):
+            _return += " UPnP/1.0"
+        #
+
         if (PasUpnpVersionMixin._pas_upnp_quirks_mode & PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_0_FORCED == PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_0_FORCED):
             _return = "UPnP/1.0"
-        elif (PasUpnpVersionMixin._pas_upnp_quirks_mode & PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_0 == PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_0):
-            _return += " UPnP/1.0"
+        elif (PasUpnpVersionMixin._pas_upnp_quirks_mode & PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_1_FORCED == PasUpnpVersionMixin.UPNP_HEADER_QUIRK_UPNP_1_1_FORCED):
+            _return = "UPnP/1.1"
         #
 
         return _return
