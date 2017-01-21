@@ -96,7 +96,7 @@ Initialize block from the given request and response.
         self.init_client_settings(user_agent, host)
 
         if (isinstance(self.response, AbstractHttpResponse)):
-            self.response.set_header("Server", Module.get_pas_upnp_http_header_string())
+            self.response.set_header("Server", Module.get_pas_upnp_http_identifier_string())
         #
 
         if (isinstance(self.response, HttpUpnpResponse)): self.response.set_client_settings(self.get_client_settings())
