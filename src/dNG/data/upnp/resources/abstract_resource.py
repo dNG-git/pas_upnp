@@ -297,7 +297,11 @@ Initialize the UPnP parent resource instance.
             with self._lock:
                 # Thread safety
                 if (self.parent_resource is None):
-                    self.parent_resource = AbstractResource.load_cds_id(self.get_parent_resource_id(), self.get_client_user_agent())
+                    self.parent_resource = AbstractResource.load_cds_id(self.get_parent_resource_id(),
+                                                                        self.get_client_user_agent()
+                                                                       )
+
+                    if (self.parent_resource is None): raise IOException("Given UPnP parent resource ID '{0}' is invalid".format(self.parent_resource_id))
 
                     if (self.mimeclass is None): self.set_mimeclass(self.parent_resource.get_mimeclass())
                     if (self.mimetype is None): self.set_mimetype(self.parent_resource.get_mimetype())
